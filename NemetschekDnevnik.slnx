@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="nemetschekdnevnik.client/nemetschekdnevnik.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="NemetschekDnevnik.Server/NemetschekDnevnik.Server.csproj" />
+</Solution>

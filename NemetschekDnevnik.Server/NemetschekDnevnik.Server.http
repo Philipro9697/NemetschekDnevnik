@@ -1,0 +1,6 @@
+@NemetschekDnevnik.Server_HostAddress = http://localhost:5014
+
+GET {{NemetschekDnevnik.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
