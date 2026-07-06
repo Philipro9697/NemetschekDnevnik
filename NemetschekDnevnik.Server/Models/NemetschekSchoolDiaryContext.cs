@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace NemetschekDnevnik.Server.Models;
 
-public partial class NemetschekSchoolDiaryContext : IdentityDbContext<User, IdentityRole<int>, int>
+public partial class NemetschekSchoolDiaryContext : DbContext
 {
     public NemetschekSchoolDiaryContext()
     {
@@ -37,18 +37,15 @@ public partial class NemetschekSchoolDiaryContext : IdentityDbContext<User, Iden
 
     public virtual DbSet<WeeklySchedule> WeeklySchedules { get; set; }
 
+    public virtual DbSet<User> Users { get; set; }
+
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary; Integrated Security=True; TrustServerCertificate=True");
-        }
-    }
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary; Integrated Security=True; TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
-
         modelBuilder.Entity<Admin>(entity =>
         {
             entity.HasKey(e => e.AdminId).HasName("PK__admin__43AA4141760C7B9D");
@@ -311,53 +308,22 @@ public partial class NemetschekSchoolDiaryContext : IdentityDbContext<User, Iden
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__users__B9BE370FB3BC4991");
+            entity.HasKey(e => e.UserId).HasName("PK__users__B9BE370FB3BC4991");
 
             entity.ToTable("users");
 
-            entity.HasIndex(e => e.UserName).IsUnique();
-            entity.HasIndex(e => e.NormalizedUserName).IsUnique();
-            entity.HasIndex(e => e.Email).IsUnique();
-            entity.HasIndex(e => e.NormalizedEmail).IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__users__AB6E6164CC0E5DCB").IsUnique();
 
-            entity.Property(e => e.Id).HasColumnName("user_id");
-            entity.Property(e => e.UserName)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("user_name");
-            entity.Property(e => e.NormalizedUserName)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("normalized_user_name");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Email)
                 .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("email");
-            entity.Property(e => e.NormalizedEmail)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("normalized_email");
-            entity.Property(e => e.EmailConfirmed).HasColumnName("email_confirmed");
+            entity.Property(e => e.IsApproved).HasColumnName("is_approved");
             entity.Property(e => e.PasswordHash)
                 .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("password_hash");
-            entity.Property(e => e.SecurityStamp)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("security_stamp");
-            entity.Property(e => e.ConcurrencyStamp)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("concurrency_stamp");
-            entity.Property(e => e.PhoneNumber).HasColumnName("phone_number");
-            entity.Property(e => e.PhoneNumberConfirmed).HasColumnName("phone_number_confirmed");
-            entity.Property(e => e.TwoFactorEnabled).HasColumnName("two_factor_enabled");
-            entity.Property(e => e.LockoutEnd).HasColumnName("lockout_end");
-            entity.Property(e => e.LockoutEnabled).HasColumnName("lockout_enabled");
-            entity.Property(e => e.AccessFailedCount).HasColumnName("access_failed_count");
-
-            entity.Property(e => e.IsApproved).HasColumnName("is_approved");
             entity.Property(e => e.Role)
                 .HasMaxLength(50)
                 .IsUnicode(false)

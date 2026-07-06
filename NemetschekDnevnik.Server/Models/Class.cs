@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
-
 namespace NemetschekDnevnik.Server.Models;
+
 public partial class Class
 {
     public int ClassId { get; set; }
