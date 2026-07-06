@@ -15,6 +15,12 @@
     </ProjectReference>
   </ItemGroup>
 
+    <ItemGroup>
+		<Compile Include="Models\**\*.cs">
+			<Link>Models\%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</Compile>
+	</ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
       <Version>10.*-*</Version>
