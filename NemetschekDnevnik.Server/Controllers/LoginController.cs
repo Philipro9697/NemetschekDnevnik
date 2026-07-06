@@ -32,7 +32,7 @@ namespace NemetschekDnevnik.Server.Controllers
                 return BadRequest("Email and password are required.");
             }
 
-            // TODO: Authenticate user
+            // ! UserName is email
             var result = await _signin.PasswordSignInAsync(request.Email, request.Password, isPersistent: true, lockoutOnFailure: false);
             
             if(result.Succeeded) return Ok(new { message = "Logged in successfully!" });
