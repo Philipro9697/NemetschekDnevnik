@@ -13,6 +13,8 @@ app.MapStaticAssets();
 
 app.UseHttpsRedirection();
 
+app.UseMiddleware<EnsureApprovedUserMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
