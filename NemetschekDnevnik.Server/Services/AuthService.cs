@@ -31,6 +31,15 @@ public class AuthService : IAuthService
 
     public async Task<bool> RegisterAsync(string email, string password, string role, string firstName, string lastName)
     {
+        if (string.IsNullOrWhiteSpace(email) ||
+        string.IsNullOrWhiteSpace(password) ||
+        string.IsNullOrWhiteSpace(role) ||
+        string.IsNullOrWhiteSpace(firstName) ||
+        string.IsNullOrWhiteSpace(lastName))
+        {
+            return false;
+        }
+
         if (await _context.Users.AnyAsync(u => u.Email == email))
             return false;
 
