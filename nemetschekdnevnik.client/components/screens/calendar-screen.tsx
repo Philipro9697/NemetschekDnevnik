@@ -37,6 +37,7 @@ export function CalendarScreen() {
   const [cursor, setCursor] = useState(() => new Date())
   const [addOpen, setAddOpen] = useState(false)
   const [syncOpen, setSyncOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
 
   const canManage = me?.role === 'admin' || me?.role === 'teacher'
 
@@ -166,16 +167,18 @@ export function CalendarScreen() {
                     </span>
                     <div className="mt-1 space-y-1">
                       {dayEvents.map((e) => (
-                        <div
+                        <button
                           key={e.id}
+                          type="button"
+                          onClick={() => setSelectedEvent(e)}
                           title={`${e.title}${e.description ? ' — ' + e.description : ''}`}
                           className={cn(
-                            'truncate rounded px-1.5 py-0.5 text-[11px] font-medium leading-tight text-white',
+                            'w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium leading-tight text-white transition-opacity hover:opacity-90',
                             e.type === 'exam' ? 'bg-brand-blue' : 'bg-success',
                           )}
                         >
                           {e.title}
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </>
@@ -190,6 +193,35 @@ export function CalendarScreen() {
         <AddEventDialog open={addOpen} onClose={() => setAddOpen(false)} />
       )}
       <SyncDialog open={syncOpen} onClose={() => setSyncOpen(false)} />
+      <Dialog
+        open={Boolean(selectedEvent)}
+        onClose={() => setSelectedEvent(null)}
+        title={selectedEvent?.title ?? 'Събитие'}
+        description={selectedEvent ? (selectedEvent.type === 'exam' ? 'Контролно / класно събитие' : 'Събитие / среща') : undefined}
+      >
+        {selectedEvent && (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border border-border bg-muted/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Дата</p>
+              <p className="mt-1 font-medium">{selectedEvent.date}</p>
+            </div>
+            {selectedEvent.description && (
+              <div className="rounded-xl border border-border bg-muted/40 p-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Описание</p>
+                <p className="mt-1 leading-relaxed text-foreground">{selectedEvent.description}</p>
+              </div>
+            )}
+            <div className="rounded-xl border border-border bg-muted/40 p-3">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Видимост</p>
+              <p className="mt-1 font-medium">
+                {selectedEvent.classIds.length === 0
+                  ? 'За всички класове'
+                  : `За ${selectedEvent.classIds.length} класа`}
+              </p>
+            </div>
+          </div>
+        )}
+      </Dialog>
     </div>
   )
 }
