@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace NemetschekDnevnik.Models;
+namespace NemetschekDnevnik.Server.Models;
 
 public partial class DnevnikContext : DbContext
 {

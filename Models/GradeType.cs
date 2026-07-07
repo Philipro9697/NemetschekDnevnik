@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace NemetschekDnevnik.Models;
+namespace NemetschekDnevnik.Server.Models;
 
 public partial class GradeType
 {
