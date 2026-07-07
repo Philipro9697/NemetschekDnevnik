@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog } from '@/components/ui/dialog'
 import { GradePill } from '@/components/shared/grade-pill'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import {
   schedule,
   userById,
   formatDate,
+  type Grade,
   type User,
 } from '@/lib/data'
 import { cn } from '@/lib/utils'
@@ -41,6 +43,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
   const me = student ?? app.currentUser
   const [activeView, setActiveView] = useState<ViewKey>('grades')
   const [, setView] = useState('dashboard')
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
 
   if (!me) return null
 
@@ -155,7 +158,9 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {grades.map((g) => (
-                          <GradePill key={g.id} value={g.value} title={formatDate(g.date)} />
+                          <button key={g.id} type="button" onClick={() => setSelectedGrade(g)}>
+                            <GradePill value={g.value} title={`${subjectById(g.subjectId).name} · ${formatDate(g.date)}`} />
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -207,7 +212,10 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
                           {a.type === 'absent' ? 'Отсъствие' : 'Закъснение'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {subjectById(a.subjectId).name} · {formatDate(a.date)}
+                          {subjectById(a.subjectId).name} · {formatDate(a.date)} · {a.time ?? '—'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Учител: {app.users.find((u) => u.id === a.teacherId)?.name ?? '—'}
                         </p>
                       </div>
                       <Badge tone={a.excused ? 'success' : 'danger'}>
@@ -263,7 +271,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
                     <div className="min-w-0">
                       <p className="text-sm leading-relaxed text-foreground">{n.text}</p>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {subjectById(n.subjectId).name} · {userById(n.teacherId, app.users)?.name} · {formatDate(n.date)}
+                        {subjectById(n.subjectId).name} · {userById(n.teacherId, app.users)?.name} · {formatDate(n.date)} · {n.time ?? '—'}
                       </p>
                     </div>
                     <Badge tone={n.kind === 'praise' ? 'success' : 'danger'}>
@@ -276,6 +284,28 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
           </CardBody>
         </Card>
       )}
+
+      <Dialog open={Boolean(selectedGrade)} onClose={() => setSelectedGrade(null)} title="Детайли за оценка">
+        {selectedGrade && (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div className="font-semibold">{subjectById(selectedGrade.subjectId).name}</div>
+              <GradePill value={selectedGrade.value} className="size-8 text-sm" />
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Дата и час</div>
+              <div>{selectedGrade.date} · {selectedGrade.time ?? '—'}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Учител</div>
+              <div>{app.users.find((u) => u.id === selectedGrade.teacherId)?.name}</div>
+            </div>
+            {selectedGrade.description && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-muted-foreground">{selectedGrade.description}</div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   )
 }
