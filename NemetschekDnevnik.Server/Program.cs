@@ -50,6 +50,13 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<NemetschekSchoolDiaryContext>();
+    context.Database.Migrate();
+}
+
 app.UseDefaultFiles();
 app.MapStaticAssets();
 
