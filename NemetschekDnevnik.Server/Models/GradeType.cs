@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace NemetschekDnevnik.Server.Models;
 
+
 public partial class GradeType
 {
     public int GradeTypeId { get; set; }
