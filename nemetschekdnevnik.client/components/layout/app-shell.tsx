@@ -44,8 +44,8 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'settings', label: 'Настройки', icon: Settings },
   ],
   teacher: [
-    { view: 'diary', label: 'Електронен дневник', icon: BookOpenCheck },
-    { view: 'grades', label: 'Оценки', icon: TrendingUp },
+    { view: 'diary', label: 'Програма', icon: BookOpenCheck },
+    { view: 'grades', label: 'Дневник', icon: TrendingUp },
     { view: 'classteacher', label: 'Класен ръководител', icon: UsersRound },
     { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
