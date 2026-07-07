@@ -5,11 +5,25 @@ GO
 
 CREATE TABLE [users] (
     [user_id] INT IDENTITY(1,1) PRIMARY KEY,
+    [user_name] VARCHAR(255) NOT NULL UNIQUE,
     [email] VARCHAR(255) NOT NULL UNIQUE,
+    [normalized_user_name] VARCHAR(255) NOT NULL,
+    [normalized_email] VARCHAR(255) NOT NULL,
     [password_hash] VARCHAR(255) NOT NULL,
+    [security_stamp] VARCHAR(255) NULL,
+    [concurrency_stamp] VARCHAR(255) NULL,
+    [phone_number] VARCHAR(50) NULL,
+    [phone_number_confirmed] BIT NOT NULL DEFAULT 0,
+    [two_factor_enabled] BIT NOT NULL DEFAULT 0,
+    [lockout_end] DATETIMEOFFSET NULL,
+    [lockout_enabled] BIT NOT NULL DEFAULT 0,
+    [access_failed_count] INT NOT NULL DEFAULT 0,
     [role] VARCHAR(50) NOT NULL CHECK ([role] IN ('student', 'parent', 'teacher', 'admin')),
     [is_approved] BIT NOT NULL DEFAULT 0
 );
+
+CREATE UNIQUE INDEX IX_users_normalized_user_name ON [users] ([normalized_user_name]);
+CREATE UNIQUE INDEX IX_users_normalized_email ON [users] ([normalized_email]);
 
 CREATE TABLE [subjects] (
     [subject_id] INT IDENTITY(1,1) PRIMARY KEY,
@@ -81,7 +95,7 @@ CREATE TABLE [weekly_schedules] (
 CREATE TABLE [attendance] (
     [lesson_id] INT FOREIGN KEY REFERENCES [weekly_schedules]([schedule_id]),
     [student_id] INT FOREIGN KEY REFERENCES [student]([student_id]),
-    [status] NVARCHAR(50) NOT NULL CHECK ([status] IN ('отсъства', 'присъства', 'закъснял')),
+    [status] NVARCHAR(50) NOT NULL CHECK ([status] IN ('пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ', 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ', 'пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ')),
     PRIMARY KEY ([lesson_id], [student_id])
 );
 
