@@ -16,6 +16,7 @@ public class AuthService : IAuthService
 
     public async Task<string?> LoginAsync(string email, string password)
     {
+        email = email.Trim();
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user is null)
             return null;
@@ -29,13 +30,14 @@ public class AuthService : IAuthService
         return _tokenService.CreateToken(user.UserId, user.Role);
     }
 
-    public async Task<bool> RegisterAsync(string email, string password, string role, string firstName, string lastName)
+    public async Task<bool> RegisterAsync(string email, string password, string role, string firstName, string lastName, string phoneNumber)
     {
         if (string.IsNullOrWhiteSpace(email) ||
         string.IsNullOrWhiteSpace(password) ||
         string.IsNullOrWhiteSpace(role) ||
         string.IsNullOrWhiteSpace(firstName) ||
-        string.IsNullOrWhiteSpace(lastName))
+        string.IsNullOrWhiteSpace(lastName) ||
+        string.IsNullOrWhiteSpace(phoneNumber))
         {
             return false;
         }
