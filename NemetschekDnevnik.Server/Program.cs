@@ -7,12 +7,20 @@ using Microsoft.EntityFrameworkCore;
 using NemetschekDnevnik.Server.Middleware;
 using NemetschekDnevnik.Server.Services;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
+using DotNetEnv;
 
-var builder = WebApplication.CreateBuilder(args);
+DotNetEnv.Env.Load();
 
 // Add services to the container.
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddEnvironmentVariables();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 
 
