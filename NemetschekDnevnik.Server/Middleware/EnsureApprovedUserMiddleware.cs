@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using NemetschekDnevnik.Server.Models;
+
+namespace NemetschekDnevnik.Server.Middleware;
 public class EnsureApprovedUserMiddleware
 {
     private readonly RequestDelegate _next;
