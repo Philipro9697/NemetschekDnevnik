@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { GradePill } from '@/components/shared/grade-pill'
-import { classes, classById, studentsOfClass, subjectById, userById, type Absence, type Grade, type GradeSection } from '@/lib/data'
+import { classes, classById, studentsOfClass, subjects, subjectById, userById, type Absence, type Grade, type GradeSection } from '@/lib/data'
+import { cn } from '@/lib/utils'
 
 const gradeSections: { key: GradeSection; label: string }[] = [
   { key: 'term1', label: '1ви срок' },
