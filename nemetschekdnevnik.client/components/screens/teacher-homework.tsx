@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { Dialog } from '@/components/ui/dialog'
 import { Avatar } from '@/components/ui/avatar'
-import { subjects, classes, subjectById, classById, userById, formatDate, type Homework } from '@/lib/data'
+import { subjects, classes, subjectById, classById, userById, formatDate, type Homework, type User } from '@/lib/data'
 
 export function TeacherHomework() {
   const { currentUser, homework, addHomework, addFeedback, users } = useApp()
@@ -90,7 +90,7 @@ export function TeacherHomework() {
   )
 }
 
-function HomeworkCard({ hw, onFeedback, users }: { hw: Homework; onFeedback: (id: string, studentId: string, fb: string) => void; users: ReturnType<typeof userById>[] | any }) {
+function HomeworkCard({ hw, onFeedback, users }: { hw: Homework; onFeedback: (id: string, studentId: string, fb: string) => void; users: User[] }) {
   return (
     <Card>
       <CardHeader>
@@ -113,7 +113,7 @@ function HomeworkCard({ hw, onFeedback, users }: { hw: Homework; onFeedback: (id
           ) : (
             <div className="space-y-2">
               {hw.submissions.map((sub) => (
-                <SubmissionRow key={sub.studentId} hwId={hw.id} sub={sub} onFeedback={onFeedback} />
+                <SubmissionRow key={sub.studentId} hwId={hw.id} sub={sub} onFeedback={onFeedback} users={users} />
               ))}
             </div>
           )}
@@ -123,8 +123,8 @@ function HomeworkCard({ hw, onFeedback, users }: { hw: Homework; onFeedback: (id
   )
 }
 
-function SubmissionRow({ hwId, sub, onFeedback }: { hwId: string; sub: { studentId: string; fileName: string; feedback?: string }; onFeedback: (id: string, studentId: string, fb: string) => void }) {
-  const student = userById(sub.studentId)
+function SubmissionRow({ hwId, sub, onFeedback, users }: { hwId: string; sub: { studentId: string; fileName: string; feedback?: string }; onFeedback: (id: string, studentId: string, fb: string) => void; users: User[] }) {
+  const student = users.find((u) => u.id === sub.studentId)
   const [fb, setFb] = useState(sub.feedback ?? '')
   return (
     <div className="rounded-xl border border-border bg-muted/30 p-3">
@@ -135,9 +135,15 @@ function SubmissionRow({ hwId, sub, onFeedback }: { hwId: string; sub: { student
           <FileCheck2 className="size-3.5" /> {sub.fileName}
         </span>
       </div>
-      <div className="mt-2 flex gap-2">
-        <Input value={fb} onChange={(e) => setFb(e.target.value)} placeholder="Обратна връзка / коментар от учителя..." className="h-9" />
-        <Button size="sm" className="h-9" onClick={() => onFeedback(hwId, sub.studentId, fb)}>Запиши</Button>
+      <div className="mt-3 rounded-lg border border-border/70 bg-background/70 p-3">
+        <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
+          <span>Обратна връзка</span>
+          <span>{student?.classId ? classById(student.classId)?.name : '—'}</span>
+        </div>
+        <div className="flex gap-2">
+          <Input value={fb} onChange={(e) => setFb(e.target.value)} placeholder="Обратна връзка / коментар от учителя..." className="h-9" />
+          <Button size="sm" className="h-9" onClick={() => onFeedback(hwId, sub.studentId, fb)}>Запиши</Button>
+        </div>
       </div>
       {sub.feedback && <p className="mt-1.5 text-xs text-success">Обратна връзка е изпратена.</p>}
     </div>
