@@ -48,7 +48,7 @@ export interface Absence {
   teacherId?: string
   date: string
   time?: string
-  type: 'absent' | 'late'
+  type: 'absent'
   excused: boolean
 }
 
@@ -269,7 +269,6 @@ export const seedGrades: Grade[] = [
 
 export const seedAbsences: Absence[] = [
   { id: 'a1', studentId: 's2', subjectId: 'ist', teacherId: 't2', date: iso(6), time: '08:00', type: 'absent', excused: true },
-  { id: 'a2', studentId: 's2', subjectId: 'mat', teacherId: 't1', date: iso(2), time: '08:10', type: 'late', excused: false },
   { id: 'a3', studentId: 's9', subjectId: 'bel', teacherId: 't2', date: iso(8), time: '09:00', type: 'absent', excused: false },
   { id: 'a4', studentId: 's9', subjectId: 'ae', teacherId: 't3', date: iso(3), time: '11:00', type: 'absent', excused: true },
   { id: 'a5', studentId: 's4', subjectId: 'mat', teacherId: 't1', date: iso(2), time: '09:00', type: 'absent', excused: false },

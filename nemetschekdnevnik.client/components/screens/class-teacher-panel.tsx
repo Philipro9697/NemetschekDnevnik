@@ -59,7 +59,7 @@ export function ClassTeacherPanel() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/80 p-3">
-        <div className="text-sm text-muted-foreground">Таблицата показва оценките, бележките, отсъствията и закъсненията за целия клас.</div>
+        <div className="text-sm text-muted-foreground">Таблицата показва оценките, бележките и отсъствията за целия клас.</div>
         <div className="relative">
           <button type="button" onClick={() => setSubjectMenuOpen((prev) => !prev)} className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium">
             <BookOpenCheck className="size-4 text-primary" /> Оценки - {selectedSubject?.name ?? 'Предмет'}
@@ -137,7 +137,7 @@ export function ClassTeacherPanel() {
                       <div className="space-y-2">
                         {studentAbsences.map((absence) => (
                           <button key={absence.id} type="button" onClick={() => setActiveAbsence(absence)} className="flex w-full items-center justify-between rounded-lg border border-border/70 bg-muted/30 px-2 py-2 text-left text-xs">
-                            <span className={cn(absence.type === 'absent' ? 'text-danger' : 'text-warning')}>{absence.type === 'absent' ? 'Отсъствие' : 'Закъснение'}</span>
+                            <span className="text-danger">Отсъствие</span>
                             <Badge tone={absence.excused ? 'success' : 'danger'}>{absence.excused ? 'Извинено' : 'Неизвинено'}</Badge>
                           </button>
                         ))}
@@ -161,7 +161,7 @@ export function ClassTeacherPanel() {
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Статус</div>
-              <div className="mt-1">{activeAbsence.excused ? 'Извинено' : 'Неизвинено'} · {activeAbsence.type === 'absent' ? 'Отсъствие' : 'Закъснение'}</div>
+              <div className="mt-1">{activeAbsence.excused ? 'Извинено' : 'Неизвинено'} · Отсъствие</div>
             </div>
             {(currentUser?.role === 'admin' || currentUser?.classTeacherOf === classId) && !activeAbsence.excused && (
               <div className="flex justify-end">

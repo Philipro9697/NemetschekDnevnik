@@ -25,7 +25,7 @@ export function StudentAbsences({ student }: { student?: User }) {
             </div>
             <h2 className="font-heading text-2xl font-bold">Отсъствия на {me.name}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {classById(me.classId)?.name ?? 'Без клас'} · наблюдение на отсъствия и закъснения
+              {classById(me.classId)?.name ?? 'Без клас'} · наблюдение на отсъствия
             </p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3 text-sm text-muted-foreground">
@@ -72,7 +72,7 @@ export function StudentAbsences({ student }: { student?: User }) {
                 .map((a) => (
                   <div key={a.id} className="flex flex-col gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-sm font-medium">{a.type === 'absent' ? 'Отсъствие' : 'Закъснение'}</p>
+                      <p className="text-sm font-medium">Отсъствие</p>
                       <p className="text-xs text-muted-foreground">{subjectById(a.subjectId).name} · {formatDate(a.date)} · {a.time ?? '—'}</p>
                       <p className="text-xs text-muted-foreground">Учител: {app.users.find((u) => u.id === a.teacherId)?.name ?? '—'}</p>
                     </div>

@@ -208,9 +208,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
                   .map((a) => (
                     <div key={a.id} className="flex flex-col gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-sm font-medium">
-                          {a.type === 'absent' ? 'Отсъствие' : 'Закъснение'}
-                        </p>
+                        <p className="text-sm font-medium">Отсъствие</p>
                         <p className="text-xs text-muted-foreground">
                           {subjectById(a.subjectId).name} · {formatDate(a.date)} · {a.time ?? '—'}
                         </p>

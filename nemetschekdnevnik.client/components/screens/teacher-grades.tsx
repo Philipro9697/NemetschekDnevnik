@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { GradePill } from '@/components/shared/grade-pill'
-import { classes, classById, studentsOfClass, subjects, subjectById, userById, type Absence, type Grade, type GradeSection } from '@/lib/data'
+import { classes, classById, studentsOfClass, subjects, subjectById, userById, type Grade, type GradeSection } from '@/lib/data'
 import { cn } from '@/lib/utils'
 
 const gradeSections: { key: GradeSection; label: string }[] = [
@@ -17,6 +17,12 @@ const gradeSections: { key: GradeSection; label: string }[] = [
   { key: 'term2', label: '2ри срок' },
   { key: 'term2Final', label: 'Срочна 2ри' },
   { key: 'yearly', label: 'Годишна' },
+]
+
+const termGroups = [
+  { key: 'term1', label: '1ви срок', sections: ['term1', 'term1Final'] as GradeSection[] },
+  { key: 'term2', label: '2ри срок', sections: ['term2', 'term2Final'] as GradeSection[] },
+  { key: 'yearly', label: 'Годишна', sections: ['yearly'] as GradeSection[] },
 ]
 
 function currentTime() {
@@ -35,10 +41,11 @@ export function TeacherGrades() {
   const [gradeDescription, setGradeDescription] = useState('')
   const [noteKind, setNoteKind] = useState<'praise' | 'remark'>('praise')
   const [noteText, setNoteText] = useState('')
-  const [absenceType, setAbsenceType] = useState<'absent' | 'late'>('absent')
   const [absenceExcused, setAbsenceExcused] = useState(false)
   const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
-  const [selectedAbsence, setSelectedAbsence] = useState<Absence | null>(null)
+  const [notesPopupTarget, setNotesPopupTarget] = useState<{ studentId: string; subjectId: string } | null>(null)
+  const [absencesPopupTarget, setAbsencesPopupTarget] = useState<{ studentId: string; subjectId: string } | null>(null)
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
 
   const classId = selectedClassId ?? currentUser?.classTeacherOf ?? classes[0]?.id
 
@@ -58,6 +65,16 @@ export function TeacherGrades() {
   }, [classId, query, users])
 
   const selectedSubject = subjectOptions.find((s) => s.id === selectedSubjectId) ?? subjectOptions[0]
+  const visibleSections = useMemo(() => {
+    return gradeSections.filter((section) => {
+      const group = termGroups.find((item) => item.sections.includes(section.key))
+      return !group || !collapsedGroups[group.key]
+    })
+  }, [collapsedGroups])
+
+  function getGradeColumnWidth(sectionKey: GradeSection) {
+    return sectionKey === 'term1Final' || sectionKey === 'term2Final' || sectionKey === 'yearly' ? '84px' : '96px'
+  }
 
   function openGradeDialog(studentId: string, section: GradeSection) {
     setGradeTarget({ studentId, subjectId: selectedSubjectId, section })
@@ -73,7 +90,6 @@ export function TeacherGrades() {
 
   function openAbsenceDialog(studentId: string) {
     setAbsenceTarget({ studentId, subjectId: selectedSubjectId })
-    setAbsenceType('absent')
     setAbsenceExcused(false)
   }
 
@@ -111,11 +127,15 @@ export function TeacherGrades() {
       studentId: absenceTarget.studentId,
       subjectId: absenceTarget.subjectId,
       teacherId: currentUser.id,
-      type: absenceType,
+      type: 'absent',
       excused: absenceExcused,
       time: currentTime(),
     })
     setAbsenceTarget(null)
+  }
+
+  function toggleGroup(groupKey: string) {
+    setCollapsedGroups((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }))
   }
 
   return (
@@ -169,14 +189,37 @@ export function TeacherGrades() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex flex-wrap gap-2 border-b border-border/70 bg-muted/30 px-3 py-2">
+          {termGroups.map((group) => {
+            const collapsed = Boolean(collapsedGroups[group.key])
+            return (
+              <button
+                key={group.key}
+                type="button"
+                onClick={() => toggleGroup(group.key)}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide',
+                  collapsed ? 'border-border bg-background text-muted-foreground' : 'border-primary/30 bg-primary/10 text-primary',
+                )}
+              >
+                <span>{group.label}</span>
+                <ChevronDown className={cn('size-3.5 transition-transform', !collapsed && 'rotate-180')} />
+              </button>
+            )
+          })}
+        </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="min-w-full table-fixed text-sm">
             <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Ученик</th>
-                <th className="px-4 py-3">Оценки</th>
-                <th className="px-4 py-3">Бележки</th>
-                <th className="px-4 py-3">Отсъствия</th>
+                <th className="w-[220px] px-3 py-2">Ученик</th>
+                {visibleSections.map((section) => (
+                  <th key={section.key} className="border-l border-border/70 px-1.5 py-2 text-center" style={{ width: getGradeColumnWidth(section.key), minWidth: getGradeColumnWidth(section.key) }}>
+                    <div className="text-[9px] font-semibold uppercase tracking-wide">{section.label}</div>
+                  </th>
+                ))}
+                <th className="w-[130px] border-l border-border/70 px-2 py-2">Бележки</th>
+                <th className="w-[130px] border-l border-border/70 px-2 py-2">Отсъствия</th>
               </tr>
             </thead>
             <tbody>
@@ -186,64 +229,49 @@ export function TeacherGrades() {
                 const studentAbsences = absences.filter((a) => a.studentId === student.id && a.subjectId === selectedSubjectId)
                 return (
                   <tr key={student.id} className="border-t border-border/70 align-top">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{student.number}. {student.name}</div>
-                      <div className="text-xs text-muted-foreground">{classById(student.classId)?.name}</div>
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-[13px]">{student.number}. {student.name}</div>
+                      <div className="text-[11px] text-muted-foreground">{classById(student.classId)?.name}</div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="grid gap-2 xl:grid-cols-5">
-                        {gradeSections.map((section) => {
-                          const sectionGrades = studentGrades.filter((g) => g.section === section.key)
-                          return (
-                            <div key={section.key} className="rounded-lg border border-border/70 bg-muted/30 p-2">
-                              <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                <span>{section.label}</span>
-                                <button type="button" onClick={() => openGradeDialog(student.id, section.key)} className="rounded-md p-1 text-primary hover:bg-background">
-                                  <Plus className="size-3.5" />
+                    {visibleSections.map((section) => {
+                      const sectionGrades = studentGrades.filter((g) => g.section === section.key)
+                      return (
+                        <td key={section.key} className="border-l border-border/70 px-1.5 py-1.5 align-top" style={{ width: getGradeColumnWidth(section.key), minWidth: getGradeColumnWidth(section.key) }}>
+                          <div className="rounded-md border border-border/70 bg-muted/20 p-1.5">
+                            <div className="mb-1 flex items-center justify-end text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              <button type="button" onClick={() => openGradeDialog(student.id, section.key)} className="rounded-md p-0.5 text-primary hover:bg-background">
+                                <Plus className="size-3" />
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {sectionGrades.map((g) => (
+                                <button key={g.id} type="button" onClick={() => setSelectedGrade(g)} className="rounded-md border border-border/70 bg-background/80 p-0.5">
+                                  <GradePill value={g.value} className="size-5 text-[0.6rem]" />
                                 </button>
-                              </div>
-                              <div className="space-y-1">
-                                {sectionGrades.map((g) => (
-                                  <button key={g.id} type="button" onClick={() => setSelectedGrade(g)} className="flex w-full items-center justify-between rounded-md border border-border/70 bg-background/80 px-2 py-1 text-left">
-                                    <GradePill value={g.value} className="size-6 text-[0.65rem]" />
-                                    <span className="text-[11px] text-muted-foreground">{g.description?.slice(0, 18) ?? ''}</span>
-                                  </button>
-                                ))}
-                                {sectionGrades.length === 0 && <span className="text-[11px] text-muted-foreground">Няма</span>}
-                              </div>
+                              ))}
+                              {sectionGrades.length === 0 && <span className="text-[11px] text-muted-foreground">—</span>}
                             </div>
-                          )
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="space-y-2">
-                        {studentNotes.map((note) => (
-                          <div key={note.id} className="rounded-lg border border-border/70 bg-muted/30 px-2 py-2 text-xs">
-                            <div className="mb-1 flex items-center justify-between">
-                              <Badge variant={note.kind === 'praise' ? 'green' : 'warning'}>{note.kind === 'praise' ? 'Похвала' : 'Забележка'}</Badge>
-                              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{note.date}</span>
-                            </div>
-                            <div>{note.text}</div>
                           </div>
-                        ))}
-                        {studentNotes.length === 0 && <span className="text-xs text-muted-foreground">Няма</span>}
-                        <button type="button" onClick={() => openNoteDialog(student.id)} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-                          <Plus className="size-3.5" /> Добави бележка
+                        </td>
+                      )
+                    })}
+                    <td className="border-l border-border/70 px-2 py-2 align-top">
+                      <div className="flex items-center justify-center gap-1.5 rounded-lg border border-border/70 bg-muted/20 px-2 py-1.5">
+                        <button type="button" onClick={() => setNotesPopupTarget({ studentId: student.id, subjectId: selectedSubjectId })} className="rounded-md px-2 py-1 text-sm font-semibold text-foreground hover:bg-background">
+                          {studentNotes.length}
+                        </button>
+                        <button type="button" onClick={() => openNoteDialog(student.id)} className="rounded-md p-1 text-primary hover:bg-background">
+                          <Plus className="size-3.5" />
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="space-y-2">
-                        {studentAbsences.map((absence) => (
-                          <button key={absence.id} type="button" onClick={() => setSelectedAbsence(absence)} className="flex w-full items-center justify-between rounded-lg border border-border/70 bg-muted/30 px-2 py-2 text-left text-xs">
-                            <span className={cn(absence.type === 'absent' ? 'text-danger' : 'text-warning')}>{absence.type === 'absent' ? 'Отсъствие' : 'Закъснение'}</span>
-                            <Badge tone={absence.excused ? 'success' : 'danger'}>{absence.excused ? 'Извинено' : 'Неизвинено'}</Badge>
-                          </button>
-                        ))}
-                        {studentAbsences.length === 0 && <span className="text-xs text-muted-foreground">Няма</span>}
-                        <button type="button" onClick={() => openAbsenceDialog(student.id)} className="inline-flex items-center gap-1.5 text-sm font-medium text-danger">
-                          <Plus className="size-3.5" /> Добави отсъствие
+                    <td className="border-l border-border/70 px-2 py-2 align-top">
+                      <div className="flex items-center justify-center gap-1.5 rounded-lg border border-border/70 bg-muted/20 px-2 py-1.5">
+                        <button type="button" onClick={() => setAbsencesPopupTarget({ studentId: student.id, subjectId: selectedSubjectId })} className="rounded-md px-2 py-1 text-sm font-semibold text-danger hover:bg-background">
+                          {studentAbsences.length}
+                        </button>
+                        <button type="button" onClick={() => openAbsenceDialog(student.id)} className="rounded-md p-1 text-danger hover:bg-background">
+                          <Plus className="size-3.5" />
                         </button>
                       </div>
                     </td>
@@ -315,9 +343,8 @@ export function TeacherGrades() {
               </>
             )}
           </div>
-          <div className="flex gap-2">
-            <Button variant={absenceType === 'absent' ? 'default' : 'outline'} onClick={() => setAbsenceType('absent')}>Отсъствие</Button>
-            <Button variant={absenceType === 'late' ? 'default' : 'outline'} onClick={() => setAbsenceType('late')}>Закъснение</Button>
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            Ще се добави отсъствие за ученика.
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={absenceExcused} onChange={(e) => setAbsenceExcused(e.target.checked)} />
@@ -354,29 +381,42 @@ export function TeacherGrades() {
         )}
       </Dialog>
 
-      <Dialog open={Boolean(selectedAbsence)} onClose={() => setSelectedAbsence(null)} title="Детайли за отсъствие">
-        {selectedAbsence && (
-          <div className="space-y-3 text-sm">
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Ученик</div>
-              <div className="font-semibold">{userById(selectedAbsence.studentId, users)?.name}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Дата и час</div>
-              <div>{selectedAbsence.date} · {selectedAbsence.time ?? '—'}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Учител</div>
-              <div>{userById(selectedAbsence.teacherId ?? '', users)?.name ?? '—'}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Предмет</div>
-              <div>{subjectById(selectedAbsence.subjectId).name}</div>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">Статус</div>
-              <div>{selectedAbsence.excused ? 'Извинено' : 'Неизвинено'} · {selectedAbsence.type === 'absent' ? 'Отсъствие' : 'Закъснение'}</div>
-            </div>
+      <Dialog open={Boolean(notesPopupTarget)} onClose={() => setNotesPopupTarget(null)} title="Бележки">
+        {notesPopupTarget && (
+          <div className="space-y-2 text-sm">
+            {notes.filter((note) => note.studentId === notesPopupTarget.studentId && note.subjectId === notesPopupTarget.subjectId).length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-4 text-center text-muted-foreground">Няма бележки.</div>
+            ) : (
+              notes.filter((note) => note.studentId === notesPopupTarget.studentId && note.subjectId === notesPopupTarget.subjectId).map((note) => (
+                <div key={note.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <Badge variant={note.kind === 'praise' ? 'green' : 'warning'}>{note.kind === 'praise' ? 'Похвала' : 'Забележка'}</Badge>
+                    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{note.date} · {note.time ?? '—'}</span>
+                  </div>
+                  <div className="text-sm">{note.text}</div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </Dialog>
+
+      <Dialog open={Boolean(absencesPopupTarget)} onClose={() => setAbsencesPopupTarget(null)} title="Отсъствия">
+        {absencesPopupTarget && (
+          <div className="space-y-2 text-sm">
+            {absences.filter((absence) => absence.studentId === absencesPopupTarget.studentId && absence.subjectId === absencesPopupTarget.subjectId).length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-4 text-center text-muted-foreground">Няма отсъствия.</div>
+            ) : (
+              absences.filter((absence) => absence.studentId === absencesPopupTarget.studentId && absence.subjectId === absencesPopupTarget.subjectId).map((absence) => (
+                <div key={absence.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="font-medium text-danger">Отсъствие</span>
+                    <Badge tone={absence.excused ? 'success' : 'danger'}>{absence.excused ? 'Извинено' : 'Неизвинено'}</Badge>
+                  </div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">{absence.date} · {absence.time ?? '—'}</div>
+                </div>
+              ))
+            )}
           </div>
         )}
       </Dialog>
