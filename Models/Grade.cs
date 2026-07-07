@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ConsoleApp1.Models;
+namespace NemetschekDnevnik.Models;
 
 public partial class Grade
 {
     public int GradeId { get; set; }
 
-    public string GradeValue { get; set; } = null!;
+    public decimal GradeValue { get; set; }
 
     public int? SubjectId { get; set; }
 
@@ -15,7 +15,13 @@ public partial class Grade
 
     public int? TeacherId { get; set; }
 
+    public int? GradeTypeId { get; set; }
+
+    public string? Comment { get; set; }
+
     public DateOnly EntryDate { get; set; }
+
+    public virtual GradeType? GradeType { get; set; }
 
     public virtual Student? Student { get; set; }
 

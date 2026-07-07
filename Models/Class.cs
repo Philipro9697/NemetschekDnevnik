@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ConsoleApp1.Models;
+namespace NemetschekDnevnik.Models;
 
 public partial class Class
 {
@@ -17,7 +17,9 @@ public partial class Class
 
     public virtual ICollection<HomeworkItem> HomeworkItems { get; set; } = new List<HomeworkItem>();
 
-    public virtual ICollection<WeeklySchedule> WeeklySchedules { get; set; } = new List<WeeklySchedule>();
+    public virtual ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
+
+    public virtual ICollection<WeeklyScheduleItem> WeeklyScheduleItems { get; set; } = new List<WeeklyScheduleItem>();
 
     public virtual ICollection<Student> Students { get; set; } = new List<Student>();
 }

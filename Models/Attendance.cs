@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ConsoleApp1.Models;
+namespace NemetschekDnevnik.Models;
 
 public partial class Attendance
 {
@@ -9,9 +9,11 @@ public partial class Attendance
 
     public int StudentId { get; set; }
 
-    public string Status { get; set; } = null!;
+    public bool IsAbsent { get; set; }
 
-    public virtual WeeklySchedule Lesson { get; set; } = null!;
+    public bool IsExcused { get; set; }
+
+    public virtual Lesson Lesson { get; set; } = null!;
 
     public virtual Student Student { get; set; } = null!;
 }
