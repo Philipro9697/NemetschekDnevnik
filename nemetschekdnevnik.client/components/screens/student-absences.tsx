@@ -73,7 +73,8 @@ export function StudentAbsences({ student }: { student?: User }) {
                   <div key={a.id} className="flex flex-col gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-medium">{a.type === 'absent' ? 'Отсъствие' : 'Закъснение'}</p>
-                      <p className="text-xs text-muted-foreground">{subjectById(a.subjectId).name} · {formatDate(a.date)}</p>
+                      <p className="text-xs text-muted-foreground">{subjectById(a.subjectId).name} · {formatDate(a.date)} · {a.time ?? '—'}</p>
+                      <p className="text-xs text-muted-foreground">Учител: {app.users.find((u) => u.id === a.teacherId)?.name ?? '—'}</p>
                     </div>
                     <Badge tone={a.excused ? 'success' : 'danger'}>{a.excused ? 'Извинено' : 'Неизвинено'}</Badge>
                   </div>
