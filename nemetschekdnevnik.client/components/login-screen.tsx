@@ -53,7 +53,7 @@ export function LoginScreen() {
           </h1>
         </div>
 
-        <div className="rounded-[30px] border border-white/15 bg-card/95 p-6 shadow-[0_24px_80px_rgba(12,27,43,0.28)] backdrop-blur sm:p-8">
+        <div className="glass-surface p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="username" className="text-sm font-medium">
@@ -122,6 +122,25 @@ export function LoginScreen() {
               </button>
             </div>
           </form>
+
+          <div className="mt-6 grid gap-2 rounded-2xl border border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground sm:grid-cols-2">
+            <div className="rounded-xl border border-border/70 bg-card/70 p-3">
+              <p className="font-semibold text-foreground">Учител</p>
+              <p>Програма, дневник, класен ръководител и домашни.</p>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card/70 p-3">
+              <p className="font-semibold text-foreground">Ученик</p>
+              <p>Оценки, отсъствия, бележки и домашни в едно място.</p>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card/70 p-3">
+              <p className="font-semibold text-foreground">Родител</p>
+              <p>Преглед на децата, календар и съобщения.</p>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card/70 p-3">
+              <p className="font-semibold text-foreground">Админ</p>
+              <p>Управление на потребители, справки и архив.</p>
+            </div>
+          </div>
 
           <DemoHint onDemoLogin={handleDemoLogin} />
         </div>

@@ -181,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main area */}
       <div className={cn('flex min-w-0 flex-1 flex-col transition-all', sidebarOpen ? 'lg:pl-64' : 'lg:pl-0')}>
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur-md sm:px-6">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/70 bg-card/85 px-4 backdrop-blur-xl sm:px-6">
           <button
             onClick={() => {
               if (window.innerWidth < 1024) {
@@ -199,9 +199,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Menu className="size-5" />
             )}
           </button>
-          <h1 className="font-heading text-lg font-bold tracking-tight">
-            {items.find((i) => i.view === view)?.label ?? 'Табло'}
-          </h1>
+          <div className="flex min-w-0 flex-col">
+            <h1 className="font-heading text-lg font-bold tracking-tight">
+              {items.find((i) => i.view === view)?.label ?? 'Табло'}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {ROLE_LABEL[currentUser.role]} · {currentUser.name}
+            </p>
+          </div>
 
           <div className="ml-auto flex items-center gap-1">
             {showBell && (
@@ -268,7 +273,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 p-3 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-3 sm:p-6 lg:p-8">
+          <div className="page-shell">{children}</div>
+        </main>
       </div>
     </div>
   )
