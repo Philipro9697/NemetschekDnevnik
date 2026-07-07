@@ -1,0 +1,247 @@
+'use client'
+
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+import {
+  users as seedUsers,
+  seedGrades,
+  seedAbsences,
+  seedNotes,
+  seedHomework,
+  seedEvents,
+  seedThreads,
+  type User,
+  type Grade,
+  type Absence,
+  type Note,
+  type Homework,
+  type CalendarEvent,
+  type Thread,
+} from '@/lib/data'
+
+interface Notification {
+  id: string
+  text: string
+  date: string
+  read: boolean
+  target: string // userId affected
+}
+
+interface AppState {
+  currentUser: User | null
+  users: User[]
+  grades: Grade[]
+  absences: Absence[]
+  notes: Note[]
+  homework: Homework[]
+  events: CalendarEvent[]
+  threads: Thread[]
+  notifications: Notification[]
+  view: string
+  selectedClassId: string | null
+  login: (userId: string) => void
+  logout: () => void
+  setView: (v: string) => void
+  setSelectedClass: (classId: string | null) => void
+  addGrade: (g: Omit<Grade, 'id' | 'date'>) => void
+  addAbsence: (a: Omit<Absence, 'id' | 'date'>) => void
+  toggleAbsenceExcused: (id: string) => void
+  addNote: (n: Omit<Note, 'id' | 'date'>) => void
+  addUser: (u: Omit<User, 'id'>) => void
+  updateUserStatus: (id: string, status: 'active' | 'blocked') => void
+  deleteUser: (id: string) => void
+  addHomework: (h: Omit<Homework, 'id' | 'assignedDate' | 'submissions'>) => void
+  submitHomework: (hwId: string, studentId: string, fileName: string) => void
+  addFeedback: (hwId: string, studentId: string, feedback: string) => void
+  gradeHomeworkSubmission: (hwId: string, studentId: string, grade: number | null, feedback: string) => void
+  addEvent: (e: Omit<CalendarEvent, 'id'>) => void
+  sendMessage: (threadId: string, text: string) => void
+  createThread: (name: string, participantIds: string[]) => string
+  createGroupThread: (name: string, participantIds: string[]) => string
+  markNotificationsRead: (target: string) => void
+}
+
+const AppContext = createContext<AppState | null>(null)
+
+function nid() {
+  return Math.random().toString(36).slice(2, 10)
+}
+function today() {
+  return new Date().toISOString().slice(0, 10)
+}
+function nowTime() {
+  return today() + ' ' + new Date().toTimeString().slice(0, 5)
+}
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [users, setUsers] = useState<User[]>(seedUsers)
+  const [grades, setGrades] = useState<Grade[]>(seedGrades)
+  const [absences, setAbsences] = useState<Absence[]>(seedAbsences)
+  const [notes, setNotes] = useState<Note[]>(seedNotes)
+  const [homework, setHomework] = useState<Homework[]>(seedHomework)
+  const [events, setEvents] = useState<CalendarEvent[]>(seedEvents)
+  const [threads, setThreads] = useState<Thread[]>(seedThreads)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [view, setView] = useState('')
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
+
+  function notify(target: string, text: string) {
+    setNotifications((prev) => [
+      { id: nid(), text, date: nowTime(), read: false, target },
+      ...prev,
+    ])
+  }
+
+  const value = useMemo<AppState>(
+    () => ({
+      currentUser,
+      users,
+      grades,
+      absences,
+      notes,
+      homework,
+      events,
+      threads,
+      notifications,
+      view,
+      selectedClassId,
+      login: (userId) => {
+        const u = users.find((x) => x.id === userId) ?? null
+        setCurrentUser(u)
+        if (u) {
+          setView(
+            u.role === 'admin'
+              ? 'users'
+              : u.role === 'teacher'
+                ? 'diary'
+                : u.role === 'student'
+                  ? 'dashboard'
+                  : 'children',
+          )
+        }
+      },
+      logout: () => {
+        setCurrentUser(null)
+        setView('')
+        setSelectedClassId(null)
+      },
+      setView,
+      setSelectedClass: (classId) => setSelectedClassId(classId),
+      addGrade: (g) => {
+        setGrades((prev) => [{ ...g, id: nid(), date: today() }, ...prev])
+        notify(g.studentId, `Нова оценка Отличен/${g.value} беше нанесена.`)
+      },
+      addAbsence: (a) => {
+        setAbsences((prev) => [{ ...a, id: nid(), date: today() }, ...prev])
+        notify(
+          a.studentId,
+          a.type === 'absent' ? 'Отбелязано е ново отсъствие.' : 'Отбелязано е закъснение.',
+        )
+      },
+      toggleAbsenceExcused: (id) =>
+        setAbsences((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, excused: !a.excused } : a)),
+        ),
+      addNote: (n) => {
+        setNotes((prev) => [{ ...n, id: nid(), date: today() }, ...prev])
+        notify(
+          n.studentId,
+          n.kind === 'praise' ? 'Получихте похвала от учител.' : 'Записана е нова забележка.',
+        )
+      },
+      addUser: (u) => setUsers((prev) => [...prev, { ...u, id: nid() }]),
+      updateUserStatus: (id, status) =>
+        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status } : u))),
+      deleteUser: (id) => setUsers((prev) => prev.filter((u) => u.id !== id)),
+      addHomework: (h) =>
+        setHomework((prev) => [
+          { ...h, id: nid(), assignedDate: today(), submissions: [] },
+          ...prev,
+        ]),
+      submitHomework: (hwId, studentId, fileName) =>
+        setHomework((prev) =>
+          prev.map((h) =>
+            h.id === hwId
+              ? {
+                  ...h,
+                  submissions: [
+                    ...h.submissions.filter((s) => s.studentId !== studentId),
+                    { studentId, fileName },
+                  ],
+                }
+              : h,
+          ),
+        ),
+      addFeedback: (hwId, studentId, feedback) =>
+        setHomework((prev) =>
+          prev.map((h) =>
+            h.id === hwId
+              ? {
+                  ...h,
+                  submissions: h.submissions.map((s) =>
+                    s.studentId === studentId ? { ...s, feedback } : s,
+                  ),
+                }
+              : h,
+          ),
+        ),
+      gradeHomeworkSubmission: (hwId, studentId, grade, feedback) =>
+        setHomework((prev) =>
+          prev.map((h) =>
+            h.id === hwId
+              ? {
+                  ...h,
+                  submissions: h.submissions.map((s) =>
+                    s.studentId === studentId ? { ...s, grade, feedback } : s,
+                  ),
+                }
+              : h,
+          ),
+        ),
+      addEvent: (e) => setEvents((prev) => [...prev, { ...e, id: nid() }]),
+      sendMessage: (threadId, text) =>
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === threadId
+              ? {
+                  ...t,
+                  messages: [
+                    ...t.messages,
+                    { id: nid(), senderId: currentUser?.id ?? '', text, time: nowTime() },
+                  ],
+                }
+              : t,
+          ),
+        ),
+      createThread: (name, participantIds) => {
+        const id = nid()
+        setThreads((prev) => [{ id, name, participantIds, messages: [] }, ...prev])
+        return id
+      },
+      createGroupThread: (name, participantIds) => {
+        const id = nid()
+        setThreads((prev) => [{ id, name, participantIds, messages: [] }, ...prev])
+        return id
+      },
+      markNotificationsRead: (target) =>
+        setNotifications((prev) =>
+          prev.map((n) => (n.target === target ? { ...n, read: true } : n)),
+        ),
+    }),
+    [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId],
+  )
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>
+}
+
+export function useApp() {
+  const ctx = useContext(AppContext)
+  if (!ctx) throw new Error('useApp must be used within AppProvider')
+  return ctx
+}
