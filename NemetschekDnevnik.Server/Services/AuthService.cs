@@ -16,6 +16,7 @@ public class AuthService : IAuthService
 
     public async Task<string?> LoginAsync(string email, string password)
     {
+        email = email.Trim();
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user is null)
             return null;
@@ -29,13 +30,14 @@ public class AuthService : IAuthService
         return _tokenService.CreateToken(user.UserId, user.Role);
     }
 
-    public async Task<bool> RegisterAsync(string email, string password, string role, string firstName, string lastName)
+    public async Task<bool> RegisterAsync(string email, string password, string role, string firstName, string lastName, string phoneNumber)
     {
         if (string.IsNullOrWhiteSpace(email) ||
         string.IsNullOrWhiteSpace(password) ||
         string.IsNullOrWhiteSpace(role) ||
         string.IsNullOrWhiteSpace(firstName) ||
-        string.IsNullOrWhiteSpace(lastName))
+        string.IsNullOrWhiteSpace(lastName) ||
+        string.IsNullOrWhiteSpace(phoneNumber))
         {
             return false;
         }
@@ -59,16 +61,16 @@ public class AuthService : IAuthService
         switch (role)
         {
             case "Admin":
-                _context.Admins.Add(new Admin { AdminId = user.UserId, FirstName = firstName, LastName = lastName });
+                _context.Admins.Add(new Admin { AdminId = user.UserId });
                 break;
             case "Teacher":
-                _context.Teachers.Add(new Teacher { TeacherId = user.UserId, FirstName = firstName, LastName = lastName });
+                _context.Teachers.Add(new Teacher { TeacherId = user.UserId });
                 break;
             case "Student":
-                _context.Students.Add(new Student { StudentId = user.UserId, FirstName = firstName, LastName = lastName });
+                _context.Students.Add(new Student { StudentId = user.UserId });
                 break;
             case "Parent":
-                _context.Parents.Add(new Parent { ParentId = user.UserId, FirstName = firstName, LastName = lastName });
+                _context.Parents.Add(new Parent { ParentId = user.UserId });
                 break;
             default:
                 await transaction.RollbackAsync();

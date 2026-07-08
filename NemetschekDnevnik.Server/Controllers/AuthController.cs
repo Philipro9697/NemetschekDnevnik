@@ -25,7 +25,7 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        var success = await _authService.RegisterAsync(dto.Email, dto.Password, dto.Role, dto.FirstName, dto.LastName);
+        var success = await _authService.RegisterAsync(dto.Email, dto.Password, dto.Role, dto.FirstName, dto.LastName, dto.PhoneNumber);
         if (!success)
             return Conflict(new { message = "Email already registered or invalid role" });
 

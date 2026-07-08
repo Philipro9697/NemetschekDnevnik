@@ -6,20 +6,23 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using NemetschekDnevnik.Server.Middleware;
 using NemetschekDnevnik.Server.Services;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
+using DotNetEnv;
 
-var builder = WebApplication.CreateBuilder(args);
+DotNetEnv.Env.Load();
 
 // Add services to the container.
-builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
-{
-    options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedEmail = false;
-})
-.AddEntityFrameworkStores<NemetschekSchoolDiaryContext>()
-.AddDefaultTokenProviders();
+builder.Configuration.AddEnvironmentVariables();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
+    options.UseSqlServer(connectionString));
+
+
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddCookie(IdentityConstants.ApplicationScheme);
@@ -74,7 +77,7 @@ app.MapStaticAssets();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
-app.UseMiddleware<EnsureApprovedUserMiddleware>();
+//app.UseMiddleware<EnsureApprovedUserMiddleware>();
 
 app.UseAuthorization();
 
