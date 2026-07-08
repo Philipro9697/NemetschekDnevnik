@@ -16,20 +16,15 @@ export function LoginScreen() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
- async function handleSubmit(e: React.FormEvent) {
+ async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     
-    if (username.trim().length < 1 || password.length < 1) {
-      setError('Моля, попълнете всички полета.')
-      return
-    }
-
     setError('')
     setIsLoading(true)
 
     try {
       
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('http://localhost:5014/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
