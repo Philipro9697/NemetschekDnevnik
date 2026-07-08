@@ -101,7 +101,7 @@ export function ParentChildren() {
               </Badge>
             </div>
           </div>
-          <StudentDashboard student={selected} />
+          <StudentDashboard student={selected} hideHero />
         </div>
       )}
     </div>

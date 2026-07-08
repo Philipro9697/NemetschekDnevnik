@@ -138,11 +138,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         notify(g.studentId, `Нова оценка Отличен/${g.value} беше нанесена.`)
       },
       addAbsence: (a) => {
-        setAbsences((prev) => [{ ...a, id: nid(), date: today() }, ...prev])
-        notify(
-          a.studentId,
-          a.type === 'absent' ? 'Отбелязано е ново отсъствие.' : 'Отбелязано е закъснение.',
-        )
+        setAbsences((prev) => [{ ...a, id: nid(), date: today(), type: 'absent' }, ...prev])
+        notify(a.studentId, 'Отбелязано е ново отсъствие.')
       },
       toggleAbsenceExcused: (id) =>
         setAbsences((prev) =>

@@ -29,13 +29,13 @@ export function ClassDiary({ lesson }: { lesson: Lesson }) {
   const today = new Date().toISOString().slice(0, 10)
   const isPrimaryClass = lesson.classId === 'c5a' || lesson.classId === 'c5b' || lesson.classId === 'c6b'
 
-  function dayAbsence(studentId: string, type: 'absent' | 'late') {
+  function dayAbsence(studentId: string) {
     return absences.find(
       (a) =>
         a.studentId === studentId &&
         a.subjectId === lesson.subjectId &&
         a.date === today &&
-        a.type === type,
+        a.type === 'absent',
     )
   }
 
@@ -74,8 +74,7 @@ export function ClassDiary({ lesson }: { lesson: Lesson }) {
         </div>
         <ul className="divide-y divide-border">
           {students.map((s) => {
-            const absent = dayAbsence(s.id, 'absent')
-            const late = dayAbsence(s.id, 'late')
+            const absent = dayAbsence(s.id)
             const studentGrades = grades.filter(
               (g) => g.studentId === s.id && g.subjectId === lesson.subjectId,
             )
@@ -116,26 +115,6 @@ export function ClassDiary({ lesson }: { lesson: Lesson }) {
                     )}
                   >
                     О
-                  </button>
-                  <button
-                    onClick={() =>
-                      !late &&
-                      addAbsence({
-                        studentId: s.id,
-                        subjectId: lesson.subjectId,
-                        type: 'late',
-                        excused: false,
-                      })
-                    }
-                    aria-label="Закъснение"
-                    className={cn(
-                      'flex size-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors',
-                      late
-                        ? 'border-warning bg-warning text-warning-foreground'
-                        : 'border-warning/50 text-warning-foreground hover:bg-warning/15',
-                    )}
-                  >
-                    З
                   </button>
                 </div>
 

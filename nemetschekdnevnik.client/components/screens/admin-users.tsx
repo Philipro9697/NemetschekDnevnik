@@ -63,14 +63,29 @@ export function AdminUsers() {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
+  const [classFilter, setClassFilter] = useState<'all' | string>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all')
+  const [deleteCandidate, setDeleteCandidate] = useState<User | null>(null)
 
   const filtered = useMemo(() => {
+    const queryText = query.toLowerCase().trim()
     return app.users.filter((u) => {
-      const matchesQuery = u.name.toLowerCase().includes(query.toLowerCase().trim())
+      const className =
+        classById(u.classId)?.name ?? (u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '')
+      const statusLabel = u.status === 'active' ? 'активен' : 'блокиран'
+      const searchText = [u.name, u.email, className, statusLabel, ROLE_LABEL[u.role]]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      const matchesQuery = !queryText || searchText.includes(queryText)
       const matchesRole = roleFilter === 'all' || u.role === roleFilter
-      return matchesQuery && matchesRole
+      const matchesClass =
+        classFilter === 'all' || u.classId === classFilter || u.classTeacherOf === classFilter
+      const matchesStatus = statusFilter === 'all' || u.status === statusFilter
+      return matchesQuery && matchesRole && matchesClass && matchesStatus
     })
-  }, [app.users, query, roleFilter])
+  }, [app.users, query, roleFilter, classFilter, statusFilter])
 
   const counts = {
     all: app.users.length,
@@ -110,13 +125,36 @@ export function AdminUsers() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Търси потребител по име..."
+            placeholder="Търси по име, клас или статус..."
             className="pl-10"
           />
         </div>
-        <Button onClick={() => setOpen(true)} className="shrink-0">
-          <UserPlus className="size-4" /> Регистрирай нов потребител
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition hover:border-primary"
+          >
+            <option value="all">Всички класове</option>
+            {classes.map((klass) => (
+              <option key={klass.id} value={klass.id}>
+                {klass.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'blocked')}
+            className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition hover:border-primary"
+          >
+            <option value="all">Всички статуси</option>
+            <option value="active">Активни</option>
+            <option value="blocked">Блокирани</option>
+          </select>
+          <Button onClick={() => setOpen(true)} className="shrink-0">
+            <UserPlus className="size-4" /> Регистрирай нов потребител
+          </Button>
+        </div>
       </div>
 
       {/* Role filter chips */}
@@ -198,7 +236,7 @@ export function AdminUsers() {
                         <Pencil className="size-4" />
                       </IconBtn>
                       <IconBtn
-                        label={u.status === 'active' ? 'Блокирай' : 'Активирай'}
+                        label={u.status === 'active' ? 'Блокирай' : 'Разблокирай'}
                         onClick={() =>
                           app.updateUserStatus(
                             u.id,
@@ -207,11 +245,15 @@ export function AdminUsers() {
                         }
                         tone={u.status === 'active' ? 'warning' : 'success'}
                       >
-                        <Ban className="size-4" />
+                        {u.status === 'active' ? (
+                          <Ban className="size-4" />
+                        ) : (
+                          <ShieldCheck className="size-4" />
+                        )}
                       </IconBtn>
                       <IconBtn
                         label="Изтрий"
-                        onClick={() => app.deleteUser(u.id)}
+                        onClick={() => setDeleteCandidate(u)}
                         tone="danger"
                         disabled={u.role === 'admin'}
                       >
@@ -234,6 +276,35 @@ export function AdminUsers() {
       </Card>
 
       <RegisterDialog open={open} onClose={() => setOpen(false)} />
+
+      <Dialog open={Boolean(deleteCandidate)} onClose={() => setDeleteCandidate(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Потвърждение за изтриване</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Сигурни ли сте, че искате да изтриете потребителя{' '}
+              <span className="font-semibold text-foreground">{deleteCandidate?.name}</span>?
+            </p>
+            <p className="text-sm text-muted-foreground">Изберете една от опциите по-долу.</p>
+          </div>
+          <DialogFooter className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setDeleteCandidate(null)}>
+              не не искам
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteCandidate) app.deleteUser(deleteCandidate.id)
+                setDeleteCandidate(null)
+              }}
+            >
+              да сигурен съм
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

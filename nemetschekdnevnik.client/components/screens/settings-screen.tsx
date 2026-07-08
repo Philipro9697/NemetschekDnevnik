@@ -98,7 +98,7 @@ export function SettingsScreen() {
             onChange={setNotifGrades}
           />
           <ToggleRow
-            label="Отсъствия и закъснения"
+            label="Отсъствия"
             description="Известие при отбелязано отсъствие"
             checked={notifAbsences}
             onChange={setNotifAbsences}

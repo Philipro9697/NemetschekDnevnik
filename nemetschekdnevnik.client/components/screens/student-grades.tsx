@@ -1,15 +1,18 @@
 'use client'
 
+import { useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Dialog } from '@/components/ui/dialog'
 import { GradePill } from '@/components/shared/grade-pill'
-import { classById, formatDate, subjects, type User } from '@/lib/data'
+import { classById, formatDate, subjectById, subjects, type Grade, type User } from '@/lib/data'
 import { TrendingUp, Sparkles } from 'lucide-react'
 
 export function StudentGrades({ student }: { student?: User }) {
   const app = useApp()
   const me = student ?? app.currentUser
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
   if (!me) return null
 
   const myGrades = app.grades.filter((g) => g.studentId === me.id)
@@ -69,7 +72,9 @@ export function StudentGrades({ student }: { student?: User }) {
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {grades.map((g) => (
-                        <GradePill key={g.id} value={g.value} title={formatDate(g.date)} />
+                        <button key={g.id} type="button" onClick={() => setSelectedGrade(g)}>
+                          <GradePill value={g.value} title={`${subjectById(g.subjectId).name} · ${formatDate(g.date)}`} />
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -79,6 +84,28 @@ export function StudentGrades({ student }: { student?: User }) {
           )}
         </CardBody>
       </Card>
+
+      <Dialog open={Boolean(selectedGrade)} onClose={() => setSelectedGrade(null)} title="Детайли за оценка">
+        {selectedGrade && (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div className="font-semibold">{subjectById(selectedGrade.subjectId).name}</div>
+              <GradePill value={selectedGrade.value} className="size-8 text-sm" />
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Дата и час</div>
+              <div>{selectedGrade.date} · {selectedGrade.time ?? '—'}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Учител</div>
+              <div>{app.users.find((u) => u.id === selectedGrade.teacherId)?.name}</div>
+            </div>
+            {selectedGrade.description && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-muted-foreground">{selectedGrade.description}</div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   )
 }

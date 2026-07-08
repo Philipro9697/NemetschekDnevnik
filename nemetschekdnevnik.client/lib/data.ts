@@ -26,6 +26,8 @@ export interface User {
   accessCode?: string // parent link code
 }
 
+export type GradeSection = 'term1' | 'term1Final' | 'term2' | 'term2Final' | 'yearly'
+
 export interface Grade {
   id: string
   studentId: string
@@ -33,15 +35,20 @@ export interface Grade {
   teacherId: string
   value: number // 2-6
   date: string // ISO
+  time?: string
   kind: 'oral' | 'written' | 'test' | 'active'
+  section: GradeSection
+  description?: string
 }
 
 export interface Absence {
   id: string
   studentId: string
   subjectId: string
+  teacherId?: string
   date: string
-  type: 'absent' | 'late'
+  time?: string
+  type: 'absent'
   excused: boolean
 }
 
@@ -51,6 +58,7 @@ export interface Note {
   subjectId: string
   teacherId: string
   date: string
+  time?: string
   text: string
   kind: 'praise' | 'remark'
 }
@@ -72,6 +80,7 @@ export interface Homework {
   assignedDate: string
   dueDate: string
   type: 'homework' | 'material'
+  attachmentName?: string
   submissions: HomeworkSubmission[]
 }
 
@@ -158,7 +167,7 @@ export const users: User[] = [
     email: 'i.georgieva@ou-vazrazhdane.bg',
     role: 'teacher',
     status: 'active',
-    subjectIds: ['mat', 'it'],
+    subjectIds: ['mat'],
     classTeacherOf: 'c5a',
   },
   {
@@ -168,7 +177,7 @@ export const users: User[] = [
     email: 'p.ivanov@ou-vazrazhdane.bg',
     role: 'teacher',
     status: 'active',
-    subjectIds: ['bel', 'ist'],
+    subjectIds: ['bel'],
   },
   {
     id: 't3',
@@ -244,33 +253,32 @@ function iso(daysAgo: number) {
 }
 
 export const seedGrades: Grade[] = [
-  { id: 'g1', studentId: 's2', subjectId: 'mat', teacherId: 't1', value: 6, date: iso(2), kind: 'oral' },
-  { id: 'g2', studentId: 's2', subjectId: 'mat', teacherId: 't1', value: 5, date: iso(9), kind: 'test' },
-  { id: 'g3', studentId: 's2', subjectId: 'bel', teacherId: 't2', value: 5, date: iso(4), kind: 'written' },
-  { id: 'g4', studentId: 's2', subjectId: 'bel', teacherId: 't2', value: 4, date: iso(12), kind: 'oral' },
-  { id: 'g5', studentId: 's2', subjectId: 'ae', teacherId: 't3', value: 6, date: iso(1), kind: 'active' },
-  { id: 'g6', studentId: 's2', subjectId: 'ist', teacherId: 't2', value: 5, date: iso(7), kind: 'test' },
-  { id: 'g7', studentId: 's9', subjectId: 'mat', teacherId: 't1', value: 4, date: iso(3), kind: 'oral' },
-  { id: 'g8', studentId: 's9', subjectId: 'bel', teacherId: 't2', value: 6, date: iso(5), kind: 'written' },
-  { id: 'g9', studentId: 's9', subjectId: 'ae', teacherId: 't3', value: 5, date: iso(2), kind: 'oral' },
-  { id: 'g10', studentId: 's1', subjectId: 'mat', teacherId: 't1', value: 5, date: iso(2), kind: 'oral' },
-  { id: 'g11', studentId: 's3', subjectId: 'mat', teacherId: 't1', value: 6, date: iso(2), kind: 'oral' },
-  { id: 'g12', studentId: 's4', subjectId: 'mat', teacherId: 't1', value: 3, date: iso(2), kind: 'test' },
+  { id: 'g1', studentId: 's2', subjectId: 'mat', teacherId: 't1', value: 6, date: iso(2), time: '09:15', kind: 'oral', section: 'term1', description: 'Устно отговор в час.' },
+  { id: 'g2', studentId: 's2', subjectId: 'mat', teacherId: 't1', value: 5, date: iso(9), time: '10:30', kind: 'test', section: 'term1Final', description: 'Тест по темата за дроби.' },
+  { id: 'g3', studentId: 's2', subjectId: 'bel', teacherId: 't2', value: 5, date: iso(4), time: '08:35', kind: 'written', section: 'term1', description: 'Съчинение по картина.' },
+  { id: 'g4', studentId: 's2', subjectId: 'bel', teacherId: 't2', value: 4, date: iso(12), time: '11:00', kind: 'oral', section: 'term2', description: 'Оценка за участие в час.' },
+  { id: 'g5', studentId: 's2', subjectId: 'ae', teacherId: 't3', value: 6, date: iso(1), time: '12:10', kind: 'active', section: 'term1', description: 'Активно участие в групова работа.' },
+  { id: 'g6', studentId: 's2', subjectId: 'ist', teacherId: 't2', value: 5, date: iso(7), time: '09:00', kind: 'test', section: 'term2Final', description: 'Контролно по древна история.' },
+  { id: 'g7', studentId: 's9', subjectId: 'mat', teacherId: 't1', value: 4, date: iso(3), time: '09:40', kind: 'oral', section: 'term1', description: 'Отговор по домашно.' },
+  { id: 'g8', studentId: 's9', subjectId: 'bel', teacherId: 't2', value: 6, date: iso(5), time: '08:50', kind: 'written', section: 'yearly', description: 'Годишна оценка.' },
+  { id: 'g9', studentId: 's9', subjectId: 'ae', teacherId: 't3', value: 5, date: iso(2), time: '11:20', kind: 'oral', section: 'term2', description: 'Четене на текст.' },
+  { id: 'g10', studentId: 's1', subjectId: 'mat', teacherId: 't1', value: 5, date: iso(2), time: '10:05', kind: 'oral', section: 'term2', description: 'Устно решение на задача.' },
+  { id: 'g11', studentId: 's3', subjectId: 'mat', teacherId: 't1', value: 6, date: iso(2), time: '09:55', kind: 'oral', section: 'term2Final', description: 'Отличен отговор.' },
+  { id: 'g12', studentId: 's4', subjectId: 'mat', teacherId: 't1', value: 3, date: iso(2), time: '09:20', kind: 'test', section: 'term1', description: 'Мини контролно.' },
 ]
 
 export const seedAbsences: Absence[] = [
-  { id: 'a1', studentId: 's2', subjectId: 'ist', date: iso(6), type: 'absent', excused: true },
-  { id: 'a2', studentId: 's2', subjectId: 'mat', date: iso(2), type: 'late', excused: false },
-  { id: 'a3', studentId: 's9', subjectId: 'bel', date: iso(8), type: 'absent', excused: false },
-  { id: 'a4', studentId: 's9', subjectId: 'ae', date: iso(3), type: 'absent', excused: true },
-  { id: 'a5', studentId: 's4', subjectId: 'mat', date: iso(2), type: 'absent', excused: false },
+  { id: 'a1', studentId: 's2', subjectId: 'ist', teacherId: 't2', date: iso(6), time: '08:00', type: 'absent', excused: true },
+  { id: 'a3', studentId: 's9', subjectId: 'bel', teacherId: 't2', date: iso(8), time: '09:00', type: 'absent', excused: false },
+  { id: 'a4', studentId: 's9', subjectId: 'ae', teacherId: 't3', date: iso(3), time: '11:00', type: 'absent', excused: true },
+  { id: 'a5', studentId: 's4', subjectId: 'mat', teacherId: 't1', date: iso(2), time: '09:00', type: 'absent', excused: false },
 ]
 
 export const seedNotes: Note[] = [
-  { id: 'n1', studentId: 's2', subjectId: 'mat', teacherId: 't1', date: iso(1), text: 'Отлично представяне в час — реши задача на дъската.', kind: 'praise' },
-  { id: 'n2', studentId: 's2', subjectId: 'bel', teacherId: 't2', date: iso(4), text: 'Не носи учебник за втори пореден път.', kind: 'remark' },
-  { id: 'n3', studentId: 's9', subjectId: 'ae', teacherId: 't3', date: iso(2), text: 'Активно участие и добра работа в група.', kind: 'praise' },
-  { id: 'n4', studentId: 's4', subjectId: 'mat', teacherId: 't1', date: iso(2), text: 'Пречи на съучениците по време на час.', kind: 'remark' },
+  { id: 'n1', studentId: 's2', subjectId: 'mat', teacherId: 't1', date: iso(1), time: '09:55', text: 'Отлично представяне в час — реши задача на дъската.', kind: 'praise' },
+  { id: 'n2', studentId: 's2', subjectId: 'bel', teacherId: 't2', date: iso(4), time: '10:10', text: 'Не носи учебник за втори пореден път.', kind: 'remark' },
+  { id: 'n3', studentId: 's9', subjectId: 'ae', teacherId: 't3', date: iso(2), time: '11:30', text: 'Активно участие и добра работа в група.', kind: 'praise' },
+  { id: 'n4', studentId: 's4', subjectId: 'mat', teacherId: 't1', date: iso(2), time: '09:20', text: 'Пречи на съучениците по време на час.', kind: 'remark' },
 ]
 
 export const seedHomework: Homework[] = [

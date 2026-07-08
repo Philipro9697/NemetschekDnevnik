@@ -53,7 +53,7 @@ export function LoginScreen() {
           </h1>
         </div>
 
-        <div className="rounded-[30px] border border-white/15 bg-card/95 p-6 shadow-[0_24px_80px_rgba(12,27,43,0.28)] backdrop-blur sm:p-8">
+        <div className="glass-surface p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="username" className="text-sm font-medium">
@@ -122,6 +122,8 @@ export function LoginScreen() {
               </button>
             </div>
           </form>
+
+          
 
           <DemoHint onDemoLogin={handleDemoLogin} />
         </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog } from '@/components/ui/dialog'
 import { GradePill } from '@/components/shared/grade-pill'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import {
   schedule,
   userById,
   formatDate,
+  type Grade,
   type User,
 } from '@/lib/data'
 import { cn } from '@/lib/utils'
@@ -36,11 +38,12 @@ const views: { key: ViewKey; label: string; icon: React.ElementType }[] = [
   { key: 'notes', label: 'Бележки', icon: MessageSquareText },
 ]
 
-export function StudentDashboard({ student }: { student?: User }) {
+export function StudentDashboard({ student, hideHero }: { student?: User; hideHero?: boolean }) {
   const app = useApp()
   const me = student ?? app.currentUser
   const [activeView, setActiveView] = useState<ViewKey>('grades')
   const [, setView] = useState('dashboard')
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
 
   if (!me) return null
 
@@ -69,28 +72,24 @@ export function StudentDashboard({ student }: { student?: User }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-brand-blue/10 p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-              <Sparkles className="size-3.5" />
-              Учебно табло
+      {!hideHero && (
+        <div className="rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-brand-blue/10 p-4 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+                <Sparkles className="size-3.5" />
+                Учебно табло
+              </div>
+              <h2 className="font-heading text-2xl font-bold text-foreground">
+                Здравей, {me.name}!
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {classById(me.classId)?.name ?? 'Без клас'} · последни оценки, отсъствия и бележки на едно място.
+              </p>
             </div>
-            <h2 className="font-heading text-2xl font-bold text-foreground">
-              Здравей, {me.name}!
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {classById(me.classId)?.name ?? 'Без клас'} · последни оценки, отсъствия и бележки на едно място.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">Клас</p>
-            <p className="mt-1 font-heading text-lg font-semibold text-primary">
-              {classById(me.classId)?.name ?? '—'}
-            </p>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={TrendingUp} label="Среден успех" value={avg} tone="primary" />
@@ -159,7 +158,9 @@ export function StudentDashboard({ student }: { student?: User }) {
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {grades.map((g) => (
-                          <GradePill key={g.id} value={g.value} title={formatDate(g.date)} />
+                          <button key={g.id} type="button" onClick={() => setSelectedGrade(g)}>
+                            <GradePill value={g.value} title={`${subjectById(g.subjectId).name} · ${formatDate(g.date)}`} />
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -207,11 +208,12 @@ export function StudentDashboard({ student }: { student?: User }) {
                   .map((a) => (
                     <div key={a.id} className="flex flex-col gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-sm font-medium">
-                          {a.type === 'absent' ? 'Отсъствие' : 'Закъснение'}
+                        <p className="text-sm font-medium">Отсъствие</p>
+                        <p className="text-xs text-muted-foreground">
+                          {subjectById(a.subjectId).name} · {formatDate(a.date)} · {a.time ?? '—'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {subjectById(a.subjectId).name} · {formatDate(a.date)}
+                          Учител: {app.users.find((u) => u.id === a.teacherId)?.name ?? '—'}
                         </p>
                       </div>
                       <Badge tone={a.excused ? 'success' : 'danger'}>
@@ -267,7 +269,7 @@ export function StudentDashboard({ student }: { student?: User }) {
                     <div className="min-w-0">
                       <p className="text-sm leading-relaxed text-foreground">{n.text}</p>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {subjectById(n.subjectId).name} · {userById(n.teacherId, app.users)?.name} · {formatDate(n.date)}
+                        {subjectById(n.subjectId).name} · {userById(n.teacherId, app.users)?.name} · {formatDate(n.date)} · {n.time ?? '—'}
                       </p>
                     </div>
                     <Badge tone={n.kind === 'praise' ? 'success' : 'danger'}>
@@ -280,6 +282,28 @@ export function StudentDashboard({ student }: { student?: User }) {
           </CardBody>
         </Card>
       )}
+
+      <Dialog open={Boolean(selectedGrade)} onClose={() => setSelectedGrade(null)} title="Детайли за оценка">
+        {selectedGrade && (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div className="font-semibold">{subjectById(selectedGrade.subjectId).name}</div>
+              <GradePill value={selectedGrade.value} className="size-8 text-sm" />
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Дата и час</div>
+              <div>{selectedGrade.date} · {selectedGrade.time ?? '—'}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Учител</div>
+              <div>{app.users.find((u) => u.id === selectedGrade.teacherId)?.name}</div>
+            </div>
+            {selectedGrade.description && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-muted-foreground">{selectedGrade.description}</div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   )
 }
