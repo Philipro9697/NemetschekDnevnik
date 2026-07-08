@@ -1,24 +1,28 @@
 using NemetschekDnevnik.Server.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
+using NemetschekDnevnik.Server.Middleware;
 using NemetschekDnevnik.Server.Services;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
+using DotNetEnv;
 
-var builder = WebApplication.CreateBuilder(args);
+DotNetEnv.Env.Load();
 
 // Add services to the container.
-builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
-{
-    options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedEmail = false;
-})
-.AddEntityFrameworkStores<NemetschekSchoolDiaryContext>()
-.AddDefaultTokenProviders();
+builder.Configuration.AddEnvironmentVariables();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
+    options.UseSqlServer(connectionString));
+
+
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddCookie(IdentityConstants.ApplicationScheme);
@@ -44,6 +48,14 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddAuthorization();
+
+builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary;Integrated Security=True;TrustServerCertificate=True"));
+
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -65,6 +77,8 @@ app.MapStaticAssets();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+//app.UseMiddleware<EnsureApprovedUserMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();

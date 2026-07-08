@@ -22,159 +22,14 @@ namespace NemetschekDnevnik.Server.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex")
-                        .HasFilter("[NormalizedName] IS NOT NULL");
-
-                    b.ToTable("AspNetRoles", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetRoleClaims", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AspNetUserClaims", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
-                {
-                    b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ProviderKey")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ProviderDisplayName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("LoginProvider", "ProviderKey");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AspNetUserLogins", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetUserRoles", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("UserId", "LoginProvider", "Name");
-
-                    b.ToTable("AspNetUserTokens", (string)null);
-                });
-
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Admin", b =>
                 {
                     b.Property<int>("AdminId")
                         .HasColumnType("int")
                         .HasColumnName("admin_id");
 
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("first_name");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("last_name");
-
                     b.HasKey("AdminId")
-                        .HasName("PK__admin__43AA4141760C7B9D");
+                        .HasName("PK__admin__43AA41416A23D12D");
 
                     b.ToTable("admin", (string)null);
                 });
@@ -189,14 +44,16 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("student_id");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("status");
+                    b.Property<bool>("IsAbsent")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_absent");
+
+                    b.Property<bool>("IsExcused")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_excused");
 
                     b.HasKey("LessonId", "StudentId")
-                        .HasName("PK__attendan__D682C7D756588763");
+                        .HasName("PK__attendan__D682C7D7E114F3DE");
 
                     b.HasIndex("StudentId");
 
@@ -228,7 +85,7 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnName("head_teacher_id");
 
                     b.HasKey("ClassId")
-                        .HasName("PK__classes__FDF479865BC9999C");
+                        .HasName("PK__classes__FDF4798618B5F560");
 
                     b.HasIndex("HeadTeacherId");
 
@@ -244,15 +101,21 @@ namespace NemetschekDnevnik.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("GradeId"));
 
+                    b.Property<string>("Comment")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("comment");
+
                     b.Property<DateOnly>("EntryDate")
                         .HasColumnType("date")
                         .HasColumnName("entry_date");
 
-                    b.Property<string>("GradeValue")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
+                    b.Property<int?>("GradeTypeId")
+                        .HasColumnType("int")
+                        .HasColumnName("grade_type_id");
+
+                    b.Property<decimal>("GradeValue")
+                        .HasColumnType("decimal(3, 2)")
                         .HasColumnName("grade_value");
 
                     b.Property<int?>("StudentId")
@@ -268,7 +131,9 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnName("teacher_id");
 
                     b.HasKey("GradeId")
-                        .HasName("PK__grades__3A8F732CB19F1828");
+                        .HasName("PK__grades__3A8F732CFED7D652");
+
+                    b.HasIndex("GradeTypeId");
 
                     b.HasIndex("StudentId");
 
@@ -277,6 +142,27 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasIndex("TeacherId");
 
                     b.ToTable("grades", (string)null);
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.GradeType", b =>
+                {
+                    b.Property<int>("GradeTypeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("grade_type_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("GradeTypeId"));
+
+                    b.Property<string>("TypeName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("type_name");
+
+                    b.HasKey("GradeTypeId")
+                        .HasName("PK__grade_ty__31F4E60D09520132");
+
+                    b.ToTable("grade_types", (string)null);
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.HomeworkItem", b =>
@@ -292,28 +178,99 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("class_id");
 
-                    b.Property<DateOnly>("DateDue")
-                        .HasColumnType("date")
+                    b.Property<DateTime>("DateAssigned")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("date_assigned")
+                        .HasDefaultValueSql("(getdate())");
+
+                    b.Property<DateTime>("DateDue")
+                        .HasColumnType("datetime")
                         .HasColumnName("date_due");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("ResourceLink")
+                        .HasMaxLength(550)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(550)")
+                        .HasColumnName("resource_link");
 
                     b.Property<int?>("SubjectId")
                         .HasColumnType("int")
                         .HasColumnName("subject_id");
 
-                    b.Property<string>("SubjectLink")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("subject_link");
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int")
+                        .HasColumnName("teacher_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasDefaultValue("Домашно задание")
+                        .HasColumnName("title");
 
                     b.HasKey("HomeworkId")
-                        .HasName("PK__homework__FD60442A6A30E660");
+                        .HasName("PK__homework__FD60442ADE5A56DA");
 
                     b.HasIndex("ClassId");
 
                     b.HasIndex("SubjectId");
 
+                    b.HasIndex("TeacherId");
+
                     b.ToTable("homework_items", (string)null);
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.Lesson", b =>
+                {
+                    b.Property<int>("LessonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("lesson_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LessonId"));
+
+                    b.Property<int?>("ClassId")
+                        .HasColumnType("int")
+                        .HasColumnName("class_id");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<int?>("ScheduleItemId")
+                        .HasColumnType("int")
+                        .HasColumnName("schedule_item_id");
+
+                    b.Property<int?>("SubjectId")
+                        .HasColumnType("int")
+                        .HasColumnName("subject_id");
+
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int")
+                        .HasColumnName("teacher_id");
+
+                    b.Property<TimeOnly>("Time")
+                        .HasColumnType("time")
+                        .HasColumnName("time");
+
+                    b.HasKey("LessonId")
+                        .HasName("PK__lessons__6421F7BEFFB3A617");
+
+                    b.HasIndex("ClassId");
+
+                    b.HasIndex("ScheduleItemId");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("lessons", (string)null);
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Parent", b =>
@@ -322,29 +279,54 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("parent_id");
 
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("first_name");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("last_name");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
-                        .HasColumnName("phone_number");
-
                     b.HasKey("ParentId")
-                        .HasName("PK__parent__F2A6081978DDDBAC");
+                        .HasName("PK__parent__F2A60819165AFAB8");
 
                     b.ToTable("parent", (string)null);
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.Remark", b =>
+                {
+                    b.Property<int>("RemarkId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("remark_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RemarkId"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("date_created")
+                        .HasDefaultValueSql("(getdate())");
+
+                    b.Property<int?>("StudentId")
+                        .HasColumnType("int")
+                        .HasColumnName("student_id");
+
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int")
+                        .HasColumnName("teacher_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("type");
+
+                    b.HasKey("RemarkId")
+                        .HasName("PK__remarks__D46DA2D906BAA593");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("remarks", (string)null);
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Student", b =>
@@ -353,27 +335,14 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("student_id");
 
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("first_name");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("last_name");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
-                        .HasColumnName("phone_number");
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int")
+                        .HasColumnName("parent_id");
 
                     b.HasKey("StudentId")
-                        .HasName("PK__student__2A33069A4369D820");
+                        .HasName("PK__student__2A33069A22388D38");
+
+                    b.HasIndex("ParentId");
 
                     b.ToTable("student", (string)null);
                 });
@@ -394,9 +363,60 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnName("subject_name");
 
                     b.HasKey("SubjectId")
-                        .HasName("PK__subjects__5004F660E965A954");
+                        .HasName("PK__subjects__5004F6600397BCF4");
 
                     b.ToTable("subjects", (string)null);
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.SubmittedHomework", b =>
+                {
+                    b.Property<int>("SubmissionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("submission_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubmissionId"));
+
+                    b.Property<string>("FileLink")
+                        .HasMaxLength(550)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(550)")
+                        .HasColumnName("file_link");
+
+                    b.Property<int?>("HomeworkId")
+                        .HasColumnType("int")
+                        .HasColumnName("homework_id");
+
+                    b.Property<bool>("IsGraded")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_graded");
+
+                    b.Property<int?>("StudentId")
+                        .HasColumnType("int")
+                        .HasColumnName("student_id");
+
+                    b.Property<string>("SubmissionText")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("submission_text");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("submitted_at")
+                        .HasDefaultValueSql("(getdate())");
+
+                    b.Property<string>("TeacherFeedback")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("teacher_feedback");
+
+                    b.HasKey("SubmissionId")
+                        .HasName("PK__submitte__9B5355957BC8AEF5");
+
+                    b.HasIndex("HomeworkId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("submitted_homeworks", (string)null);
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Teacher", b =>
@@ -405,11 +425,43 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("teacher_id");
 
+                    b.HasKey("TeacherId")
+                        .HasName("PK__teacher__03AE777ECC09F8E1");
+
+                    b.ToTable("teacher", (string)null);
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.User", b =>
+                {
+                    b.Property<int>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("(getdate())");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("email");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("first_name");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_approved");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -417,150 +469,50 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("last_name");
 
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)")
-                        .HasColumnName("phone_number");
-
-                    b.HasKey("TeacherId")
-                        .HasName("PK__teacher__03AE777EA9BB80AB");
-
-                    b.ToTable("teacher", (string)null);
-                });
-
-            modelBuilder.Entity("NemetschekDnevnik.Server.Models.User", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("user_id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AccessFailedCount")
-                        .HasColumnType("int")
-                        .HasColumnName("access_failed_count");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("concurrency_stamp");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("email");
-
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("bit")
-                        .HasColumnName("email_confirmed");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_approved");
-
-                    b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("bit")
-                        .HasColumnName("lockout_enabled");
-
-                    b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("datetimeoffset")
-                        .HasColumnName("lockout_end");
-
-                    b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("normalized_email");
-
-                    b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("normalized_user_name");
-
                     b.Property<string>("PasswordHash")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .IsUnicode(false)
                         .HasColumnType("varchar(255)")
                         .HasColumnName("password_hash");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("phone_number");
-
-                    b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("bit")
-                        .HasColumnName("phone_number_confirmed");
 
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("role");
 
-                    b.Property<string>("SecurityStamp")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("security_stamp");
+                    b.HasKey("UserId")
+                        .HasName("PK__users__B9BE370F8F2732C5");
 
-                    b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("bit")
-                        .HasColumnName("two_factor_enabled");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(255)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("user_name");
-
-                    b.HasKey("Id")
-                        .HasName("PK__users__B9BE370FB3BC4991");
-
-                    b.HasIndex("Email")
-                        .IsUnique()
-                        .HasFilter("[email] IS NOT NULL");
-
-                    b.HasIndex("NormalizedEmail")
-                        .IsUnique()
-                        .HasDatabaseName("EmailIndex")
-                        .HasFilter("[normalized_email] IS NOT NULL");
-
-                    b.HasIndex("NormalizedUserName")
-                        .IsUnique()
-                        .HasDatabaseName("UserNameIndex")
-                        .HasFilter("[normalized_user_name] IS NOT NULL");
-
-                    b.HasIndex("UserName")
-                        .IsUnique()
-                        .HasFilter("[user_name] IS NOT NULL");
+                    b.HasIndex(new[] { "Email" }, "UQ__users__AB6E61649DF4B344")
+                        .IsUnique();
 
                     b.ToTable("users", (string)null);
                 });
 
-            modelBuilder.Entity("NemetschekDnevnik.Server.Models.WeeklySchedule", b =>
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.WeeklyScheduleItem", b =>
                 {
-                    b.Property<int>("ScheduleId")
+                    b.Property<int>("ScheduleItemId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("schedule_id");
+                        .HasColumnName("schedule_item_id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ScheduleId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ScheduleItemId"));
 
                     b.Property<int?>("ClassId")
                         .HasColumnType("int")
                         .HasColumnName("class_id");
 
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date")
-                        .HasColumnName("date");
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int")
+                        .HasColumnName("day_of_week");
 
                     b.Property<string>("Location")
                         .HasMaxLength(100)
@@ -579,8 +531,8 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("time")
                         .HasColumnName("time");
 
-                    b.HasKey("ScheduleId")
-                        .HasName("PK__weekly_s__C46A8A6FD887C6DA");
+                    b.HasKey("ScheduleItemId")
+                        .HasName("PK__weekly_s__23BB45AD8B634EEF");
 
                     b.HasIndex("ClassId");
 
@@ -588,25 +540,7 @@ namespace NemetschekDnevnik.Server.Migrations
 
                     b.HasIndex("TeacherId");
 
-                    b.ToTable("weekly_schedules", (string)null);
-                });
-
-            modelBuilder.Entity("ParentStudent", b =>
-                {
-                    b.Property<int>("ParentId")
-                        .HasColumnType("int")
-                        .HasColumnName("parent_id");
-
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int")
-                        .HasColumnName("student_id");
-
-                    b.HasKey("ParentId", "StudentId")
-                        .HasName("PK__parent_s__40053870C72F1416");
-
-                    b.HasIndex("StudentId");
-
-                    b.ToTable("parent_student", (string)null);
+                    b.ToTable("weekly_schedule_items", (string)null);
                 });
 
             modelBuilder.Entity("StudentClass", b =>
@@ -620,7 +554,7 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnName("class_id");
 
                     b.HasKey("StudentId", "ClassId")
-                        .HasName("PK__student___55EC4102B001E1B4");
+                        .HasName("PK__student___55EC4102AB35D74E");
 
                     b.HasIndex("ClassId");
 
@@ -638,62 +572,11 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnName("subject_id");
 
                     b.HasKey("TeacherId", "SubjectId")
-                        .HasName("PK__teacher___16AE381830780335");
+                        .HasName("PK__teacher___16AE3818951F373C");
 
                     b.HasIndex("SubjectId");
 
                     b.ToTable("teacher_subjects", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
-                {
-                    b.HasOne("NemetschekDnevnik.Server.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
-                {
-                    b.HasOne("NemetschekDnevnik.Server.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("NemetschekDnevnik.Server.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
-                {
-                    b.HasOne("NemetschekDnevnik.Server.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Admin", b =>
@@ -703,24 +586,25 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasForeignKey("NemetschekDnevnik.Server.Models.Admin", "AdminId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK__admin__admin_id__59063A47");
+                        .HasConstraintName("FK__admin__admin_id__4AB81AF0");
 
                     b.Navigation("AdminNavigation");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Attendance", b =>
                 {
-                    b.HasOne("NemetschekDnevnik.Server.Models.WeeklySchedule", "Lesson")
+                    b.HasOne("NemetschekDnevnik.Server.Models.Lesson", "Lesson")
                         .WithMany("Attendances")
                         .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK__attendanc__lesso__68487DD7");
+                        .HasConstraintName("FK__attendanc__lesso__6477ECF3");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Student", "Student")
                         .WithMany("Attendances")
                         .HasForeignKey("StudentId")
                         .IsRequired()
-                        .HasConstraintName("FK__attendanc__stude__693CA210");
+                        .HasConstraintName("FK__attendanc__stude__656C112C");
 
                     b.Navigation("Lesson");
 
@@ -732,27 +616,34 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "HeadTeacher")
                         .WithMany("Classes")
                         .HasForeignKey("HeadTeacherId")
-                        .HasConstraintName("FK__classes__head_te__5CD6CB2B");
+                        .HasConstraintName("FK__classes__head_te__52593CB8");
 
                     b.Navigation("HeadTeacher");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Grade", b =>
                 {
+                    b.HasOne("NemetschekDnevnik.Server.Models.GradeType", "GradeType")
+                        .WithMany("Grades")
+                        .HasForeignKey("GradeTypeId")
+                        .HasConstraintName("FK__grades__grade_ty__6E01572D");
+
                     b.HasOne("NemetschekDnevnik.Server.Models.Student", "Student")
                         .WithMany("Grades")
                         .HasForeignKey("StudentId")
-                        .HasConstraintName("FK__grades__student___6E01572D");
+                        .HasConstraintName("FK__grades__student___6C190EBB");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", "Subject")
                         .WithMany("Grades")
                         .HasForeignKey("SubjectId")
-                        .HasConstraintName("FK__grades__subject___6D0D32F4");
+                        .HasConstraintName("FK__grades__subject___6B24EA82");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
                         .WithMany("Grades")
                         .HasForeignKey("TeacherId")
-                        .HasConstraintName("FK__grades__teacher___6EF57B66");
+                        .HasConstraintName("FK__grades__teacher___6D0D32F4");
+
+                    b.Navigation("GradeType");
 
                     b.Navigation("Student");
 
@@ -766,16 +657,55 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
                         .WithMany("HomeworkItems")
                         .HasForeignKey("ClassId")
-                        .HasConstraintName("FK__homework___class__71D1E811");
+                        .HasConstraintName("FK__homework___class__76969D2E");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", "Subject")
                         .WithMany("HomeworkItems")
                         .HasForeignKey("SubjectId")
-                        .HasConstraintName("FK__homework___subje__72C60C4A");
+                        .HasConstraintName("FK__homework___subje__778AC167");
+
+                    b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
+                        .WithMany("HomeworkItems")
+                        .HasForeignKey("TeacherId")
+                        .HasConstraintName("FK__homework___teach__787EE5A0");
 
                     b.Navigation("Class");
 
                     b.Navigation("Subject");
+
+                    b.Navigation("Teacher");
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.Lesson", b =>
+                {
+                    b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
+                        .WithMany("Lessons")
+                        .HasForeignKey("ClassId")
+                        .HasConstraintName("FK__lessons__class_i__60A75C0F");
+
+                    b.HasOne("NemetschekDnevnik.Server.Models.WeeklyScheduleItem", "ScheduleItem")
+                        .WithMany("Lessons")
+                        .HasForeignKey("ScheduleItemId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("FK__lessons__schedul__619B8048");
+
+                    b.HasOne("NemetschekDnevnik.Server.Models.Subject", "Subject")
+                        .WithMany("Lessons")
+                        .HasForeignKey("SubjectId")
+                        .HasConstraintName("FK__lessons__subject__5EBF139D");
+
+                    b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
+                        .WithMany("Lessons")
+                        .HasForeignKey("TeacherId")
+                        .HasConstraintName("FK__lessons__teacher__5FB337D6");
+
+                    b.Navigation("Class");
+
+                    b.Navigation("ScheduleItem");
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Parent", b =>
@@ -785,21 +715,64 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasForeignKey("NemetschekDnevnik.Server.Models.Parent", "ParentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK__parent__parent_i__4BAC3F29");
+                        .HasConstraintName("FK__parent__parent_i__412EB0B6");
 
                     b.Navigation("ParentNavigation");
                 });
 
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.Remark", b =>
+                {
+                    b.HasOne("NemetschekDnevnik.Server.Models.Student", "Student")
+                        .WithMany("Remarks")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("FK__remarks__student__70DDC3D8");
+
+                    b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
+                        .WithMany("Remarks")
+                        .HasForeignKey("TeacherId")
+                        .HasConstraintName("FK__remarks__teacher__71D1E811");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Teacher");
+                });
+
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Student", b =>
                 {
+                    b.HasOne("NemetschekDnevnik.Server.Models.Parent", "Parent")
+                        .WithMany("Students")
+                        .HasForeignKey("ParentId")
+                        .HasConstraintName("FK__student__parent___44FF419A");
+
                     b.HasOne("NemetschekDnevnik.Server.Models.User", "StudentNavigation")
                         .WithOne("Student")
                         .HasForeignKey("NemetschekDnevnik.Server.Models.Student", "StudentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK__student__student__48CFD27E");
+                        .HasConstraintName("FK__student__student__440B1D61");
+
+                    b.Navigation("Parent");
 
                     b.Navigation("StudentNavigation");
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.SubmittedHomework", b =>
+                {
+                    b.HasOne("NemetschekDnevnik.Server.Models.HomeworkItem", "Homework")
+                        .WithMany("SubmittedHomeworks")
+                        .HasForeignKey("HomeworkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("FK__submitted__homew__7D439ABD");
+
+                    b.HasOne("NemetschekDnevnik.Server.Models.Student", "Student")
+                        .WithMany("SubmittedHomeworks")
+                        .HasForeignKey("StudentId")
+                        .HasConstraintName("FK__submitted__stude__7E37BEF6");
+
+                    b.Navigation("Homework");
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Teacher", b =>
@@ -809,27 +782,27 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasForeignKey("NemetschekDnevnik.Server.Models.Teacher", "TeacherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK__teacher__teacher__52593CB8");
+                        .HasConstraintName("FK__teacher__teacher__47DBAE45");
 
                     b.Navigation("TeacherNavigation");
                 });
 
-            modelBuilder.Entity("NemetschekDnevnik.Server.Models.WeeklySchedule", b =>
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.WeeklyScheduleItem", b =>
                 {
                     b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
-                        .WithMany("WeeklySchedules")
+                        .WithMany("WeeklyScheduleItems")
                         .HasForeignKey("ClassId")
-                        .HasConstraintName("FK__weekly_sc__class__6477ECF3");
+                        .HasConstraintName("FK__weekly_sc__class__5BE2A6F2");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", "Subject")
-                        .WithMany("WeeklySchedules")
+                        .WithMany("WeeklyScheduleItems")
                         .HasForeignKey("SubjectId")
-                        .HasConstraintName("FK__weekly_sc__subje__6383C8BA");
+                        .HasConstraintName("FK__weekly_sc__subje__59FA5E80");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
-                        .WithMany("WeeklySchedules")
+                        .WithMany("WeeklyScheduleItems")
                         .HasForeignKey("TeacherId")
-                        .HasConstraintName("FK__weekly_sc__teach__656C112C");
+                        .HasConstraintName("FK__weekly_sc__teach__5AEE82B9");
 
                     b.Navigation("Class");
 
@@ -838,34 +811,19 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("ParentStudent", b =>
-                {
-                    b.HasOne("NemetschekDnevnik.Server.Models.Parent", null)
-                        .WithMany()
-                        .HasForeignKey("ParentId")
-                        .IsRequired()
-                        .HasConstraintName("FK__parent_st__paren__4E88ABD4");
-
-                    b.HasOne("NemetschekDnevnik.Server.Models.Student", null)
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .IsRequired()
-                        .HasConstraintName("FK__parent_st__stude__4F7CD00D");
-                });
-
             modelBuilder.Entity("StudentClass", b =>
                 {
                     b.HasOne("NemetschekDnevnik.Server.Models.Class", null)
                         .WithMany()
                         .HasForeignKey("ClassId")
                         .IsRequired()
-                        .HasConstraintName("FK__student_c__class__60A75C0F");
+                        .HasConstraintName("FK__student_c__class__5629CD9C");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Student", null)
                         .WithMany()
                         .HasForeignKey("StudentId")
                         .IsRequired()
-                        .HasConstraintName("FK__student_c__stude__5FB337D6");
+                        .HasConstraintName("FK__student_c__stude__5535A963");
                 });
 
             modelBuilder.Entity("TeacherSubject", b =>
@@ -874,20 +832,42 @@ namespace NemetschekDnevnik.Server.Migrations
                         .WithMany()
                         .HasForeignKey("SubjectId")
                         .IsRequired()
-                        .HasConstraintName("FK__teacher_s__subje__5629CD9C");
+                        .HasConstraintName("FK__teacher_s__subje__4E88ABD4");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", null)
                         .WithMany()
                         .HasForeignKey("TeacherId")
                         .IsRequired()
-                        .HasConstraintName("FK__teacher_s__teach__5535A963");
+                        .HasConstraintName("FK__teacher_s__teach__4D94879B");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Class", b =>
                 {
                     b.Navigation("HomeworkItems");
 
-                    b.Navigation("WeeklySchedules");
+                    b.Navigation("Lessons");
+
+                    b.Navigation("WeeklyScheduleItems");
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.GradeType", b =>
+                {
+                    b.Navigation("Grades");
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.HomeworkItem", b =>
+                {
+                    b.Navigation("SubmittedHomeworks");
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.Lesson", b =>
+                {
+                    b.Navigation("Attendances");
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.Parent", b =>
+                {
+                    b.Navigation("Students");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Student", b =>
@@ -895,6 +875,10 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.Navigation("Attendances");
 
                     b.Navigation("Grades");
+
+                    b.Navigation("Remarks");
+
+                    b.Navigation("SubmittedHomeworks");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Subject", b =>
@@ -903,7 +887,9 @@ namespace NemetschekDnevnik.Server.Migrations
 
                     b.Navigation("HomeworkItems");
 
-                    b.Navigation("WeeklySchedules");
+                    b.Navigation("Lessons");
+
+                    b.Navigation("WeeklyScheduleItems");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Teacher", b =>
@@ -912,7 +898,13 @@ namespace NemetschekDnevnik.Server.Migrations
 
                     b.Navigation("Grades");
 
-                    b.Navigation("WeeklySchedules");
+                    b.Navigation("HomeworkItems");
+
+                    b.Navigation("Lessons");
+
+                    b.Navigation("Remarks");
+
+                    b.Navigation("WeeklyScheduleItems");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.User", b =>
@@ -926,9 +918,9 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("NemetschekDnevnik.Server.Models.WeeklySchedule", b =>
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.WeeklyScheduleItem", b =>
                 {
-                    b.Navigation("Attendances");
+                    b.Navigation("Lessons");
                 });
 #pragma warning restore 612, 618
         }

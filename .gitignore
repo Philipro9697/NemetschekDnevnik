@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+#appsettings
+NemetschekDnevnik.Server/appsettings.json
+NemetschekDnevnik.Server/appsettings.Development.json
+appsettings.json
+
 # User-specific files
 *.rsuser
 *.suo
@@ -361,4 +366,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+<<<<<<< HEAD
 /NemetschekDnevnik.Server/.env
+=======
+>>>>>>> f3785785d6500bebab6fb41006f53fb800fc265c
