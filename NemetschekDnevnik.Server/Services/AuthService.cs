@@ -52,7 +52,8 @@ public class AuthService : IAuthService
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Role = role,
-            IsApproved = false
+            IsApproved = false,
+            PhoneNumber = phoneNumber
         };
 
         _context.Users.Add(user);
