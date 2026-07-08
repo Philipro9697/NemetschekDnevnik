@@ -61,16 +61,16 @@ public class AuthService : IAuthService
         switch (role)
         {
             case "Admin":
-                _context.Admins.Add(new Admin { AdminId = user.UserId, FirstName = firstName, LastName = lastName });
+                _context.Admins.Add(new Admin { AdminId = user.UserId });
                 break;
             case "Teacher":
-                _context.Teachers.Add(new Teacher { TeacherId = user.UserId, FirstName = firstName, LastName = lastName });
+                _context.Teachers.Add(new Teacher { TeacherId = user.UserId });
                 break;
             case "Student":
-                _context.Students.Add(new Student { StudentId = user.UserId, FirstName = firstName, LastName = lastName });
+                _context.Students.Add(new Student { StudentId = user.UserId });
                 break;
             case "Parent":
-                _context.Parents.Add(new Parent { ParentId = user.UserId, FirstName = firstName, LastName = lastName });
+                _context.Parents.Add(new Parent { ParentId = user.UserId });
                 break;
             default:
                 await transaction.RollbackAsync();
