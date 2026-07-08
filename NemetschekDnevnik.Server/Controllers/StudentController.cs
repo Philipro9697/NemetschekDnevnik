@@ -13,30 +13,46 @@ namespace NemetschekDnevnik.Server.Controllers;
 public class StudentController : ControllerBase
 {
     private readonly StudentService _studentService;
-    private readonly UserProfileService _profileService;
-    public StudentController(StudentService studentservice, UserProfileService profileservice)
+    public StudentController(StudentService studentservice)
     {
         _studentService = studentservice;
-        _profileService = profileservice;
     }
-    [HttpGet("grades")]
-    public async Task<ActionResult<List<GradeDto>>> GetGrades()
+    public async Task<Student> GetStudent()
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int studentId))
         {
-            return Unauthorized("User ID not found in token.");
+            throw new UnauthorizedAccessException("User ID not found in token.");
         }
 
         if (!User.IsInRole("Student"))
         {
-            return Unauthorized("Wrong Role");
+            throw new UnauthorizedAccessException("Wrong Role");
         }
 
-        //User user = await _profileService.GetUserProfileByIdAsync(studentId);
+        Student? student = await _studentService.GetStudentById(studentId);
 
+        if (student is null)
+        {
+            throw new UnauthorizedAccessException("Student not found");
+        }
 
+        return student;
+
+    }
+    [HttpGet("grades")]
+    public async Task<ActionResult<List<GradeDto>>> GetGrades()
+    {
+        try
+        {
+            Student student = await GetStudent();
+            return await _studentService.GetGrades(student);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
     }
 }
 

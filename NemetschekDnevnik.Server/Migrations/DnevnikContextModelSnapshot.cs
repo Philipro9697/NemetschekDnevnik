@@ -285,6 +285,42 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.ToTable("parent", (string)null);
                 });
 
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.RefreshToken", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_revoked");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("token");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("ID")
+                        .HasName("PK_refresh_tokens");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("refresh_tokens", (string)null);
+                });
+
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Remark", b =>
                 {
                     b.Property<int>("RemarkId")
@@ -706,6 +742,18 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasConstraintName("FK__parent__parent_i__412EB0B6");
 
                     b.Navigation("ParentNavigation");
+                });
+
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.RefreshToken", b =>
+                {
+                    b.HasOne("NemetschekDnevnik.Server.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_refresh_tokens_users");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Remark", b =>
