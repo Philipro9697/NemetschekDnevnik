@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using NemetschekDnevnik.Server.Middleware;
 using NemetschekDnevnik.Server.Services;
 using Microsoft.EntityFrameworkCore.Design;
+using DotNetEnv;
+
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
