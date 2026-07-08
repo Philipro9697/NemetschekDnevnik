@@ -73,7 +73,7 @@ app.MapStaticAssets();
 
 // Configure the HTTP request pipeline.
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseMiddleware<EnsureApprovedUserMiddleware>();
