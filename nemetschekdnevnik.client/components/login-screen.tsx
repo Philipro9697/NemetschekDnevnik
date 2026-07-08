@@ -14,18 +14,52 @@ export function LoginScreen() {
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+ async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const account = demoAccounts.find(
-      (a) => a.username.toLowerCase() === username.trim().toLowerCase(),
-    )
-    if (!account || password.length < 1) {
-      setError('Невалидно потребителско име или парола.')
+    
+    if (username.trim().length < 1 || password.length < 1) {
+      setError('Моля, попълнете всички полета.')
       return
     }
+
     setError('')
-    login(account.userId)
+    setIsLoading(true)
+
+    try {
+      
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          Email: username.trim(),
+          Password: password,
+        }),
+      })
+
+      const data = await response.json()
+
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Невалидно e-mail или парола.')
+      }
+      
+      
+      if (data.token) {
+        
+        login(data.token) 
+      } else {
+        throw new Error('Грешка при автентификация.')
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Грешка при свързване със сървъра.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   function handleTogglePassword() {
@@ -57,7 +91,7 @@ export function LoginScreen() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="username" className="text-sm font-medium">
-                Потребителско име или Имейл
+                Имейл
               </label>
               <div className="relative">
                 <UserIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -65,7 +99,7 @@ export function LoginScreen() {
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Потребителско име или Имейл"
+                  placeholder="Имейл"
                   autoComplete="username"
                   className="pl-9"
                 />
