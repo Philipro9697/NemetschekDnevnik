@@ -69,7 +69,7 @@ app.MapStaticAssets();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
-//app.UseMiddleware<EnsureApprovedUserMiddleware>();
+app.UseMiddleware<EnsureApprovedUserMiddleware>();
 
 app.UseAuthorization();
 

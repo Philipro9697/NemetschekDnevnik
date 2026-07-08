@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NemetschekDnevnik.Server.DTOs;
 using NemetschekDnevnik.Server.Services;
@@ -30,6 +31,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}/approve")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserProfileDto>> ApproveUser(int id)
     {
         var profile = await _userProfileService.ApproveAsync(id);
@@ -44,6 +46,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}/block")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserProfileDto>> BlockUser(int id)
     {
         var profile = await _userProfileService.BlockAsync(id);
@@ -58,6 +61,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> DeleteUser(int id)
     {
         var deleted = await _userProfileService.DeleteAsync(id);
@@ -67,6 +71,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("pending-approvals")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<IEnumerable<UserProfileDto>>> GetPendingApprovals()
     {
         var pendingUsers = await _userProfileService.GetPendingApprovalsAsync();
