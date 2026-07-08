@@ -123,24 +123,7 @@ export function LoginScreen() {
             </div>
           </form>
 
-          <div className="mt-6 grid gap-2 rounded-2xl border border-border/70 bg-muted/30 p-3 text-sm text-muted-foreground sm:grid-cols-2">
-            <div className="rounded-xl border border-border/70 bg-card/70 p-3">
-              <p className="font-semibold text-foreground">Учител</p>
-              <p>Програма, дневник, класен ръководител и домашни.</p>
-            </div>
-            <div className="rounded-xl border border-border/70 bg-card/70 p-3">
-              <p className="font-semibold text-foreground">Ученик</p>
-              <p>Оценки, отсъствия, бележки и домашни в едно място.</p>
-            </div>
-            <div className="rounded-xl border border-border/70 bg-card/70 p-3">
-              <p className="font-semibold text-foreground">Родител</p>
-              <p>Преглед на децата, календар и съобщения.</p>
-            </div>
-            <div className="rounded-xl border border-border/70 bg-card/70 p-3">
-              <p className="font-semibold text-foreground">Админ</p>
-              <p>Управление на потребители, справки и архив.</p>
-            </div>
-          </div>
+          
 
           <DemoHint onDemoLogin={handleDemoLogin} />
         </div>
