@@ -50,7 +50,7 @@ builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
         ?? "Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary;Integrated Security=True;TrustServerCertificate=True"));
 
-builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

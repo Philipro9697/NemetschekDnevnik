@@ -3,21 +3,21 @@ using NemetschekDnevnik.Server.DTOs;
 using NemetschekDnevnik.Server.Models;
 
 namespace NemetschekDnevnik.Server.Services;
-public class UserProfileService : IUserProfileService
+public class AdminService : IAdminService
 {
     private readonly NemetschekSchoolDiaryContext _db;
-    public UserProfileService(NemetschekSchoolDiaryContext db)
+    public AdminService(NemetschekSchoolDiaryContext db)
     {
         _db = db;
     }
 
-    public async Task<UserProfileDto?> GetUserProfileByIdAsync(int userId)
+    public async Task<UserAccountDto?> GetUserProfileByIdAsync(int userId)
     {
         var user = await _db.Users.FindAsync(userId);
         if (user == null)
             return null;
 
-        return new UserProfileDto
+        return new UserAccountDto
         {
             UserId = user.UserId,
             Email = user.Email,
@@ -26,7 +26,7 @@ public class UserProfileService : IUserProfileService
         };
     }
 
-    public async Task<UserProfileDto?> ApproveAsync(int userId)
+    public async Task<UserAccountDto?> ApproveAsync(int userId)
     {
         var user = await _db.Users.FindAsync(userId);
         if (user == null)
@@ -35,7 +35,7 @@ public class UserProfileService : IUserProfileService
         user.IsApproved = true;
         await _db.SaveChangesAsync();
 
-        return new UserProfileDto
+        return new UserAccountDto
         {
             UserId = user.UserId,
             Email = user.Email,
@@ -44,7 +44,7 @@ public class UserProfileService : IUserProfileService
         };
     }
 
-    public async Task<UserProfileDto?> BlockAsync(int userId)
+    public async Task<UserAccountDto?> BlockAsync(int userId)
     {
         var user = await _db.Users.FindAsync(userId);
         if (user == null)
@@ -53,7 +53,7 @@ public class UserProfileService : IUserProfileService
         user.IsApproved = false;
         await _db.SaveChangesAsync();
 
-        return new UserProfileDto
+        return new UserAccountDto
         {
             UserId = user.UserId,
             Email = user.Email,
@@ -73,11 +73,11 @@ public class UserProfileService : IUserProfileService
         return true;
     }
 
-    public async Task<IEnumerable<UserProfileDto>> GetPendingApprovalsAsync()
+    public async Task<IEnumerable<UserAccountDto>> GetPendingApprovalsAsync()
     {
         return await _db.Users
             .Where(u => !u.IsApproved)
-            .Select(u => new UserProfileDto
+            .Select(u => new UserAccountDto
             {
                 UserId = u.UserId,
                 Email = u.Email,

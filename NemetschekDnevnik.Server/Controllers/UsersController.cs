@@ -9,16 +9,16 @@ namespace NemetschekDnevnik.Server.Controllers;
 [Route("api/users")]
 public class UsersController : ControllerBase
 {
-    private readonly IUserProfileService _userProfileService;
-    public UsersController(IUserProfileService userProfileService)
+    private readonly IAdminService _adminService;
+    public UsersController(IAdminService adminService)
     {
-        _userProfileService = userProfileService;
+        _adminService = adminService;
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<UserProfileDto>> GetUserProfile(int id)
     {
-        var profile = await _userProfileService.GetUserProfileByIdAsync(id);
+        var profile = await _adminService.GetUserProfileByIdAsync(id);
         if (profile == null)
         {
             return NotFound(new
@@ -34,7 +34,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserProfileDto>> ApproveUser(int id)
     {
-        var profile = await _userProfileService.ApproveAsync(id);
+        var profile = await _adminService.ApproveAsync(id);
         if (profile == null)
         {
             return NotFound(new
@@ -49,7 +49,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserProfileDto>> BlockUser(int id)
     {
-        var profile = await _userProfileService.BlockAsync(id);
+        var profile = await _adminService.BlockAsync(id);
         if (profile == null)
         {
             return NotFound(new
@@ -64,7 +64,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> DeleteUser(int id)
     {
-        var deleted = await _userProfileService.DeleteAsync(id);
+        var deleted = await _adminService.DeleteAsync(id);
         return deleted ? 
             Ok(new { message = "User deleted successfully." }) : 
             NotFound(new {message = "User not found."});
@@ -74,7 +74,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<IEnumerable<UserProfileDto>>> GetPendingApprovals()
     {
-        var pendingUsers = await _userProfileService.GetPendingApprovalsAsync();
+        var pendingUsers = await _adminService.GetPendingApprovalsAsync();
         return Ok(pendingUsers);
     }
 }
