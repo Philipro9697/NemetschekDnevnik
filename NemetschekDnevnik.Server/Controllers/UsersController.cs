@@ -84,9 +84,9 @@ public class UsersController : ControllerBase
     public async Task<ActionResult> DeleteUser(int id)
     {
         var deleted = await _adminService.DeleteAsync(id);
-        return deleted ? 
-            Ok(new { message = "User deleted successfully." }) : 
-            NotFound(new {message = "User not found."});
+        return deleted ?
+            Ok(new { message = "User deleted successfully." }) :
+            NotFound(new { message = "User not found." });
     }
 
     [HttpGet]
