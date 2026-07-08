@@ -24,7 +24,7 @@ public class AdminService : IAdminService
         IsApproved = user.IsApproved
     };
 
-    public async Task<UserAccountDto?> GetUserProfileByIdAsync(int userId)
+    public async Task<UserAccountDto?> GetUserProfileAsync(int userId)
     {
         var user = await _db.Users.FindAsync(userId);
         if (user == null)
@@ -111,11 +111,9 @@ public class AdminService : IAdminService
         return true;
     }
 
-    public async Task<IEnumerable<UserAccountDto>> GetPendingApprovalsAsync()
+    public async Task<IEnumerable<UserAccountDto>> GetAllUsersAsync()
     {
-        return await _db.Users
-            .Where(u => !u.IsApproved)
-            .Select(u => ToUserAccountDto(u))
-            .ToListAsync();
+        var users = await _db.Users.ToListAsync();
+        return users.Select(ToUserAccountDto);
     }
 }

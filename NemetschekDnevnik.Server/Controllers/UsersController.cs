@@ -26,7 +26,7 @@ public class UsersController : ControllerBase
         if (requesterRole != "Admin" && requesterId != id)
             return Forbid();
 
-        var profile = await _adminService.GetUserProfileByIdAsync(id);
+        var profile = await _adminService.GetUserProfileAsync(id);
         if (profile == null)
         {
             return NotFound(new
@@ -89,11 +89,11 @@ public class UsersController : ControllerBase
             NotFound(new {message = "User not found."});
     }
 
-    [HttpGet("pending-approvals")]
+    [HttpGet]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<UserAccountDto>>> GetPendingApprovals()
+    public async Task<ActionResult<IEnumerable<UserAccountDto>>> GetAllUsers()
     {
-        var pendingUsers = await _adminService.GetPendingApprovalsAsync();
-        return Ok(pendingUsers);
+        var users = await _adminService.GetAllUsersAsync();
+        return Ok(users);
     }
 }
