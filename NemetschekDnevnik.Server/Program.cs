@@ -19,7 +19,7 @@ builder.Configuration.AddEnvironmentVariables();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
+builder.Services.AddDbContext<DnevnikContext>(options =>
     options.UseSqlServer(connectionString));
 
 
@@ -51,9 +51,8 @@ builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthorization();
 
-builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary;Integrated Security=True;TrustServerCertificate=True"));
+builder.Services.AddDbContext<DnevnikContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IAdminService, AdminService>();
 
@@ -65,7 +64,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<NemetschekSchoolDiaryContext>();
+    var context = services.GetRequiredService<DnevnikContext>();
     context.Database.Migrate();
 }
 

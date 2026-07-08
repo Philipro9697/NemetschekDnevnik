@@ -3,7 +3,6 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NemetschekDnevnik.Server.Models;
 
@@ -11,12 +10,10 @@ using NemetschekDnevnik.Server.Models;
 
 namespace NemetschekDnevnik.Server.Migrations
 {
-    [DbContext(typeof(NemetschekSchoolDiaryContext))]
-    [Migration("20260707125207_InitialCreate")]
-    partial class InitialCreate
+    [DbContext(typeof(DnevnikContext))]
+    partial class DnevnikContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -338,12 +335,18 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("student_id");
 
+                    b.Property<int?>("ClassId")
+                        .HasColumnType("int")
+                        .HasColumnName("class_id");
+
                     b.Property<int?>("ParentId")
                         .HasColumnType("int")
                         .HasColumnName("parent_id");
 
                     b.HasKey("StudentId")
                         .HasName("PK__student__2A33069A22388D38");
+
+                    b.HasIndex("ClassId");
 
                     b.HasIndex("ParentId");
 
@@ -546,24 +549,6 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.ToTable("weekly_schedule_items", (string)null);
                 });
 
-            modelBuilder.Entity("StudentClass", b =>
-                {
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int")
-                        .HasColumnName("student_id");
-
-                    b.Property<int>("ClassId")
-                        .HasColumnType("int")
-                        .HasColumnName("class_id");
-
-                    b.HasKey("StudentId", "ClassId")
-                        .HasName("PK__student___55EC4102AB35D74E");
-
-                    b.HasIndex("ClassId");
-
-                    b.ToTable("student_class", (string)null);
-                });
-
             modelBuilder.Entity("TeacherSubject", b =>
                 {
                     b.Property<int>("TeacherId")
@@ -743,6 +728,11 @@ namespace NemetschekDnevnik.Server.Migrations
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Student", b =>
                 {
+                    b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
+                        .WithMany("Students")
+                        .HasForeignKey("ClassId")
+                        .HasConstraintName("FK_student_class_id");
+
                     b.HasOne("NemetschekDnevnik.Server.Models.Parent", "Parent")
                         .WithMany("Students")
                         .HasForeignKey("ParentId")
@@ -754,6 +744,8 @@ namespace NemetschekDnevnik.Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK__student__student__440B1D61");
+
+                    b.Navigation("Class");
 
                     b.Navigation("Parent");
 
@@ -814,21 +806,6 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("StudentClass", b =>
-                {
-                    b.HasOne("NemetschekDnevnik.Server.Models.Class", null)
-                        .WithMany()
-                        .HasForeignKey("ClassId")
-                        .IsRequired()
-                        .HasConstraintName("FK__student_c__class__5629CD9C");
-
-                    b.HasOne("NemetschekDnevnik.Server.Models.Student", null)
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .IsRequired()
-                        .HasConstraintName("FK__student_c__stude__5535A963");
-                });
-
             modelBuilder.Entity("TeacherSubject", b =>
                 {
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", null)
@@ -849,6 +826,8 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.Navigation("HomeworkItems");
 
                     b.Navigation("Lessons");
+
+                    b.Navigation("Students");
 
                     b.Navigation("WeeklyScheduleItems");
                 });
