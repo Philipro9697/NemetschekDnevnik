@@ -6,8 +6,8 @@ namespace NemetschekDnevnik.Server.Services;
 
 public class StudentService : IStudentService
 {
-    private readonly NemetschekSchoolDiaryContext _db;
-    public StudentService(NemetschekSchoolDiaryContext db)
+    private readonly DnevnikContext _db;
+    public StudentService(DnevnikContext db)
     {
         _db = db;
     }
