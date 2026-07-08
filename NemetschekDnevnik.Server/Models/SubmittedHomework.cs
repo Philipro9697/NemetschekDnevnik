@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 
 namespace NemetschekDnevnik.Server.Models;
-
 public partial class SubmittedHomework
 {
     public int SubmissionId { get; set; }

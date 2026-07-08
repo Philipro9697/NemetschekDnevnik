@@ -278,7 +278,12 @@ public partial class DnevnikContext : DbContext
             entity.Property(e => e.StudentId)
                 .ValueGeneratedNever()
                 .HasColumnName("student_id");
+            entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.ParentId).HasColumnName("parent_id");
+
+            entity.HasOne(d => d.Class).WithMany(p => p.Students)
+                .HasForeignKey(d => d.ClassId)
+                .HasConstraintName("FK_student_class_id");
 
             entity.HasOne(d => d.Parent).WithMany(p => p.Students)
                 .HasForeignKey(d => d.ParentId)
@@ -287,25 +292,6 @@ public partial class DnevnikContext : DbContext
             entity.HasOne(d => d.StudentNavigation).WithOne(p => p.Student)
                 .HasForeignKey<Student>(d => d.StudentId)
                 .HasConstraintName("FK__student__student__440B1D61");
-
-            entity.HasMany(d => d.Classes).WithMany(p => p.Students)
-                .UsingEntity<Dictionary<string, object>>(
-                    "StudentClass",
-                    r => r.HasOne<Class>().WithMany()
-                        .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK__student_c__class__5629CD9C"),
-                    l => l.HasOne<Student>().WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK__student_c__stude__5535A963"),
-                    j =>
-                    {
-                        j.HasKey("StudentId", "ClassId").HasName("PK__student___55EC4102AB35D74E");
-                        j.ToTable("student_class");
-                        j.IndexerProperty<int>("StudentId").HasColumnName("student_id");
-                        j.IndexerProperty<int>("ClassId").HasColumnName("class_id");
-                    });
         });
 
         modelBuilder.Entity<Subject>(entity =>

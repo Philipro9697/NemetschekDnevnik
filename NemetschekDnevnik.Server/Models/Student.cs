@@ -2,14 +2,17 @@
 using System.Collections.Generic;
 
 namespace NemetschekDnevnik.Server.Models;
-
 public partial class Student
 {
     public int StudentId { get; set; }
 
     public int? ParentId { get; set; }
 
+    public int? ClassId { get; set; }
+
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+
+    public virtual Class? Class { get; set; }
 
     public virtual ICollection<Grade> Grades { get; set; } = new List<Grade>();
 
@@ -20,6 +23,4 @@ public partial class Student
     public virtual User StudentNavigation { get; set; } = null!;
 
     public virtual ICollection<SubmittedHomework> SubmittedHomeworks { get; set; } = new List<SubmittedHomework>();
-
-    public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
 }
