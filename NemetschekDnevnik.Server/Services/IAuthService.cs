@@ -2,5 +2,8 @@
 
 public interface IAuthService
 {
-    Task<string?> LoginAsync(string email, string password);
+    Task<AuthResult?> LoginAsync(string email, string password);
+    Task<bool> RegisterAsync(string email, string password, string role, string firstName, string lastName, string phoneNumber);
+    Task<AuthResult?> RefreshAsync(string refreshToken);
+    Task<bool> LogoutAsync(string refreshToken);
 }

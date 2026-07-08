@@ -45,6 +45,8 @@ public partial class NemetschekSchoolDiaryContext : DbContext
 
     public virtual DbSet<WeeklyScheduleItem> WeeklyScheduleItems { get; set; }
 
+    public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Admin>(entity =>
