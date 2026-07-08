@@ -8,8 +8,8 @@ public class AdminService : IAdminService
 {
     private static readonly string[] CreatableRoles = { "Teacher", "Student", "Parent" };
 
-    private readonly DnevnikContext _db;
-    public AdminService(DnevnikContext db)
+    private readonly NemetschekSchoolDiaryContext _db;
+    public AdminService(NemetschekSchoolDiaryContext db)
     {
         _db = db;
     }

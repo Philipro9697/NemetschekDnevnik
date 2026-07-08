@@ -13,7 +13,7 @@ public class EnsureApprovedUserMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, DnevnikContext db)
+    public async Task InvokeAsync(HttpContext context, NemetschekSchoolDiaryContext db)
     {
         if (context.Request.Path.StartsWithSegments("/api/auth", StringComparison.OrdinalIgnoreCase))
         {
