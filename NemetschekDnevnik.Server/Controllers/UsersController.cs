@@ -16,7 +16,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<UserProfileDto>> GetUserProfile(int id)
+    public async Task<ActionResult<UserAccountDto>> GetUserProfile(int id)
     {
         var profile = await _adminService.GetUserProfileByIdAsync(id);
         if (profile == null)
@@ -30,9 +30,20 @@ public class UsersController : ControllerBase
         return Ok(profile);
     }
 
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<UserAccountDto>> CreateUser(CreateUserDto dto)
+    {
+        var profile = await _adminService.CreateAsync(dto);
+        if (profile == null)
+            return Conflict(new { message = "Email already registered." });
+
+        return CreatedAtAction(nameof(GetUserProfile), new { id = profile.UserId }, profile);
+    }
+
     [HttpPut("{id}/approve")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<UserProfileDto>> ApproveUser(int id)
+    public async Task<ActionResult<UserAccountDto>> ApproveUser(int id)
     {
         var profile = await _adminService.ApproveAsync(id);
         if (profile == null)
@@ -47,7 +58,7 @@ public class UsersController : ControllerBase
 
     [HttpPut("{id}/block")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<UserProfileDto>> BlockUser(int id)
+    public async Task<ActionResult<UserAccountDto>> BlockUser(int id)
     {
         var profile = await _adminService.BlockAsync(id);
         if (profile == null)
@@ -72,7 +83,7 @@ public class UsersController : ControllerBase
 
     [HttpGet("pending-approvals")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<UserProfileDto>>> GetPendingApprovals()
+    public async Task<ActionResult<IEnumerable<UserAccountDto>>> GetPendingApprovals()
     {
         var pendingUsers = await _adminService.GetPendingApprovalsAsync();
         return Ok(pendingUsers);

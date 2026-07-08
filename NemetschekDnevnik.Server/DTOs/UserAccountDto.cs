@@ -8,5 +8,5 @@ public class UserAccountDto
     public bool IsApproved { get; set; }
     public string FirstName { get; set; }
     public string LastName { get; set; }
-    public string phoneNumber { get; set; }
+    public string PhoneNumber { get; set; }
 }

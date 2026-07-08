@@ -5,11 +5,23 @@ using NemetschekDnevnik.Server.Models;
 namespace NemetschekDnevnik.Server.Services;
 public class AdminService : IAdminService
 {
+    private AccountProvisioningService _provisioningService;
     private readonly NemetschekSchoolDiaryContext _db;
     public AdminService(NemetschekSchoolDiaryContext db)
     {
         _db = db;
     }
+
+    private static UserAccountDto ToUserAccountDto(User user) => new()
+    {
+        UserId = user.UserId,
+        Email = user.Email,
+        Role = user.Role,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        PhoneNumber = user.PhoneNumber,
+        IsApproved = user.IsApproved
+    };
 
     public async Task<UserAccountDto?> GetUserProfileByIdAsync(int userId)
     {
@@ -17,13 +29,22 @@ public class AdminService : IAdminService
         if (user == null)
             return null;
 
-        return new UserAccountDto
-        {
-            UserId = user.UserId,
-            Email = user.Email,
-            Role = user.Role,
-            IsApproved = user.IsApproved
-        };
+        return ToUserAccountDto(user);
+    }
+
+    public async Task<UserAccountDto?> CreateAsync(CreateUserDto dto)
+    {
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        var user = await _provisioningService.CreateAccountAsync(
+            dto.Email, passwordHash,
+            dto.Role, dto.FirstName,
+            dto.LastName,
+            dto.PhoneNumber,
+            isApproved: false);
+            
+        if (user == null)
+            return null;
+        return ToUserAccountDto(user);
     }
 
     public async Task<UserAccountDto?> ApproveAsync(int userId)
@@ -35,13 +56,7 @@ public class AdminService : IAdminService
         user.IsApproved = true;
         await _db.SaveChangesAsync();
 
-        return new UserAccountDto
-        {
-            UserId = user.UserId,
-            Email = user.Email,
-            Role = user.Role,
-            IsApproved = user.IsApproved
-        };
+        return ToUserAccountDto(user);
     }
 
     public async Task<UserAccountDto?> BlockAsync(int userId)
@@ -53,13 +68,7 @@ public class AdminService : IAdminService
         user.IsApproved = false;
         await _db.SaveChangesAsync();
 
-        return new UserAccountDto
-        {
-            UserId = user.UserId,
-            Email = user.Email,
-            Role = user.Role,
-            IsApproved = user.IsApproved
-        };
+        return ToUserAccountDto(user);
     }
 
     public async Task<bool> DeleteAsync(int userId)
@@ -77,13 +86,7 @@ public class AdminService : IAdminService
     {
         return await _db.Users
             .Where(u => !u.IsApproved)
-            .Select(u => new UserAccountDto
-            {
-                UserId = u.UserId,
-                Email = u.Email,
-                Role = u.Role,
-                IsApproved = u.IsApproved
-            })
+            .Select(u => ToUserAccountDto(u))
             .ToListAsync();
     }
 }
