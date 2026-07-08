@@ -22,13 +22,4 @@ public class AuthController : ControllerBase
         return Ok(new { token });
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterDto dto)
-    {
-        var success = await _authService.RegisterAsync(dto.Email, dto.Password, dto.Role, dto.FirstName, dto.LastName, dto.PhoneNumber);
-        if (!success)
-            return Conflict(new { message = "Email already registered or invalid role" });
-
-        return Ok(new { message = "Registered. Awaiting approval." });
-    }
 }

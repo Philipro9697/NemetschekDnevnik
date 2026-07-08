@@ -6,7 +6,7 @@ public class UserAccountDto
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public bool IsApproved { get; set; }
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string PhoneNumber { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string PhoneNumber { get; set; } = string.Empty;
 }

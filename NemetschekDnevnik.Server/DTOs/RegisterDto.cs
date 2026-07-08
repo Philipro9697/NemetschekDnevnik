@@ -4,7 +4,7 @@ namespace NemetschekDnevnik.Server.DTOs;
 
 public class RegisterDto : IValidatableObject
 {
-    private static readonly string[] AllowedRoles = new[] { "Admin", "Teacher", "Student", "Parent" };
+    private static readonly string[] AllowedRoles = new[] { "Teacher", "Student", "Parent" };
 
     [Required, EmailAddress]
     public string Email { get; set; } = string.Empty;

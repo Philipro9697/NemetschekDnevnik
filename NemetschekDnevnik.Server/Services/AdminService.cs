@@ -5,7 +5,8 @@ using NemetschekDnevnik.Server.Models;
 namespace NemetschekDnevnik.Server.Services;
 public class AdminService : IAdminService
 {
-    private AccountProvisioningService _provisioningService;
+    private static readonly string[] CreatableRoles = { "Teacher", "Student", "Parent" };
+
     private readonly NemetschekSchoolDiaryContext _db;
     public AdminService(NemetschekSchoolDiaryContext db)
     {
@@ -34,16 +35,44 @@ public class AdminService : IAdminService
 
     public async Task<UserAccountDto?> CreateAsync(CreateUserDto dto)
     {
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-        var user = await _provisioningService.CreateAccountAsync(
-            dto.Email, passwordHash,
-            dto.Role, dto.FirstName,
-            dto.LastName,
-            dto.PhoneNumber,
-            isApproved: false);
-            
-        if (user == null)
+        if (!CreatableRoles.Contains(dto.Role))
             return null;
+
+        if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
+            return null;
+
+        using var transaction = await _db.Database.BeginTransactionAsync();
+
+        var user = new User
+        {
+            Email = dto.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            Role = dto.Role,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            PhoneNumber = dto.PhoneNumber,
+            IsApproved = true
+        };
+
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        switch (dto.Role)
+        {
+            case "Teacher":
+                _db.Teachers.Add(new Teacher { TeacherId = user.UserId });
+                break;
+            case "Student":
+                _db.Students.Add(new Student { StudentId = user.UserId });
+                break;
+            case "Parent":
+                _db.Parents.Add(new Parent { ParentId = user.UserId });
+                break;
+        }
+
+        await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
+
         return ToUserAccountDto(user);
     }
 

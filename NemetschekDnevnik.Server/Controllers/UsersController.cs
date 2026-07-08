@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NemetschekDnevnik.Server.DTOs;
@@ -16,8 +17,15 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize]
     public async Task<ActionResult<UserAccountDto>> GetUserProfile(int id)
     {
+        var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var requesterRole = User.FindFirstValue(ClaimTypes.Role);
+
+        if (requesterRole != "Admin" && requesterId != id)
+            return Forbid();
+
         var profile = await _adminService.GetUserProfileByIdAsync(id);
         if (profile == null)
         {
