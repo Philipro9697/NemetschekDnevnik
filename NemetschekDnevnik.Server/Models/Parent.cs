@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 
 namespace NemetschekDnevnik.Server.Models;
-
 public partial class Parent
 {
     public int ParentId { get; set; }
