@@ -44,10 +44,12 @@ interface AppState {
   notifications: Notification[]
   view: string
   selectedClassId: string | null
+  selectedChildId: string | null
   login: (userId: string) => void
   logout: () => void
   setView: (v: string) => void
   setSelectedClass: (classId: string | null) => void
+  setSelectedChildId: (id: string | null) => void
   addGrade: (g: Omit<Grade, 'id' | 'date'>) => void
   addAbsence: (a: Omit<Absence, 'id' | 'date'>) => void
   toggleAbsenceExcused: (id: string) => void
@@ -90,6 +92,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [view, setView] = useState('')
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
 
   function notify(target: string, text: string) {
     setNotifications((prev) => [
@@ -111,10 +114,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notifications,
       view,
       selectedClassId,
+      selectedChildId,
       login: (userId) => {
         const u = users.find((x) => x.id === userId) ?? null
         setCurrentUser(u)
         if (u) {
+          setSelectedChildId(u.role === 'parent' ? u.childrenIds?.[0] ?? null : null)
           setView(
             u.role === 'admin'
               ? 'users'
@@ -130,9 +135,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCurrentUser(null)
         setView('')
         setSelectedClassId(null)
+        setSelectedChildId(null)
       },
       setView,
       setSelectedClass: (classId) => setSelectedClassId(classId),
+      setSelectedChildId: (id) => setSelectedChildId(id),
       addGrade: (g) => {
         setGrades((prev) => [{ ...g, id: nid(), date: today() }, ...prev])
         notify(g.studentId, `Нова оценка Отличен/${g.value} беше нанесена.`)
@@ -231,7 +238,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           prev.map((n) => (n.target === target ? { ...n, read: true } : n)),
         ),
     }),
-    [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId],
+    [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId, selectedChildId],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

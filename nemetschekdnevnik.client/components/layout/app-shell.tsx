@@ -63,6 +63,11 @@ const NAV: Record<Role, NavItem[]> = {
   ],
   parent: [
     { view: 'children', label: 'Моите деца', icon: GraduationCap },
+    { view: 'grades', label: 'Оценки', icon: TrendingUp },
+    { view: 'absences', label: 'Отсъствия', icon: CircleAlert },
+    { view: 'notes', label: 'Бележки', icon: MessageSquareText },
+    { view: 'schedule', label: 'Програма', icon: CalendarRange },
+    { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
     { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
   ],

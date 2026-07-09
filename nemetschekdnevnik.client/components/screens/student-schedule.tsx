@@ -18,7 +18,7 @@ const WEEK_DAYS = [
 
 export function StudentSchedule({ student }: { student?: User }) {
   const app = useApp()
-  const me = student ?? app.currentUser
+  const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   const [selectedDay, setSelectedDay] = useState('monday')
   if (!me) return null
 
