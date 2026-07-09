@@ -5,10 +5,10 @@ namespace NemetschekDnevnik.Server.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly NemetschekSchoolDiaryContext _context;
+    private readonly DnevnikContext _context;
     private readonly ITokenService _tokenService;
 
-    public AuthService(NemetschekSchoolDiaryContext context, ITokenService tokenService)
+    public AuthService(DnevnikContext context, ITokenService tokenService)
     {
         _context = context;
         _tokenService = tokenService;
@@ -46,7 +46,7 @@ public class AuthService : IAuthService
         var storedToken = await _context.RefreshTokens
                                         .Include(t => t.User)
                                         .FirstOrDefaultAsync(t => t.Token == refreshToken);
-        if(storedToken == null || storedToken.ExpiresAt < DateTime.UtcNow || storedToken.IsRevoked)
+        if (storedToken == null || storedToken.ExpiresAt < DateTime.UtcNow || storedToken.IsRevoked)
         {
             return null;
         }
@@ -64,10 +64,10 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        return new AuthResult { AccessToken = newAccessToken, RefreshToken  = newRefreshTokenString };
+        return new AuthResult { AccessToken = newAccessToken, RefreshToken = newRefreshTokenString };
     }
 
-    public async Task <bool> LogoutAsync(string refreshToken)
+    public async Task<bool> LogoutAsync(string refreshToken)
     {
         var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(t => t.Token == refreshToken);
         if (storedToken == null) { return false; }

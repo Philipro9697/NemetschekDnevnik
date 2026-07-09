@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
+import { userService } from '@/api/userService'
 import {
   Dialog,
   DialogContent,
@@ -15,8 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Tabs } from '@/components/ui/tabs'
-import { classes, classById, subjects, type Role, type User } from '@/lib/data'
+import { classes, classById, type Role, type User } from '@/lib/data'
 import {
   UserPlus,
   Pencil,
@@ -29,7 +29,6 @@ import {
   ShieldCheck,
   Sparkles,
   UsersRound,
-  BookOpen,
 } from 'lucide-react'
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -64,8 +63,6 @@ export function AdminUsers() {
   const app = useApp()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
-  const [editCandidate, setEditCandidate] = useState<User | null>(null)
-  const [detailCandidate, setDetailCandidate] = useState<User | null>(null)
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
   const [classFilter, setClassFilter] = useState<'all' | string>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all')
@@ -122,7 +119,6 @@ export function AdminUsers() {
         </div>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" />
@@ -159,9 +155,8 @@ export function AdminUsers() {
             <UserPlus className="size-4" /> Регистрирай нов потребител
           </Button>
         </div>
-      </div>
+          </div>
 
-      {/* Role filter chips */}
       <div className="flex flex-wrap gap-2">
         {(
           [
@@ -186,7 +181,6 @@ export function AdminUsers() {
         ))}
       </div>
 
-      {/* Table */}
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -194,7 +188,7 @@ export function AdminUsers() {
               <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 font-semibold">Име</th>
                 <th className="px-4 py-3 font-semibold">Роля</th>
-                <th className="px-4 py-3 font-semibold">Клас / Предмет</th>
+                <th className="px-4 py-3 font-semibold">Клас</th>
                 <th className="px-4 py-3 font-semibold">Статус</th>
                 <th className="px-4 py-3 text-right font-semibold">Действия</th>
               </tr>
@@ -215,11 +209,8 @@ export function AdminUsers() {
                     <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {u.role === 'student'
-                      ? classById(u.classId)?.name ?? '—'
-                      : u.role === 'teacher'
-                      ? `${u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—'}${u.subjectIds?.length ? ` • ${u.subjectIds.map((id) => subjects.find((s) => s.id === id)?.name).filter(Boolean).join(', ')}` : ''}`
-                      : '—'}
+                    {classById(u.classId)?.name ??
+                      (u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—')}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -239,14 +230,9 @@ export function AdminUsers() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <IconBtn label="Редакция" onClick={() => setEditCandidate(u)}>
+                      <IconBtn label="Редакция">
                         <Pencil className="size-4" />
                       </IconBtn>
-                      {u.role === 'student' && (
-                        <IconBtn label="Детайли" onClick={() => setDetailCandidate(u)}>
-                          <BookOpen className="size-4" />
-                        </IconBtn>
-                      )}
                       <IconBtn
                         label={u.status === 'active' ? 'Блокирай' : 'Разблокирай'}
                         onClick={() =>
@@ -288,22 +274,6 @@ export function AdminUsers() {
       </Card>
 
       <RegisterDialog open={open} onClose={() => setOpen(false)} />
-      <EditUserDialog
-        open={Boolean(editCandidate)}
-        user={editCandidate}
-        onClose={() => setEditCandidate(null)}
-        onSave={(updates) => {
-          if (editCandidate) {
-            app.updateUser(editCandidate.id, updates)
-          }
-          setEditCandidate(null)
-        }}
-      />
-      <StudentDetailDialog
-        open={Boolean(detailCandidate)}
-        student={detailCandidate}
-        onClose={() => setDetailCandidate(null)}
-      />
 
       <Dialog open={Boolean(deleteCandidate)} onClose={() => setDeleteCandidate(null)}>
         <DialogContent className="max-w-md">
@@ -373,120 +343,97 @@ function IconBtn({
 }
 
 function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const app = useApp()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [phone, setPhone] = useState('')
-  const [parentName, setParentName] = useState('')
-  const [parentEmail, setParentEmail] = useState('')
-  const [parentPassword, setParentPassword] = useState('')
-  const [parentPhone, setParentPhone] = useState('')
-  const [role, setRole] = useState<Role>('student')
-  const [classId, setClassId] = useState<string>('c5a')
-  const [teacherSubjectId, setTeacherSubjectId] = useState<string>(subjects[0]?.id ?? '')
-  const [created, setCreated] = useState<{ username: string; accessCode?: string } | null>(null)
-  const [copied, setCopied] = useState(false)
+    const app = useApp()
+    const [name, setName] = useState('')
+    const [email, setEmail] = useState('')
+    const [role, setRole] = useState<Role>('student')
+    const [classId, setClassId] = useState<string>('c5a')
 
-  const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
+    // Track loading and error states for the API request
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-  function reset() {
-    setName('')
-    setEmail('')
-    setPassword('')
-    setPhone('')
-    setParentName('')
-    setParentEmail('')
-    setParentPassword('')
-    setParentPhone('')
-    setRole('student')
-    setClassId('c5a')
-    setTeacherSubjectId(subjects[0]?.id ?? '')
-    setCreated(null)
-    setCopied(false)
-  }
+    // Updated to include the generated password for the admin to copy
+    const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string } | null>(null)
+    const [copied, setCopied] = useState(false)
 
-  function handleSubmit() {
-    if (!name.trim()) return
+    const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
 
-    const baseEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
-    const accessCode =
-      role === 'student'
-        ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
-        : undefined
-
-    const studentId =
-      role === 'student'
-        ? app.addUser({
-            name: name.trim(),
-            username,
-            email: baseEmail,
-            role,
-            status: 'active',
-            classId,
-            accessCode,
-            password: password.trim() || undefined,
-            phone: phone.trim() || undefined,
-          })
-        : undefined
-
-    if (role === 'student' && parentEmail.trim()) {
-      const parentAddress = parentEmail.trim().toLowerCase()
-      const existingParent = app.users.find((u) => u.email.toLowerCase() === parentAddress && u.role === 'parent')
-      if (existingParent && studentId) {
-        app.updateUser(existingParent.id, {
-          childrenIds: Array.from(new Set([...(existingParent.childrenIds ?? []), studentId])),
-          name: parentName.trim() || existingParent.name,
-          phone: parentPhone.trim() || existingParent.phone,
-          password: parentPassword.trim() || existingParent.password,
-        })
-      } else if (studentId) {
-        const parentUsername = parentAddress.split('@')[0].replace(/[^a-z0-9_.-]/gi, '') || `parent${Date.now()}`
-        app.addUser({
-          name: parentName.trim() || `Родител на ${name.trim()}`,
-          username: parentUsername,
-          email: parentAddress,
-          role: 'parent',
-          status: 'active',
-          childrenIds: [studentId],
-          phone: parentPhone.trim() || undefined,
-          password: parentPassword.trim() || undefined,
-        })
-      }
+    function reset() {
+        setName('')
+        setEmail('')
+        setRole('student')
+        setClassId('c5a')
+        setCreated(null)
+        setCopied(false)
+        setError(null)
+        setLoading(false)
     }
 
-    if (role === 'teacher') {
-      app.addUser({
-        name: name.trim(),
-        username,
-        email: baseEmail,
-        role,
-        status: 'active',
-        subjectIds: teacherSubjectId ? [teacherSubjectId] : [],
-        password: password.trim() || undefined,
-        phone: phone.trim() || undefined,
-      })
+    // 2. Make handleSubmit async to handle the server database entry
+    async function handleSubmit() {
+        if (!name.trim()) return
+
+        setLoading(true)
+        setError(null)
+
+        // Split "Три имена" into FirstName and LastName for the backend DTO
+        const nameParts = name.trim().split(/\s+/)
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Петров'
+
+        // Generate a safe temporary password since the UI form doesn't request one
+        const generatedPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
+
+        // Map lowercase UI roles to capitalized backend system strings
+        const backendRole = role.charAt(0).toUpperCase() + role.slice(1) // "Teacher" | "Student" | "Parent"
+
+        const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
+
+        try {
+            // Send HTTP POST request to api/users
+            const serverUser = await userService.createUser({
+                email: targetEmail,
+                password: generatedPassword,
+                role: backendRole,
+                firstName: firstName,
+                lastName: lastName,
+                phoneNumber: '' // Can be gathered later or left blank
+            })
+
+            // Generate a mock child access code if it's a student assignment
+            const accessCode =
+                role === 'student'
+                    ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
+                    : undefined
+
+            // Update local state context if your application syncs client arrays
+            if (app.addUser) {
+                app.addUser({
+                    id: serverUser.userId,
+                    name: `${serverUser.firstName} ${serverUser.lastName}`,
+                    username: username,
+                    email: serverUser.email,
+                    role: role,
+                    status: serverUser.isApproved ? 'active' : 'blocked',
+                    ...(role === 'student' ? { classId, accessCode } : {}),
+                })
+            }
+
+            // Display username and the generated password to the Administrator
+            setCreated({ username, password: generatedPassword, accessCode })
+        } catch (err: any) {
+            console.error(err)
+            setError(err.message || 'Възникна грешка при комуникацията със сървъра.')
+        } finally {
+            setLoading(false)
+        }
     }
 
-    if (role !== 'student' && role !== 'teacher') {
-      app.addUser({
-        name: name.trim(),
-        username,
-        email: baseEmail,
-        role,
-        status: 'active',
-        password: password.trim() || undefined,
-        phone: phone.trim() || undefined,
-      })
+    function handleClose() {
+        reset()
+        onClose()
     }
-
-    setCreated({ username, accessCode })
-  }
-
-  function handleClose() {
-    reset()
-    onClose()
-  }
 
   return (
     <Dialog open={open} onClose={handleClose}>
