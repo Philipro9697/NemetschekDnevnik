@@ -15,6 +15,20 @@
     </ProjectReference>
   </ItemGroup>
 
+  <!-- Temporarily excluded: in-progress Student/Grades feature doesn't compile yet -->
+  <ItemGroup>
+    <Compile Remove="Controllers\StudentController.cs" />
+    <Compile Remove="Services\StudentService.cs" />
+  </ItemGroup>
+
+  <!-- Temporarily excluded: superseded by DnevnikContext, stale against the current Student model -->
+  <ItemGroup>
+    <Compile Remove="Models\NemetschekSchoolDiaryContext.cs" />
+    <Compile Remove="Migrations\NemetschekSchoolDiaryContextModelSnapshot.cs" />
+    <Compile Remove="Migrations\20260707125207_InitialCreate.Designer.cs" />
+    <Compile Remove="Migrations\20260707125207_InitialCreate.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
@@ -28,8 +42,11 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.19.1" />
   </ItemGroup>
 
-
+<ItemGroup>
+  <None Update=".env">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+</ItemGroup>
 </Project>

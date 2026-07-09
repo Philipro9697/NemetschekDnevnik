@@ -3,12 +3,13 @@ using NemetschekDnevnik.Server.DTOs;
 using NemetschekDnevnik.Server.Models;
 
 namespace NemetschekDnevnik.Server.Services;
+
 public class AdminService : IAdminService
 {
     private static readonly string[] CreatableRoles = { "Teacher", "Student", "Parent" };
 
-    private readonly NemetschekSchoolDiaryContext _db;
-    public AdminService(NemetschekSchoolDiaryContext db)
+    private readonly DnevnikContext _db;
+    public AdminService(DnevnikContext db)
     {
         _db = db;
     }
@@ -105,7 +106,7 @@ public class AdminService : IAdminService
         var user = await _db.Users.FindAsync(userId);
         if (user == null)
             return false;
-        
+
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();
         return true;

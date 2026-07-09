@@ -3,16 +3,17 @@ using Microsoft.EntityFrameworkCore;
 using NemetschekDnevnik.Server.Models;
 
 namespace NemetschekDnevnik.Server.Middleware;
+
 public class EnsureApprovedUserMiddleware
 {
     private readonly RequestDelegate _next;
-    
+
     public EnsureApprovedUserMiddleware(RequestDelegate next)
     {
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, NemetschekSchoolDiaryContext db)
+    public async Task InvokeAsync(HttpContext context, DnevnikContext db)
     {
         if (context.Request.Path.StartsWithSegments("/api/auth", StringComparison.OrdinalIgnoreCase))
         {
@@ -28,14 +29,14 @@ public class EnsureApprovedUserMiddleware
 
         var userIdClaim = context.User.FindFirst("user_id")?.Value
             ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (!int.TryParse(userIdClaim, out int userId))
         {
             await _next(context);
             return;
         }
 
-        var user = await db.Users.FirstOrDefaultAsync( u => u.UserId == userId);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
 
         if (user is not null && !user.IsApproved)
         {
