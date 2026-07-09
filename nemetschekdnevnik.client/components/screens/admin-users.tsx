@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
+import { userService } from '@/api/userService'
 import {
   Dialog,
   DialogContent,
@@ -15,8 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Tabs } from '@/components/ui/tabs'
-import { classes, classById, subjects, type Role, type User } from '@/lib/data'
+import { classes, classById, type Role, type User } from '@/lib/data'
 import {
   UserPlus,
   Pencil,
@@ -29,7 +29,6 @@ import {
   ShieldCheck,
   Sparkles,
   UsersRound,
-  BookOpen,
 } from 'lucide-react'
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -64,8 +63,6 @@ export function AdminUsers() {
   const app = useApp()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
-  const [editCandidate, setEditCandidate] = useState<User | null>(null)
-  const [detailCandidate, setDetailCandidate] = useState<User | null>(null)
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
   const [classFilter, setClassFilter] = useState<'all' | string>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all')
@@ -122,7 +119,6 @@ export function AdminUsers() {
         </div>
       </div>
 
-      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" />
@@ -159,9 +155,8 @@ export function AdminUsers() {
             <UserPlus className="size-4" /> Регистрирай нов потребител
           </Button>
         </div>
-      </div>
+          </div>
 
-      {/* Role filter chips */}
       <div className="flex flex-wrap gap-2">
         {(
           [
@@ -186,7 +181,6 @@ export function AdminUsers() {
         ))}
       </div>
 
-      {/* Table */}
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -194,7 +188,7 @@ export function AdminUsers() {
               <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 font-semibold">Име</th>
                 <th className="px-4 py-3 font-semibold">Роля</th>
-                <th className="px-4 py-3 font-semibold">Клас / Предмет</th>
+                <th className="px-4 py-3 font-semibold">Клас</th>
                 <th className="px-4 py-3 font-semibold">Статус</th>
                 <th className="px-4 py-3 text-right font-semibold">Действия</th>
               </tr>
@@ -215,11 +209,8 @@ export function AdminUsers() {
                     <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {u.role === 'student'
-                      ? classById(u.classId)?.name ?? '—'
-                      : u.role === 'teacher'
-                      ? `${u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—'}${u.subjectIds?.length ? ` • ${u.subjectIds.map((id) => subjects.find((s) => s.id === id)?.name).filter(Boolean).join(', ')}` : ''}`
-                      : '—'}
+                    {classById(u.classId)?.name ??
+                      (u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—')}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -239,14 +230,9 @@ export function AdminUsers() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <IconBtn label="Редакция" onClick={() => setEditCandidate(u)}>
+                      <IconBtn label="Редакция">
                         <Pencil className="size-4" />
                       </IconBtn>
-                      {u.role === 'student' && (
-                        <IconBtn label="Детайли" onClick={() => setDetailCandidate(u)}>
-                          <BookOpen className="size-4" />
-                        </IconBtn>
-                      )}
                       <IconBtn
                         label={u.status === 'active' ? 'Блокирай' : 'Разблокирай'}
                         onClick={() =>
@@ -288,22 +274,6 @@ export function AdminUsers() {
       </Card>
 
       <RegisterDialog open={open} onClose={() => setOpen(false)} />
-      <EditUserDialog
-        open={Boolean(editCandidate)}
-        user={editCandidate}
-        onClose={() => setEditCandidate(null)}
-        onSave={(updates) => {
-          if (editCandidate) {
-            app.updateUser(editCandidate.id, updates)
-          }
-          setEditCandidate(null)
-        }}
-      />
-      <StudentDetailDialog
-        open={Boolean(detailCandidate)}
-        student={detailCandidate}
-        onClose={() => setDetailCandidate(null)}
-      />
 
       <Dialog open={Boolean(deleteCandidate)} onClose={() => setDeleteCandidate(null)}>
         <DialogContent className="max-w-md">
@@ -373,838 +343,257 @@ function IconBtn({
 }
 
 function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const app = useApp()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [phone, setPhone] = useState('')
-  const [parentName, setParentName] = useState('')
-  const [parentEmail, setParentEmail] = useState('')
-  const [parentPassword, setParentPassword] = useState('')
-  const [parentPhone, setParentPhone] = useState('')
-  const [role, setRole] = useState<Role>('student')
-  const [classId, setClassId] = useState<string>('c5a')
-  const [teacherSubjectId, setTeacherSubjectId] = useState<string>(subjects[0]?.id ?? '')
-  const [created, setCreated] = useState<{ username: string; accessCode?: string } | null>(null)
-  const [copied, setCopied] = useState(false)
+    const app = useApp()
+    const [name, setName] = useState('')
+    const [email, setEmail] = useState('')
+    const [role, setRole] = useState<Role>('student')
+    const [classId, setClassId] = useState<string>('c5a')
 
-  const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
+    // Track loading and error states for the API request
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-  function reset() {
-    setName('')
-    setEmail('')
-    setPassword('')
-    setPhone('')
-    setParentName('')
-    setParentEmail('')
-    setParentPassword('')
-    setParentPhone('')
-    setRole('student')
-    setClassId('c5a')
-    setTeacherSubjectId(subjects[0]?.id ?? '')
-    setCreated(null)
-    setCopied(false)
-  }
+    // Updated to include the generated password for the admin to copy
+    const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string } | null>(null)
+    const [copied, setCopied] = useState(false)
 
-  function handleSubmit() {
-    if (!name.trim()) return
+    const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
 
-    const baseEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
-    const accessCode =
-      role === 'student'
-        ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
-        : undefined
-
-    const studentId =
-      role === 'student'
-        ? app.addUser({
-            name: name.trim(),
-            username,
-            email: baseEmail,
-            role,
-            status: 'active',
-            classId,
-            accessCode,
-            password: password.trim() || undefined,
-            phone: phone.trim() || undefined,
-          })
-        : undefined
-
-    if (role === 'student' && parentEmail.trim()) {
-      const parentAddress = parentEmail.trim().toLowerCase()
-      const existingParent = app.users.find((u) => u.email.toLowerCase() === parentAddress && u.role === 'parent')
-      if (existingParent && studentId) {
-        app.updateUser(existingParent.id, {
-          childrenIds: Array.from(new Set([...(existingParent.childrenIds ?? []), studentId])),
-          name: parentName.trim() || existingParent.name,
-          phone: parentPhone.trim() || existingParent.phone,
-          password: parentPassword.trim() || existingParent.password,
-        })
-      } else if (studentId) {
-        const parentUsername = parentAddress.split('@')[0].replace(/[^a-z0-9_.-]/gi, '') || `parent${Date.now()}`
-        app.addUser({
-          name: parentName.trim() || `Родител на ${name.trim()}`,
-          username: parentUsername,
-          email: parentAddress,
-          role: 'parent',
-          status: 'active',
-          childrenIds: [studentId],
-          phone: parentPhone.trim() || undefined,
-          password: parentPassword.trim() || undefined,
-        })
-      }
+    function reset() {
+        setName('')
+        setEmail('')
+        setRole('student')
+        setClassId('c5a')
+        setCreated(null)
+        setCopied(false)
+        setError(null)
+        setLoading(false)
     }
 
-    if (role === 'teacher') {
-      app.addUser({
-        name: name.trim(),
-        username,
-        email: baseEmail,
-        role,
-        status: 'active',
-        subjectIds: teacherSubjectId ? [teacherSubjectId] : [],
-        password: password.trim() || undefined,
-        phone: phone.trim() || undefined,
-      })
+    // 2. Make handleSubmit async to handle the server database entry
+    async function handleSubmit() {
+        if (!name.trim()) return
+
+        setLoading(true)
+        setError(null)
+
+        // Split "Три имена" into FirstName and LastName for the backend DTO
+        const nameParts = name.trim().split(/\s+/)
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Петров'
+
+        // Generate a safe temporary password since the UI form doesn't request one
+        const generatedPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
+
+        // Map lowercase UI roles to capitalized backend system strings
+        const backendRole = role.charAt(0).toUpperCase() + role.slice(1) // "Teacher" | "Student" | "Parent"
+
+        const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
+
+        try {
+            // Send HTTP POST request to api/users
+            const serverUser = await userService.createUser({
+                email: targetEmail,
+                password: generatedPassword,
+                role: backendRole,
+                firstName: firstName,
+                lastName: lastName,
+                phoneNumber: '' // Can be gathered later or left blank
+            })
+
+            // Generate a mock child access code if it's a student assignment
+            const accessCode =
+                role === 'student'
+                    ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
+                    : undefined
+
+            // Update local state context if your application syncs client arrays
+            if (app.addUser) {
+                app.addUser({
+                    id: serverUser.userId,
+                    name: `${serverUser.firstName} ${serverUser.lastName}`,
+                    username: username,
+                    email: serverUser.email,
+                    role: role,
+                    status: serverUser.isApproved ? 'active' : 'blocked',
+                    ...(role === 'student' ? { classId, accessCode } : {}),
+                })
+            }
+
+            // Display username and the generated password to the Administrator
+            setCreated({ username, password: generatedPassword, accessCode })
+        } catch (err: any) {
+            console.error(err)
+            setError(err.message || 'Възникна грешка при комуникацията със сървъра.')
+        } finally {
+            setLoading(false)
+        }
     }
 
-    if (role !== 'student' && role !== 'teacher') {
-      app.addUser({
-        name: name.trim(),
-        username,
-        email: baseEmail,
-        role,
-        status: 'active',
-        password: password.trim() || undefined,
-        phone: phone.trim() || undefined,
-      })
+    function handleClose() {
+        reset()
+        onClose()
     }
 
-    setCreated({ username, accessCode })
-  }
+    return (
+        <Dialog open={open} onClose={handleClose}>
+            <DialogContent className="max-w-lg">
+                {created ? (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <CheckCircle2 className="size-5 text-success" />
+                                Профилът е създаден успешно
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                            <div className="rounded-xl border border-border bg-muted/40 p-4">
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                    Потребителско име за вход
+                                </p>
+                                <p className="font-mono text-lg font-semibold">{created.username}</p>
+                            </div>
 
-  function handleClose() {
-    reset()
-    onClose()
-  }
+                            {/* Display generated password for admin distribution */}
+                            <div className="rounded-xl border border-border bg-muted/40 p-4">
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                    Временна служебна парола
+                                </p>
+                                <p className="font-mono text-lg font-semibold text-danger">{created.password}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Предоставете тази парола на потребителя за първоначален достъп.</p>
+                            </div>
 
-  return (
-    <Dialog open={open} onClose={handleClose}>
-      <DialogContent className="max-w-lg">
-        {created ? (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-success" />
-                Профилът е създаден
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="rounded-xl border border-border bg-muted/40 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Потребителско име
-                </p>
-                <p className="font-mono text-lg font-semibold">{created.username}</p>
-              </div>
-              {created.accessCode && (
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-                  <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-primary">
-                    <KeyRound className="size-3.5" /> Код за достъп на родител
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <p className="font-mono text-lg font-semibold">{created.accessCode}</p>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard?.writeText(created.accessCode!)
-                        setCopied(true)
-                      }}
-                      className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
-                    >
-                      {copied ? (
-                        <>
-                          <CheckCircle2 className="size-3.5 text-success" /> Копирано
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="size-3.5" /> Копирай
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Предайте този код на родителя, за да свърже профила си с детето.
-                  </p>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={reset}>
-                Създай още един
-              </Button>
-              <Button onClick={handleClose}>Готово</Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <ShieldCheck className="size-5 text-primary" />
-                Регистрация на нов потребител
-              </DialogTitle>
-            </DialogHeader>
-            <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2 font-medium text-foreground">
-                <UsersRound className="size-4 text-primary" /> Бърз старт
-              </div>
-              <p className="mt-1">
-                За учениците автоматично се генерира достъпен код за родител. За учителите се задава предмет.
-              </p>
-            </div>
-            <div className="space-y-4 py-2">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Роля</Label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as Role)}
-                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="teacher">Учител</option>
-                    <option value="student">Ученик</option>
-                  </select>
-                </div>
-                {role === 'student' && (
-                  <div className="space-y-1.5">
-                    <Label>Клас</Label>
-                    <select
-                      value={classId}
-                      onChange={(e) => setClassId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {classes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                            {created.accessCode && (
+                                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                                    <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-primary">
+                                        <KeyRound className="size-3.5" /> Код за достъп на родител
+                                    </p>
+                                    <div className="mt-1 flex items-center gap-2">
+                                        <p className="font-mono text-lg font-semibold">{created.accessCode}</p>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard?.writeText(created.accessCode!)
+                                                setCopied(true)
+                                            }}
+                                            className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
+                                        >
+                                            {copied ? (
+                                                <>
+                                                    <CheckCircle2 className="size-3.5 text-success" /> Копирано
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy className="size-3.5" /> Копирай
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        Предайте този код на родителя, за да свърже профила си с детето.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={reset}>
+                                Създай още един
+                            </Button>
+                            <Button onClick={handleClose}>Готово</Button>
+                        </DialogFooter>
+                    </>
+                ) : (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <ShieldCheck className="size-5 text-primary" />
+                                Регистрация на нов потребител
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2 font-medium text-foreground">
+                                <UsersRound className="size-4 text-primary" /> Бърз старт
+                            </div>
+                            <p className="mt-1">
+                                Данните ще бъдат записани директно в централната база данни на училището.
+                            </p>
+                        </div>
+
+                        {error && (
+                            <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+                                {error}
+                            </p>
+                        )}
+
+                        <div className="space-y-4 py-2">
+                            <div className="space-y-1.5">
+                                <Label>Три имена</Label>
+                                <Input
+                                    disabled={loading}
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="напр. Георги Иванов Петров"
+                                />
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label>Роля</Label>
+                                    <select
+                                        disabled={loading}
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value as Role)}
+                                        className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    >
+                                        <option value="teacher">Учител</option>
+                                        <option value="student">Ученик</option>
+                                        <option value="parent">Родител</option>
+                                    </select>
+                                </div>
+                                {role === 'student' && (
+                                    <div className="space-y-1.5">
+                                        <Label>Клас</Label>
+                                        <select
+                                            disabled={loading}
+                                            value={classId}
+                                            onChange={(e) => setClassId(e.target.value)}
+                                            className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        >
+                                            {classes.map((c) => (
+                                                <option key={c.id} value={c.id}>
+                                                    {c.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Имейл</Label>
+                                <Input
+                                    type="email"
+                                    disabled={loading}
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="напр. g.petrov@example.com"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Автоматично потребителско име</Label>
+                                <div className="flex h-10 items-center rounded-lg border border-dashed border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
+                                    {username || '—'}
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={handleClose} disabled={loading}>
+                                Отказ
+                            </Button>
+                            <Button onClick={handleSubmit} disabled={!name.trim() || loading}>
+                                {loading ? 'Записване...' : 'Създай профил'}
+                            </Button>
+                        </DialogFooter>
+                    </>
                 )}
-                {role === 'teacher' && (
-                  <div className="space-y-1.5">
-                    <Label>Предмет</Label>
-                    <select
-                      value={teacherSubjectId}
-                      onChange={(e) => setTeacherSubjectId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {subjects.map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label>Три имена</Label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="напр. Георги Иванов Петров"
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Имейл</Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="напр. g.petrov@example.com"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Телефон</Label>
-                  <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="напр. +359 87 123 4567"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Парола</Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="изберете парола"
-                />
-              </div>
-              {role === 'student' && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label>Три имена на родителя</Label>
-                    <Input
-                      value={parentName}
-                      onChange={(e) => setParentName(e.target.value)}
-                      placeholder="напр. Мария Иванова Петрова"
-                    />
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label>Имейл на родителя</Label>
-                      <Input
-                        type="email"
-                        value={parentEmail}
-                        onChange={(e) => setParentEmail(e.target.value)}
-                        placeholder="имейл на родителя"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Телефон на родителя</Label>
-                      <Input
-                        type="tel"
-                        value={parentPhone}
-                        onChange={(e) => setParentPhone(e.target.value)}
-                        placeholder="напр. +359 88 765 4321"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Парола на родителя</Label>
-                    <Input
-                      type="password"
-                      value={parentPassword}
-                      onChange={(e) => setParentPassword(e.target.value)}
-                      placeholder="изберете парола на родителя"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>
-                Отказ
-              </Button>
-              <Button onClick={handleSubmit} disabled={!name.trim()}>
-                Създай профил
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function EditUserDialog({
-  open,
-  user,
-  onClose,
-  onSave,
-}: {
-  open: boolean
-  user: User | null
-  onClose: () => void
-  onSave: (updates: Partial<Omit<User, 'id'>>) => void
-}) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState<Role>('student')
-  const [classId, setClassId] = useState<string>('c5a')
-  const [classTeacherOf, setClassTeacherOf] = useState<string>('')
-  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-
-  useEffect(() => {
-    if (!user) return
-    setName(user.name)
-    setEmail(user.email)
-    setRole(user.role)
-    setClassId(user.classId ?? 'c5a')
-    setClassTeacherOf(user.classTeacherOf ?? '')
-    setSubjectId(user.subjectIds?.[0] ?? subjects[0]?.id ?? '')
-    setPhone(user.phone ?? '')
-    setPassword(user.password ?? '')
-  }, [user])
-
-  function handleSave() {
-    const updates: Partial<Omit<User, 'id'>> = {
-      name: name.trim(),
-      email: email.trim(),
-      role,
-      phone: phone.trim() || undefined,
-      password: password.trim() || undefined,
-    }
-
-    if (role === 'student') {
-      updates.classId = classId
-      updates.classTeacherOf = undefined
-      updates.subjectIds = undefined
-    }
-
-    if (role === 'teacher') {
-      updates.classTeacherOf = classTeacherOf || undefined
-      updates.subjectIds = subjectId ? [subjectId] : []
-      updates.classId = undefined
-    }
-
-    if (role === 'parent' || role === 'admin') {
-      updates.classId = undefined
-      updates.classTeacherOf = undefined
-      updates.subjectIds = undefined
-    }
-
-    onSave(updates)
-    onClose()
-  }
-
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Редакция на акаунт</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label>Роля</Label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="student">Ученик</option>
-              <option value="teacher">Учител</option>
-              <option value="parent">Родител</option>
-              <option value="admin">Администратор</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Три имена</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Имейл</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Телефон</Label>
-              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Парола</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-          </div>
-          {role === 'student' && (
-            <div className="space-y-1.5">
-              <Label>Клас</Label>
-              <select
-                value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          {role === 'teacher' && (
-            <>
-              <div className="space-y-1.5">
-                <Label>Преподава в клас</Label>
-                <select
-                  value={classTeacherOf}
-                  onChange={(e) => setClassTeacherOf(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Няма клас</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Предмет</Label>
-                <select
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {subjects.map((subject) => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-        <DialogFooter className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Отказ
-          </Button>
-          <Button onClick={handleSave}>Запази промени</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function StudentDetailDialog({
-  open,
-  student,
-  onClose,
-}: {
-  open: boolean
-  student: User | null
-  onClose: () => void
-}) {
-  const app = useApp()
-  const [tab, setTab] = useState<'grades' | 'notes' | 'absences'>('grades')
-  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
-  const [gradeValue, setGradeValue] = useState<number>(6)
-  const [gradeKind, setGradeKind] = useState<'oral' | 'written' | 'test' | 'active'>('oral')
-  const [noteText, setNoteText] = useState('')
-  const [noteKind, setNoteKind] = useState<'praise' | 'remark'>('remark')
-  const [absenceDate, setAbsenceDate] = useState(new Date().toISOString().slice(0, 10))
-  const [absenceTime, setAbsenceTime] = useState('08:00')
-  const [absenceSubjectId, setAbsenceSubjectId] = useState<string>(subjects[0]?.id ?? '')
-
-  useEffect(() => {
-    if (!student) return
-    setTab('grades')
-    setSubjectId(subjects[0]?.id ?? '')
-    setGradeValue(6)
-    setGradeKind('oral')
-    setNoteText('')
-    setNoteKind('remark')
-    setAbsenceDate(new Date().toISOString().slice(0, 10))
-    setAbsenceTime('08:00')
-    setAbsenceSubjectId(subjects[0]?.id ?? '')
-  }, [student])
-
-  if (!student) return null
-
-  const studentGrades = app.grades.filter((grade) => grade.studentId === student.id)
-  const studentNotes = app.notes.filter((note) => note.studentId === student.id)
-  const studentAbsences = app.absences.filter((absence) => absence.studentId === student.id)
-  const teachers = app.users.filter((u) => u.role === 'teacher')
-
-  function handleAddGrade() {
-    if (!student || !subjectId || !teachers[0]) return
-    app.addGrade({
-      studentId: student.id,
-      subjectId,
-      teacherId: teachers[0].id,
-      value: gradeValue,
-      kind: gradeKind,
-      section: 'term1',
-      description: '',
-    })
-  }
-
-  function handleAddNote() {
-    if (!student || !subjectId) return
-    app.addNote({
-      studentId: student.id,
-      subjectId,
-      teacherId: teachers[0]?.id ?? '',
-      text: noteText,
-      kind: noteKind,
-      date: new Date().toISOString().slice(0, 10),
-    })
-    setNoteText('')
-  }
-
-  function handleAddAbsence() {
-    if (!student || !absenceSubjectId) return
-    app.addAbsence({
-      studentId: student.id,
-      subjectId: absenceSubjectId,
-      teacherId: teachers[0]?.id,
-      date: absenceDate,
-      time: absenceTime,
-      type: 'absent',
-      excused: false,
-    })
-  }
-
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Детайли за {student.name}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <Tabs
-            value={tab}
-            onValueChange={setTab}
-            className="w-full"
-            tabs={[
-              { value: 'grades', label: 'Оценки' },
-              { value: 'notes', label: 'Бележки' },
-              { value: 'absences', label: 'Отсъствия' },
-            ]}
-          />
-          {tab === 'grades' && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-4">
-                  <div className="space-y-1.5">
-                    <Label>Предмет</Label>
-                    <select
-                      value={subjectId}
-                      onChange={(e) => setSubjectId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {subjects.map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Оценка</Label>
-                    <select
-                      value={gradeValue}
-                      onChange={(e) => setGradeValue(Number(e.target.value))}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {[2, 3, 4, 5, 6].map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Тип</Label>
-                    <select
-                      value={gradeKind}
-                      onChange={(e) => setGradeKind(e.target.value as 'oral' | 'written' | 'test' | 'active')}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="oral">Устна</option>
-                      <option value="written">Писмена</option>
-                      <option value="test">Тест</option>
-                      <option value="active">Активност</option>
-                    </select>
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleAddGrade} className="w-full">
-                      Добави оценка
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-border bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-3">Предмет</th>
-                      <th className="px-4 py-3">Оценка</th>
-                      <th className="px-4 py-3">Тип</th>
-                      <th className="px-4 py-3">Дата</th>
-                      <th className="px-4 py-3 text-right">Действие</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {studentGrades.map((grade) => (
-                      <tr key={grade.id}>
-                        <td className="px-4 py-3">{subjects.find((s) => s.id === grade.subjectId)?.name ?? '—'}</td>
-                        <td className="px-4 py-3">{grade.value}</td>
-                        <td className="px-4 py-3">{grade.kind}</td>
-                        <td className="px-4 py-3">{grade.date}</td>
-                        <td className="px-4 py-3 text-right">
-                          <Button variant="outline" onClick={() => app.deleteGrade(grade.id)}>
-                            Изтрий
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {studentGrades.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                          Няма оценки.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-          {tab === 'notes' && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label>Предмет</Label>
-                    <select
-                      value={subjectId}
-                      onChange={(e) => setSubjectId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {subjects.map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Вид</Label>
-                    <select
-                      value={noteKind}
-                      onChange={(e) => setNoteKind(e.target.value as 'praise' | 'remark')}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="remark">Бележка</option>
-                      <option value="praise">Похвала</option>
-                    </select>
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleAddNote} className="w-full">
-                      Добави бележка
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-1.5 mt-4">
-                  <Label>Текст</Label>
-                  <Input value={noteText} onChange={(e) => setNoteText(e.target.value)} />
-                </div>
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-border bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-3">Предмет</th>
-                      <th className="px-4 py-3">Вид</th>
-                      <th className="px-4 py-3">Текст</th>
-                      <th className="px-4 py-3">Дата</th>
-                      <th className="px-4 py-3 text-right">Действие</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {studentNotes.map((note) => (
-                      <tr key={note.id}>
-                        <td className="px-4 py-3">{subjects.find((s) => s.id === note.subjectId)?.name ?? '—'}</td>
-                        <td className="px-4 py-3">{note.kind}</td>
-                        <td className="px-4 py-3">{note.text}</td>
-                        <td className="px-4 py-3">{note.date}</td>
-                        <td className="px-4 py-3 text-right">
-                          <Button variant="outline" onClick={() => app.deleteNote(note.id)}>
-                            Изтрий
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {studentNotes.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                          Няма бележки.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-          {tab === 'absences' && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-4">
-                  <div className="space-y-1.5">
-                    <Label>Предмет</Label>
-                    <select
-                      value={absenceSubjectId}
-                      onChange={(e) => setAbsenceSubjectId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {subjects.map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Дата</Label>
-                    <Input type="date" value={absenceDate} onChange={(e) => setAbsenceDate(e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Час</Label>
-                    <Input type="time" value={absenceTime} onChange={(e) => setAbsenceTime(e.target.value)} />
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleAddAbsence} className="w-full">
-                      Добави отсъствие
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-border bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-3">Предмет</th>
-                      <th className="px-4 py-3">Дата</th>
-                      <th className="px-4 py-3">Час</th>
-                      <th className="px-4 py-3">Извинен</th>
-                      <th className="px-4 py-3 text-right">Действие</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {studentAbsences.map((absence) => (
-                      <tr key={absence.id}>
-                        <td className="px-4 py-3">{subjects.find((s) => s.id === absence.subjectId)?.name ?? '—'}</td>
-                        <td className="px-4 py-3">{absence.date}</td>
-                        <td className="px-4 py-3">{absence.time ?? '—'}</td>
-                        <td className="px-4 py-3">{absence.excused ? 'Да' : 'Не'}</td>
-                        <td className="px-4 py-3 text-right flex justify-end gap-2">
-                          <Button variant="outline" onClick={() => app.toggleAbsenceExcused(absence.id)}>
-                            {absence.excused ? 'Отмени' : 'Извини'}
-                          </Button>
-                          <Button variant="outline" onClick={() => app.deleteAbsence(absence.id)}>
-                            Изтрий
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {studentAbsences.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                          Няма отсъствия.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-        <DialogFooter className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Отказ
-          </Button>
-          <Button onClick={onClose}>Запази промени</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
+            </DialogContent>
+        </Dialog>
+    )
 }
