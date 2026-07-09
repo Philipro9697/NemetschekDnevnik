@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 
 namespace NemetschekDnevnik.Server.Models;
-
 public partial class Lesson
 {
     public int LessonId { get; set; }

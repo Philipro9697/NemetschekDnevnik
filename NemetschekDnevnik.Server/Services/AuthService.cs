@@ -5,39 +5,82 @@ namespace NemetschekDnevnik.Server.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly NemetschekSchoolDiaryContext _context;
+    private readonly DnevnikContext _context;
     private readonly ITokenService _tokenService;
 
-    public AuthService(NemetschekSchoolDiaryContext context, ITokenService tokenService)
+    public AuthService(DnevnikContext context, ITokenService tokenService)
     {
         _context = context;
         _tokenService = tokenService;
     }
 
-    public async Task<string?> LoginAsync(string email, string password)
+    public async Task<AuthResult?> LoginAsync(string email, string password)
     {
         email = email.Trim();
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user is null)
+        if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash) || !user.IsApproved)
             return null;
 
-        if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            return null;
+        var accessToken = _tokenService.CreateAccessToken(user.UserId, user.Role);
+        var refreshTokenString = _tokenService.CreateRefreshToken();
 
-        if (!user.IsApproved)
-            return null;
+        var refreshToken = new RefreshToken
+        {
+            Token = refreshTokenString,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            UserId = user.UserId
+        };
 
-        return _tokenService.CreateToken(user.UserId, user.Role);
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        return new AuthResult
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshTokenString
+        };
+    }
+
+    public async Task<AuthResult?> RefreshAsync(string refreshToken)
+    {
+        var storedToken = await _context.RefreshTokens
+                                        .Include(t => t.User)
+                                        .FirstOrDefaultAsync(t => t.Token == refreshToken);
+        if (storedToken == null || storedToken.ExpiresAt < DateTime.UtcNow || storedToken.IsRevoked)
+        {
+            return null;
+        }
+
+        var newAccessToken = _tokenService.CreateAccessToken(storedToken.UserId, storedToken.User.Role);
+        var newRefreshTokenString = _tokenService.CreateRefreshToken();
+
+        _context.RefreshTokens.Remove(storedToken);
+        _context.RefreshTokens.Add(new RefreshToken
+        {
+            Token = newRefreshTokenString,
+            UserId = storedToken.UserId,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        });
+
+        await _context.SaveChangesAsync();
+
+        return new AuthResult { AccessToken = newAccessToken, RefreshToken = newRefreshTokenString };
+    }
+
+    public async Task<bool> LogoutAsync(string refreshToken)
+    {
+        var storedToken = await _context.RefreshTokens.FirstOrDefaultAsync(t => t.Token == refreshToken);
+        if (storedToken == null) { return false; }
+
+        _context.RefreshTokens.Remove(storedToken);
+        await _context.SaveChangesAsync();
+        return true;
     }
 
     public async Task<bool> RegisterAsync(string email, string password, string role, string firstName, string lastName, string phoneNumber)
     {
-        if (string.IsNullOrWhiteSpace(email) ||
-        string.IsNullOrWhiteSpace(password) ||
-        string.IsNullOrWhiteSpace(role) ||
-        string.IsNullOrWhiteSpace(firstName) ||
-        string.IsNullOrWhiteSpace(lastName) ||
-        string.IsNullOrWhiteSpace(phoneNumber))
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(role) ||
+            string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(phoneNumber))
         {
             return false;
         }
@@ -52,7 +95,10 @@ public class AuthService : IAuthService
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             Role = role,
-            IsApproved = false
+            IsApproved = false,
+            FirstName = firstName,
+            LastName = lastName,
+            PhoneNumber = phoneNumber
         };
 
         _context.Users.Add(user);

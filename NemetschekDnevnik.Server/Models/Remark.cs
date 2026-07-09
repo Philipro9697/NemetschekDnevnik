@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 
 namespace NemetschekDnevnik.Server.Models;
-
 public partial class Remark
 {
     public int RemarkId { get; set; }

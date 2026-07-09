@@ -2,5 +2,6 @@ namespace NemetschekDnevnik.Server.Services;
 
 public interface ITokenService
 {
-    string CreateToken(int userId, string roleName);
+    string CreateAccessToken(int userId, string roleName);
+    string CreateRefreshToken();
 }

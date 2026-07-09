@@ -1,16 +1,16 @@
-/*using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
 namespace NemetschekDnevnik.Server.Models;
 
-public partial class NemetschekSchoolDiaryContext : DbContext
+public partial class DnevnikContext : DbContext
 {
-    public NemetschekSchoolDiaryContext()
+    public DnevnikContext()
     {
     }
 
-    public NemetschekSchoolDiaryContext(DbContextOptions<NemetschekSchoolDiaryContext> options)
+    public DnevnikContext(DbContextOptions<DnevnikContext> options)
         : base(options)
     {
     }
@@ -268,29 +268,29 @@ public partial class NemetschekSchoolDiaryContext : DbContext
         });
 
         modelBuilder.Entity<Student>(entity =>
-         {
-             entity.HasKey(e => e.StudentId).HasName("PK__student__2A33069A22388D38");
+        {
+            entity.HasKey(e => e.StudentId).HasName("PK__student__2A33069A22388D38");
 
-             entity.ToTable("student");
+            entity.ToTable("student");
 
-             entity.Property(e => e.StudentId)
-                 .ValueGeneratedNever()
-                 .HasColumnName("student_id");
-             entity.Property(e => e.ClassId).HasColumnName("class_id");
-             entity.Property(e => e.ParentId).HasColumnName("parent_id");
+            entity.Property(e => e.StudentId)
+                .ValueGeneratedNever()
+                .HasColumnName("student_id");
+            entity.Property(e => e.ClassId).HasColumnName("class_id");
+            entity.Property(e => e.ParentId).HasColumnName("parent_id");
 
-             entity.HasOne(d => d.Class).WithMany(p => p.Students)
-                 .HasForeignKey(d => d.ClassId)
-                 .HasConstraintName("FK_student_class_id");
+            entity.HasOne(d => d.Class).WithMany(p => p.Students)
+                .HasForeignKey(d => d.ClassId)
+                .HasConstraintName("FK_student_class_id");
 
-             entity.HasOne(d => d.Parent).WithMany(p => p.Students)
-                 .HasForeignKey(d => d.ParentId)
-                 .HasConstraintName("FK__student__parent___44FF419A");
+            entity.HasOne(d => d.Parent).WithMany(p => p.Students)
+                .HasForeignKey(d => d.ParentId)
+                .HasConstraintName("FK__student__parent___44FF419A");
 
-             entity.HasOne(d => d.StudentNavigation).WithOne(p => p.Student)
-                 .HasForeignKey<Student>(d => d.StudentId)
-                 .HasConstraintName("FK__student__student__440B1D61");
-         });
+            entity.HasOne(d => d.StudentNavigation).WithOne(p => p.Student)
+                .HasForeignKey<Student>(d => d.StudentId)
+                .HasConstraintName("FK__student__student__440B1D61");
+        });
 
         modelBuilder.Entity<Subject>(entity =>
         {
@@ -435,8 +435,31 @@ public partial class NemetschekSchoolDiaryContext : DbContext
                 .HasConstraintName("FK__weekly_sc__teach__5AEE82B9");
         });
 
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.ID).HasName("PK_refresh_tokens");
+
+            entity.ToTable("refresh_tokens");
+
+            entity.Property(e => e.ID).HasColumnName("id");
+            entity.Property(e => e.Token)
+                .HasMaxLength(500)
+                .IsUnicode(false)
+                .HasColumnName("token");
+            entity.Property(e => e.ExpiresAt)
+                .HasColumnType("datetime")
+                .HasColumnName("expires_at");
+            entity.Property(e => e.IsRevoked).HasColumnName("is_revoked");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_refresh_tokens_users");
+        });
+
         OnModelCreatingPartial(modelBuilder);
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
-}*/
+}

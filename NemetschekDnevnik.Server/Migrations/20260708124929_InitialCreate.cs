@@ -109,29 +109,6 @@ namespace NemetschekDnevnik.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "student",
-                columns: table => new
-                {
-                    student_id = table.Column<int>(type: "int", nullable: false),
-                    parent_id = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__student__2A33069A22388D38", x => x.student_id);
-                    table.ForeignKey(
-                        name: "FK__student__parent___44FF419A",
-                        column: x => x.parent_id,
-                        principalTable: "parent",
-                        principalColumn: "parent_id");
-                    table.ForeignKey(
-                        name: "FK__student__student__440B1D61",
-                        column: x => x.student_id,
-                        principalTable: "users",
-                        principalColumn: "user_id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "classes",
                 columns: table => new
                 {
@@ -168,6 +145,103 @@ namespace NemetschekDnevnik.Server.Migrations
                         principalColumn: "subject_id");
                     table.ForeignKey(
                         name: "FK__teacher_s__teach__4D94879B",
+                        column: x => x.teacher_id,
+                        principalTable: "teacher",
+                        principalColumn: "teacher_id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "homework_items",
+                columns: table => new
+                {
+                    homework_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    class_id = table.Column<int>(type: "int", nullable: true),
+                    subject_id = table.Column<int>(type: "int", nullable: true),
+                    teacher_id = table.Column<int>(type: "int", nullable: true),
+                    title = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false, defaultValue: "Домашно задание"),
+                    description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    date_assigned = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(getdate())"),
+                    date_due = table.Column<DateTime>(type: "datetime", nullable: false),
+                    resource_link = table.Column<string>(type: "varchar(550)", unicode: false, maxLength: 550, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK__homework__FD60442ADE5A56DA", x => x.homework_id);
+                    table.ForeignKey(
+                        name: "FK__homework___class__76969D2E",
+                        column: x => x.class_id,
+                        principalTable: "classes",
+                        principalColumn: "class_id");
+                    table.ForeignKey(
+                        name: "FK__homework___subje__778AC167",
+                        column: x => x.subject_id,
+                        principalTable: "subjects",
+                        principalColumn: "subject_id");
+                    table.ForeignKey(
+                        name: "FK__homework___teach__787EE5A0",
+                        column: x => x.teacher_id,
+                        principalTable: "teacher",
+                        principalColumn: "teacher_id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "student",
+                columns: table => new
+                {
+                    student_id = table.Column<int>(type: "int", nullable: false),
+                    parent_id = table.Column<int>(type: "int", nullable: true),
+                    class_id = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK__student__2A33069A22388D38", x => x.student_id);
+                    table.ForeignKey(
+                        name: "FK__student__parent___44FF419A",
+                        column: x => x.parent_id,
+                        principalTable: "parent",
+                        principalColumn: "parent_id");
+                    table.ForeignKey(
+                        name: "FK__student__student__440B1D61",
+                        column: x => x.student_id,
+                        principalTable: "users",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_student_class_id",
+                        column: x => x.class_id,
+                        principalTable: "classes",
+                        principalColumn: "class_id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "weekly_schedule_items",
+                columns: table => new
+                {
+                    schedule_item_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    day_of_week = table.Column<int>(type: "int", nullable: false),
+                    subject_id = table.Column<int>(type: "int", nullable: true),
+                    teacher_id = table.Column<int>(type: "int", nullable: true),
+                    time = table.Column<TimeOnly>(type: "time", nullable: false),
+                    class_id = table.Column<int>(type: "int", nullable: true),
+                    location = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK__weekly_s__23BB45AD8B634EEF", x => x.schedule_item_id);
+                    table.ForeignKey(
+                        name: "FK__weekly_sc__class__5BE2A6F2",
+                        column: x => x.class_id,
+                        principalTable: "classes",
+                        principalColumn: "class_id");
+                    table.ForeignKey(
+                        name: "FK__weekly_sc__subje__59FA5E80",
+                        column: x => x.subject_id,
+                        principalTable: "subjects",
+                        principalColumn: "subject_id");
+                    table.ForeignKey(
+                        name: "FK__weekly_sc__teach__5AEE82B9",
                         column: x => x.teacher_id,
                         principalTable: "teacher",
                         principalColumn: "teacher_id");
@@ -235,96 +309,6 @@ namespace NemetschekDnevnik.Server.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK__remarks__teacher__71D1E811",
-                        column: x => x.teacher_id,
-                        principalTable: "teacher",
-                        principalColumn: "teacher_id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "homework_items",
-                columns: table => new
-                {
-                    homework_id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    class_id = table.Column<int>(type: "int", nullable: true),
-                    subject_id = table.Column<int>(type: "int", nullable: true),
-                    teacher_id = table.Column<int>(type: "int", nullable: true),
-                    title = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false, defaultValue: "Домашно задание"),
-                    description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    date_assigned = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(getdate())"),
-                    date_due = table.Column<DateTime>(type: "datetime", nullable: false),
-                    resource_link = table.Column<string>(type: "varchar(550)", unicode: false, maxLength: 550, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__homework__FD60442ADE5A56DA", x => x.homework_id);
-                    table.ForeignKey(
-                        name: "FK__homework___class__76969D2E",
-                        column: x => x.class_id,
-                        principalTable: "classes",
-                        principalColumn: "class_id");
-                    table.ForeignKey(
-                        name: "FK__homework___subje__778AC167",
-                        column: x => x.subject_id,
-                        principalTable: "subjects",
-                        principalColumn: "subject_id");
-                    table.ForeignKey(
-                        name: "FK__homework___teach__787EE5A0",
-                        column: x => x.teacher_id,
-                        principalTable: "teacher",
-                        principalColumn: "teacher_id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "student_class",
-                columns: table => new
-                {
-                    student_id = table.Column<int>(type: "int", nullable: false),
-                    class_id = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__student___55EC4102AB35D74E", x => new { x.student_id, x.class_id });
-                    table.ForeignKey(
-                        name: "FK__student_c__class__5629CD9C",
-                        column: x => x.class_id,
-                        principalTable: "classes",
-                        principalColumn: "class_id");
-                    table.ForeignKey(
-                        name: "FK__student_c__stude__5535A963",
-                        column: x => x.student_id,
-                        principalTable: "student",
-                        principalColumn: "student_id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "weekly_schedule_items",
-                columns: table => new
-                {
-                    schedule_item_id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    day_of_week = table.Column<int>(type: "int", nullable: false),
-                    subject_id = table.Column<int>(type: "int", nullable: true),
-                    teacher_id = table.Column<int>(type: "int", nullable: true),
-                    time = table.Column<TimeOnly>(type: "time", nullable: false),
-                    class_id = table.Column<int>(type: "int", nullable: true),
-                    location = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__weekly_s__23BB45AD8B634EEF", x => x.schedule_item_id);
-                    table.ForeignKey(
-                        name: "FK__weekly_sc__class__5BE2A6F2",
-                        column: x => x.class_id,
-                        principalTable: "classes",
-                        principalColumn: "class_id");
-                    table.ForeignKey(
-                        name: "FK__weekly_sc__subje__59FA5E80",
-                        column: x => x.subject_id,
-                        principalTable: "subjects",
-                        principalColumn: "subject_id");
-                    table.ForeignKey(
-                        name: "FK__weekly_sc__teach__5AEE82B9",
                         column: x => x.teacher_id,
                         principalTable: "teacher",
                         principalColumn: "teacher_id");
@@ -500,14 +484,14 @@ namespace NemetschekDnevnik.Server.Migrations
                 column: "teacher_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_student_class_id",
+                table: "student",
+                column: "class_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_student_parent_id",
                 table: "student",
                 column: "parent_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_student_class_class_id",
-                table: "student_class",
-                column: "class_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_submitted_homeworks_homework_id",
@@ -560,9 +544,6 @@ namespace NemetschekDnevnik.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "remarks");
-
-            migrationBuilder.DropTable(
-                name: "student_class");
 
             migrationBuilder.DropTable(
                 name: "submitted_homeworks");

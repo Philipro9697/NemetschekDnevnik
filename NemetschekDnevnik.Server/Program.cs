@@ -19,10 +19,17 @@ builder.Configuration.AddEnvironmentVariables();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
-    options.UseSqlServer(connectionString));
+const string FrontendCorsPolicy = "FrontendClient";
 
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddCookie(IdentityConstants.ApplicationScheme);
@@ -51,11 +58,10 @@ builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthorization();
 
-builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary;Integrated Security=True;TrustServerCertificate=True"));
+builder.Services.AddDbContext<DnevnikContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -65,7 +71,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<NemetschekSchoolDiaryContext>();
+    var context = services.GetRequiredService<DnevnikContext>();
     context.Database.Migrate();
 }
 
@@ -74,10 +80,12 @@ app.MapStaticAssets();
 
 // Configure the HTTP request pipeline.
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
+
+app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthentication();
-//app.UseMiddleware<EnsureApprovedUserMiddleware>();
+app.UseMiddleware<EnsureApprovedUserMiddleware>();
 
 app.UseAuthorization();
 

@@ -11,9 +11,9 @@ using NemetschekDnevnik.Server.Models;
 
 namespace NemetschekDnevnik.Server.Migrations
 {
-    [DbContext(typeof(NemetschekSchoolDiaryContext))]
-    [Migration("20260707125207_InitialCreate")]
-    partial class InitialCreate
+    [DbContext(typeof(DnevnikContext))]
+    [Migration("20260708152914_AddRefreshTokens")]
+    partial class AddRefreshTokens
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -288,6 +288,42 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.ToTable("parent", (string)null);
                 });
 
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.RefreshToken", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_revoked");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("token");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("ID")
+                        .HasName("PK_refresh_tokens");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("refresh_tokens", (string)null);
+                });
+
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Remark", b =>
                 {
                     b.Property<int>("RemarkId")
@@ -338,12 +374,18 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("student_id");
 
+                    b.Property<int?>("ClassId")
+                        .HasColumnType("int")
+                        .HasColumnName("class_id");
+
                     b.Property<int?>("ParentId")
                         .HasColumnType("int")
                         .HasColumnName("parent_id");
 
                     b.HasKey("StudentId")
                         .HasName("PK__student__2A33069A22388D38");
+
+                    b.HasIndex("ClassId");
 
                     b.HasIndex("ParentId");
 
@@ -546,24 +588,6 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.ToTable("weekly_schedule_items", (string)null);
                 });
 
-            modelBuilder.Entity("StudentClass", b =>
-                {
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int")
-                        .HasColumnName("student_id");
-
-                    b.Property<int>("ClassId")
-                        .HasColumnType("int")
-                        .HasColumnName("class_id");
-
-                    b.HasKey("StudentId", "ClassId")
-                        .HasName("PK__student___55EC4102AB35D74E");
-
-                    b.HasIndex("ClassId");
-
-                    b.ToTable("student_class", (string)null);
-                });
-
             modelBuilder.Entity("TeacherSubject", b =>
                 {
                     b.Property<int>("TeacherId")
@@ -723,6 +747,18 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.Navigation("ParentNavigation");
                 });
 
+            modelBuilder.Entity("NemetschekDnevnik.Server.Models.RefreshToken", b =>
+                {
+                    b.HasOne("NemetschekDnevnik.Server.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_refresh_tokens_users");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Remark", b =>
                 {
                     b.HasOne("NemetschekDnevnik.Server.Models.Student", "Student")
@@ -743,6 +779,11 @@ namespace NemetschekDnevnik.Server.Migrations
 
             modelBuilder.Entity("NemetschekDnevnik.Server.Models.Student", b =>
                 {
+                    b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
+                        .WithMany("Students")
+                        .HasForeignKey("ClassId")
+                        .HasConstraintName("FK_student_class_id");
+
                     b.HasOne("NemetschekDnevnik.Server.Models.Parent", "Parent")
                         .WithMany("Students")
                         .HasForeignKey("ParentId")
@@ -754,6 +795,8 @@ namespace NemetschekDnevnik.Server.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK__student__student__440B1D61");
+
+                    b.Navigation("Class");
 
                     b.Navigation("Parent");
 
@@ -814,21 +857,6 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("StudentClass", b =>
-                {
-                    b.HasOne("NemetschekDnevnik.Server.Models.Class", null)
-                        .WithMany()
-                        .HasForeignKey("ClassId")
-                        .IsRequired()
-                        .HasConstraintName("FK__student_c__class__5629CD9C");
-
-                    b.HasOne("NemetschekDnevnik.Server.Models.Student", null)
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .IsRequired()
-                        .HasConstraintName("FK__student_c__stude__5535A963");
-                });
-
             modelBuilder.Entity("TeacherSubject", b =>
                 {
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", null)
@@ -849,6 +877,8 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.Navigation("HomeworkItems");
 
                     b.Navigation("Lessons");
+
+                    b.Navigation("Students");
 
                     b.Navigation("WeeklyScheduleItems");
                 });

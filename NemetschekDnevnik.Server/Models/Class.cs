@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 
 namespace NemetschekDnevnik.Server.Models;
-
 public partial class Class
 {
     public int ClassId { get; set; }
@@ -19,7 +18,7 @@ public partial class Class
 
     public virtual ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
 
-    public virtual ICollection<WeeklyScheduleItem> WeeklyScheduleItems { get; set; } = new List<WeeklyScheduleItem>();
-
     public virtual ICollection<Student> Students { get; set; } = new List<Student>();
+
+    public virtual ICollection<WeeklyScheduleItem> WeeklyScheduleItems { get; set; } = new List<WeeklyScheduleItem>();
 }
