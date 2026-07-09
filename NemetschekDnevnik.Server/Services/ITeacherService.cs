@@ -15,10 +15,8 @@ public interface ITeacherService
     Task<List<HomeworkItemDto>> GetHomeworkItems(Teacher teacher);
     Task<List<GradeDto>> GetGrades(Teacher teacher);
     Task<GradeDto> AddGrade(Teacher teacher, Student student, int subjectId, decimal value, string? comment);
-    Task<GradeDto> LoadGradeDto(int gradeId);
 
     //GetMessages
-    Task<GradeDto?> AddGrade(Teacher teacher, Student student, int subjectId, decimal value, string? comment);
 }
 
 
