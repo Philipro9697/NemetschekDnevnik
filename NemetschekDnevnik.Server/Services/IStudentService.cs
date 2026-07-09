@@ -11,7 +11,7 @@ public interface IStudentService
     Task<List<AbsenceDto>> GetAbsences(Student student);
     Task<List<RemarkDto>> GetRemarks(Student student);
     Task<List<LessonDto>> GetLessons(Student student);
-    Task<List<HomeworkItem>> GetHomeworkItems(Student student);
+    Task<List<HomeworkItemDto>> GetHomeworkItems(Student student);
     Task<Student?> GetStudentById(int userId);
     StudentInfoDto GetStudentInfo(Student student);
     //GetMessages
