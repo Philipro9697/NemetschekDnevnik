@@ -6,8 +6,8 @@ namespace NemetschekDnevnik.Server.Services;
 
 public class ParentService : IParentService
 {
-    private readonly NemetschekSchoolDiaryContext _db;
-    public ParentService(NemetschekSchoolDiaryContext db)
+    private readonly DnevnikContext _db;
+    public ParentService(DnevnikContext db)
     {
         _db = db;
     }

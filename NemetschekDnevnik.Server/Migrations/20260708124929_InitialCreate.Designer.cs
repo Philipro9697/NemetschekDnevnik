@@ -12,8 +12,8 @@ using NemetschekDnevnik.Server.Models;
 namespace NemetschekDnevnik.Server.Migrations
 {
     [DbContext(typeof(DnevnikContext))]
-    [Migration("20260708124442_test")]
-    partial class test
+    [Migration("20260708124929_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -5,10 +5,10 @@ namespace NemetschekDnevnik.Server.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly NemetschekSchoolDiaryContext _context;
+    private readonly DnevnikContext _context;
     private readonly ITokenService _tokenService;
 
-    public AuthService(NemetschekSchoolDiaryContext context, ITokenService tokenService)
+    public AuthService(DnevnikContext context, ITokenService tokenService)
     {
         _context = context;
         _tokenService = tokenService;
