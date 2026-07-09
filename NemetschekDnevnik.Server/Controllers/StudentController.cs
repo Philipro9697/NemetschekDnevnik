@@ -54,5 +54,104 @@ public class StudentController : ControllerBase
             return Unauthorized(ex.Message);
         }
     }
+
+    [HttpGet("schedule")]
+    public async Task<ActionResult<List<ScheduleDto>>> GetSchedule()
+    {
+        try
+        {
+            Student student = await GetStudent();
+            return await _studentService.GetWeeklySchedule(student);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
+    }
+
+    [HttpGet("absences")]
+    public async Task<ActionResult<List<AbsenceDto>>> GetAbsences()
+    {
+        try
+        {
+            Student student = await GetStudent();
+            return await _studentService.GetAbsences(student);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
+    }
+
+    [HttpGet("remarks")]
+    public async Task<ActionResult<List<RemarkDto>>> GetRemarks()
+    {
+        try
+        {
+            Student student = await GetStudent();
+            return await _studentService.GetRemarks(student);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
+    }
+
+    [HttpGet("lessons")]
+    public async Task<ActionResult<List<LessonDto>>> GetLessons()
+    {
+        try
+        {
+            Student student = await GetStudent();
+            return await _studentService.GetLessons(student);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
+    }
+
+    [HttpGet("student_info")]
+    public async Task<ActionResult<StudentInfoDto>> GetStudentInfo()
+    {
+        try
+        {
+            Student student = await GetStudent();
+            return _studentService.GetStudentInfo(student);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
+    }
+
+    [HttpGet("subjects")]
+    public async Task<ActionResult<List<SubjectDto>>> GetSubjects()
+    {
+        try
+        {
+            Student student = await GetStudent();
+            return await _studentService.GetSubjects(student);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
+    }
+
+    [HttpGet("homework")]
+    public async Task<ActionResult<List<HomeworkItemDto>>> GetHomework()
+    {
+        try
+        {
+            Student student = await GetStudent();
+            return await _studentService.GetHomeworkItems(student);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ex.Message);
+        }
+    }
 }
+
 
