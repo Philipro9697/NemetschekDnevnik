@@ -547,18 +547,14 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-10 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
                 <ShieldCheck className="size-5 text-primary" />
                 Регистрация на нов потребител
               </DialogTitle>
             </DialogHeader>
-            <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+            <div>
               <div className="flex items-center gap-2 font-medium text-foreground">
-                <UsersRound className="size-4 text-primary" /> Бърз старт
               </div>
-              <p className="mt-1">
-                За учениците автоматично се генерира достъпен код за родител. За учителите се задава предмет.
-              </p>
             </div>
             <div className="space-y-4 py-2">
               <div className="grid gap-4 sm:grid-cols-2">
