@@ -959,9 +959,9 @@ function StudentDetailDialog({
             ]}
           />
           {tab === 'grades' && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-4">
+            <div className="space-y-10">
+              <div className="rounded-xl border border-border bg-muted/10 p-10">
+                <div className="grid gap-1 sm:grid-cols-1">
                   <div className="space-y-1.5">
                     <Label>Предмет</Label>
                     <select
@@ -1157,7 +1157,7 @@ function StudentDetailDialog({
                   </div>
                 </div>
               </div>
-              <div className="overflow-x-auto rounded-xl border border-border bg-card">
+              <div className="overflow-x-1 rounded-xl border border-border bg-card">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
