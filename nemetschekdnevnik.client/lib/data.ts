@@ -24,6 +24,8 @@ export interface User {
   childrenIds?: string[] // for parents
   number?: number // student number in class
   accessCode?: string // parent link code
+  phone?: string
+  password?: string
 }
 
 export type GradeSection = 'term1' | 'term1Final' | 'term2' | 'term2Final' | 'yearly'
