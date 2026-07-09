@@ -51,7 +51,7 @@ export function ParentChildren() {
               className={cn(
                 'group flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
                 active
-                  ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
+                  ? 'border-border bg-card hover:border-primary/40 hover:shadow-sm'
                   : 'border-border bg-card hover:border-primary/40 hover:shadow-sm',
               )}
             >
