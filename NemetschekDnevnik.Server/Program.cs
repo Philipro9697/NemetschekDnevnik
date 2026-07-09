@@ -62,7 +62,8 @@ builder.Services.AddDbContext<DnevnikContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IAdminService, AdminService>();
-
+builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<IParentService, ParentService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 

@@ -34,6 +34,41 @@ public class AdminService : IAdminService
         return ToUserAccountDto(user);
     }
 
+    public async Task<IEnumerable<UserAccountDto>> GetAllUsersAsync()
+    {
+        var users = await _db.Users.ToListAsync();
+        return users.Select(ToUserAccountDto);
+    }
+
+    public async Task<List<TeacherDto>> GetAllTeachers()
+    {
+        return await _db.Teachers
+            .Select(t => new TeacherDto
+            {
+                TeacherId = t.TeacherId,
+                FirstName = t.TeacherNavigation.FirstName,
+                LastName = t.TeacherNavigation.LastName,
+                Email = t.TeacherNavigation.Email,
+                PhoneNumber = t.TeacherNavigation.PhoneNumber,
+                SubjectNames = t.Subjects.Select(s => s.SubjectName).ToList()
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<ParentDto>> GetAllParents()
+    {
+        return await _db.Parents
+            .Select(t => new ParentDto
+            {
+                ParentId = t.ParentId,
+                FirstName = t.ParentNavigation.FirstName,
+                LastName = t.ParentNavigation.LastName,
+                Email = t.ParentNavigation.Email,
+                PhoneNumber = t.ParentNavigation.PhoneNumber
+            })
+            .ToListAsync();
+    }
+    
     public async Task<UserAccountDto?> CreateAsync(CreateUserDto dto)
     {
         if (!CreatableRoles.Contains(dto.Role))
@@ -112,9 +147,4 @@ public class AdminService : IAdminService
         return true;
     }
 
-    public async Task<IEnumerable<UserAccountDto>> GetAllUsersAsync()
-    {
-        var users = await _db.Users.ToListAsync();
-        return users.Select(ToUserAccountDto);
-    }
 }

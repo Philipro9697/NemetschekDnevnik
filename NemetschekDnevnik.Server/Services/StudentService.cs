@@ -18,6 +18,7 @@ public class StudentService : IStudentService
             .Where(ws => ws.ClassId == student.ClassId)
             .Select(ws => new ScheduleDto
             {
+                ScheduleId = ws.ScheduleItemId,
                 DayOfWeek = ws.DayOfWeek,
                 Time = ws.Time,
                 SubjectId = ws.SubjectId ?? -1,
@@ -36,6 +37,7 @@ public class StudentService : IStudentService
             .Select(g => new GradeDto
             {
                 GradeValue = g.GradeValue,
+                GradeId = g.GradeId,
                 SubjectId = g.SubjectId ?? -1,
                 TeacherId = g.TeacherId ?? -1,
                 SubjectName = g.Subject.SubjectName,
@@ -66,6 +68,7 @@ public class StudentService : IStudentService
         return await _db.Remarks.Where(r => r.StudentId == student.StudentId)
             .Select(r => new RemarkDto
             {
+                RemarkId = r.RemarkId,
                 TeacherId = r.TeacherId ?? -1,
                 DateCreated = r.DateCreated,
                 Type = r.Type,
@@ -80,6 +83,7 @@ public class StudentService : IStudentService
         return await _db.Lessons.Where(l => l.ClassId == student.ClassId)
             .Select(s => new LessonDto
             {
+                LessonId = s.LessonId,
                 Date = s.Date,
                 Time = s.Time,
                 SubjectId = s.SubjectId ?? -1,
@@ -118,7 +122,7 @@ public class StudentService : IStudentService
                 SubjectId = hw.SubjectId ?? -1,
                 TeacherId = hw.TeacherId ?? -1,
                 Title = hw.Title,
-                Descritpion = hw.Description ?? "",
+                Description = hw.Description ?? "",
                 ResourceLink = hw.ResourceLink ?? "",
                 DateAssigned = hw.DateAssigned,
                 DateDue = hw.DateDue
