@@ -9,130 +9,85 @@ namespace NemetschekDnevnik.Server.Controllers;
 
 [ApiController]
 [Route("api/teacher")]
-[Authorize]
+[Authorize(Roles = "Teacher")]
 public class TeacherController : ControllerBase
 {
-    private readonly StudentService _studentService;
-    private readonly ParentService _parentService;
-    public ParentController(StudentService studentservice, ParentService parentservice)
+    private readonly IStudentService _studentService;
+    private readonly ITeacherService _teacherService;
+    private readonly IParentService _parentService;
+    public TeacherController(IStudentService studentservice, ITeacherService teacherservice)
     {
         _studentService = studentservice;
-        _parentService = parentservice;
+        _teacherService = teacherservice;
     }
-    public async Task<Parent> GetParent()
+
+    private async Task<Teacher?> GetTeacher()
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdString, out int teacherId))
+            return null;
 
-        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int parentId))
-        {
-            throw new UnauthorizedAccessException("User ID not found in token.");
-        }
-
-        if (!User.IsInRole("Parent"))
-        {
-            throw new UnauthorizedAccessException("Wrong Role");
-        }
-
-        Parent? parent = await _parentService.GetParentById(parentId);
-
-        if (parent is null)
-        {
-            throw new UnauthorizedAccessException("Parent not found");
-        }
-
-        return parent;
-
-    }
-    [HttpGet("children")]
-    public async Task<ActionResult<List<StudentInfoDto>>> GetChildren()
-    {
-        try
-        {
-            Parent parent = await GetParent();
-            return (await _parentService.GetChildren(parent))
-                .Select(c => _studentService.GetStudentInfo(c))
-                .ToList();
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        return await _teacherService.GetTeacher(teacherId);
     }
 
     [HttpGet("grades/{id}")]
     public async Task<ActionResult<List<GradeDto>>> GetStudentGrades(int id)
     {
-        try
-        {
-            Parent parent = await GetParent();
-            Student? student = await _studentService.GetStudentById(id);
-            if (student is null || student.ParentId != parent.ParentId)
-            {
-                throw new UnauthorizedAccessException("This is not your child!");
-            }
-            return await _studentService.GetGrades(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        var student = await _studentService.GetStudentById(id);
+        if (student is null) return NotFound();
+
+        if (!await _teacherService.TeachesStudent(teacher, student))
+            return Forbid();
+
+        return await _studentService.GetGrades(student);
     }
 
     [HttpGet("absences/{id}")]
     public async Task<ActionResult<List<AbsenceDto>>> GetStudentAbsences(int id)
     {
-        try
-        {
-            Parent parent = await GetParent();
-            Student? student = await _studentService.GetStudentById(id);
-            if (student is null || student.ParentId != parent.ParentId)
-            {
-                throw new UnauthorizedAccessException("This is not your child!");
-            }
-            return await _studentService.GetAbsences(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        var student = await _studentService.GetStudentById(id);
+        if (student is null) return NotFound();
+
+        if (!await _teacherService.TeachesStudent(teacher, student))
+            return Forbid();
+
+        return await _studentService.GetAbsences(student);
     }
 
     [HttpGet("remarks/{id}")]
     public async Task<ActionResult<List<RemarkDto>>> GetStudentRemarks(int id)
     {
-        try
-        {
-            Parent parent = await GetParent();
-            Student? student = await _studentService.GetStudentById(id);
-            if (student is null || student.ParentId != parent.ParentId)
-            {
-                throw new UnauthorizedAccessException("This is not your child!");
-            }
-            return await _studentService.GetRemarks(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        var student = await _studentService.GetStudentById(id);
+        if (student is null) return NotFound();
+
+        if (!await _teacherService.TeachesStudent(teacher, student))
+            return Forbid();
+
+        return await _studentService.GetRemarks(student);
     }
 
     [HttpGet("subjects/{id}")]
     public async Task<ActionResult<List<SubjectDto>>> GetStudentSubjects(int id)
     {
-        try
-        {
-            Parent parent = await GetParent();
-            Student? student = await _studentService.GetStudentById(id);
-            if (student is null || student.ParentId != parent.ParentId)
-            {
-                throw new UnauthorizedAccessException("This is not your child!");
-            }
-            return await _studentService.GetSubjects(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        var student = await _studentService.GetStudentById(id);
+        if (student is null) return NotFound();
+
+        if (!await _teacherService.TeachesStudent(teacher, student))
+            return Forbid();
+
+        return await _studentService.GetSubjects(student);
     }
 }
 

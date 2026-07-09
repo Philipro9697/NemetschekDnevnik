@@ -12,8 +12,8 @@ namespace NemetschekDnevnik.Server.Controllers;
 [Authorize]
 public class StudentController : ControllerBase
 {
-    private readonly StudentService _studentService;
-    public StudentController(StudentService studentservice)
+    private readonly IStudentService _studentService;
+    public StudentController(IStudentService studentservice)
     {
         _studentService = studentservice;
     }
@@ -28,6 +28,7 @@ public class StudentController : ControllerBase
         }
         return null;
     }
+    
     [HttpGet("grades")]
     [Authorize(Roles = "Student")]
     public async Task<ActionResult<List<GradeDto>>> GetGrades()

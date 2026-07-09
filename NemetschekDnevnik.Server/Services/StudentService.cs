@@ -122,7 +122,7 @@ public class StudentService : IStudentService
                 SubjectId = hw.SubjectId ?? -1,
                 TeacherId = hw.TeacherId ?? -1,
                 Title = hw.Title,
-                Descritpion = hw.Description ?? "",
+                Description = hw.Description ?? "",
                 ResourceLink = hw.ResourceLink ?? "",
                 DateAssigned = hw.DateAssigned,
                 DateDue = hw.DateDue

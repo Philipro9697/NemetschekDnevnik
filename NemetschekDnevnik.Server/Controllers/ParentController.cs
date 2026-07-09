@@ -12,9 +12,9 @@ namespace NemetschekDnevnik.Server.Controllers;
 [Authorize]
 public class ParentController : ControllerBase
 {
-    private readonly StudentService _studentService;
-    private readonly ParentService _parentService;
-    public ParentController(StudentService studentservice, ParentService parentservice)
+    private readonly IStudentService _studentService;
+    private readonly IParentService _parentService;
+    public ParentController(IStudentService studentservice, IParentService parentservice)
     {
         _studentService = studentservice;
         _parentService = parentservice;
@@ -30,6 +30,7 @@ public class ParentController : ControllerBase
         }
         return null;
     }
+    
     [HttpGet("children")]
     [Authorize(Roles = "Parent")]
     public async Task<ActionResult<List<StudentInfoDto>>> GetChildren()
