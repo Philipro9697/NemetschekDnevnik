@@ -142,14 +142,7 @@ export function LoginScreen() {
               ВХОД
             </Button>
 
-            <div className="text-center">
-              <button
-                type="button"
-                className="text-sm font-medium text-brand-blue hover:underline"
-              >
-                Забравена парола?
-              </button>
-            </div>
+            
           </form>
 
           
