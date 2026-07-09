@@ -37,6 +37,7 @@ public class StudentService : IStudentService
             .Select(g => new GradeDto
             {
                 GradeValue = g.GradeValue,
+                StudentId = g.StudentId ?? -1,
                 GradeId = g.GradeId,
                 SubjectId = g.SubjectId ?? -1,
                 TeacherId = g.TeacherId ?? -1,

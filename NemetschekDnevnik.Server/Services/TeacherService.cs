@@ -131,13 +131,14 @@ public class TeacherService : ITeacherService
             .ToListAsync();
     }
 
-    public async Task<List<GradeDto>> GetGrades(Teacher teacher)
+    public async Task<List<GradeDto>> GetGrades(Teacher teacher, int classId)
     {
 
-        return await _db.Grades.Where(g => g.TeacherId == teacher.TeacherId)
+        return await _db.Grades.Where(g => g.TeacherId == teacher.TeacherId && g.Student.ClassId == classId)
             .Select(g => new GradeDto
             {
                 GradeValue = g.GradeValue,
+                StudentId = g.StudentId ?? -1,
                 SubjectId = g.SubjectId ?? -1,
                 TeacherId = g.TeacherId ?? -1,
                 SubjectName = g.Subject.SubjectName,
@@ -149,9 +150,14 @@ public class TeacherService : ITeacherService
             })
             .ToListAsync();
     }
-
+    private bool TeachesStudent(Teacher teacher, Student student)
+    {
+        return teacher.Classes.Any(c => c.ClassId == student.Class.ClassId);
+    }
     public async Task<GradeDto?> AddGrade(Teacher teacher, Student student, int subjectId, decimal value, string? comment)
     {
+        if (!TeachesStudent(teacher, student)) return null;
+
         var grade = new Grade()
         {
             StudentId = student.StudentId,
@@ -163,7 +169,7 @@ public class TeacherService : ITeacherService
         };
         _db.Grades.Add(grade);
         await _db.SaveChangesAsync();
-        
+
         return await LoadGradeDto(grade.GradeId);
     }
 
