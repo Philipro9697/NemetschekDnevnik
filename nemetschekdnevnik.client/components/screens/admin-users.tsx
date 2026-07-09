@@ -524,76 +524,270 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                             </p>
                         )}
 
-                        <div className="space-y-4 py-2">
-                            <div className="space-y-1.5">
-                                <Label>Три имена</Label>
-                                <Input
-                                    disabled={loading}
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="напр. Георги Иванов Петров"
-                                />
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label>Роля</Label>
-                                    <select
-                                        disabled={loading}
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value as Role)}
-                                        className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                    >
-                                        <option value="teacher">Учител</option>
-                                        <option value="student">Ученик</option>
-                                        <option value="parent">Родител</option>
-                                    </select>
-                                </div>
-                                {role === 'student' && (
-                                    <div className="space-y-1.5">
-                                        <Label>Клас</Label>
-                                        <select
-                                            disabled={loading}
-                                            value={classId}
-                                            onChange={(e) => setClassId(e.target.value)}
-                                            className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                        >
-                                            {classes.map((c) => (
-                                                <option key={c.id} value={c.id}>
-                                                    {c.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Имейл</Label>
-                                <Input
-                                    type="email"
-                                    disabled={loading}
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="напр. g.petrov@example.com"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Автоматично потребителско име</Label>
-                                <div className="flex h-10 items-center rounded-lg border border-dashed border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
-                                    {username || '—'}
-                                </div>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={handleClose} disabled={loading}>
-                                Отказ
-                            </Button>
-                            <Button onClick={handleSubmit} disabled={!name.trim() || loading}>
-                                {loading ? 'Записване...' : 'Създай профил'}
-                            </Button>
-                        </DialogFooter>
-                    </>
-                )}
-            </DialogContent>
-        </Dialog>
-    )
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Детайли за {student.name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <Tabs
+            value={tab}
+            onValueChange={setTab}
+            className="w-full"
+            tabs={[
+              { value: 'grades', label: 'Оценки' },
+              { value: 'notes', label: 'Бележки' },
+              { value: 'absences', label: 'Отсъствия' },
+            ]}
+          />
+          {tab === 'grades' && (
+            <div className="space-y-10">
+              <div className="rounded-xl border border-border bg-muted/10 p-10">
+                <div className="grid gap-1 sm:grid-cols-1">
+                  <div className="space-y-1.5">
+                    <Label>Предмет</Label>
+                    <select
+                      value={subjectId}
+                      onChange={(e) => setSubjectId(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {subjects.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Оценка</Label>
+                    <select
+                      value={gradeValue}
+                      onChange={(e) => setGradeValue(Number(e.target.value))}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {[2, 3, 4, 5, 6].map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Тип</Label>
+                    <select
+                      value={gradeKind}
+                      onChange={(e) => setGradeKind(e.target.value as 'oral' | 'written' | 'test' | 'active')}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="oral">Устна</option>
+                      <option value="written">Писмена</option>
+                      <option value="test">Тест</option>
+                      <option value="active">Активност</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={handleAddGrade} className="w-full">
+                      Добави оценка
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-border bg-card">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-4 py-3">Предмет</th>
+                      <th className="px-4 py-3">Оценка</th>
+                      <th className="px-4 py-3">Тип</th>
+                      <th className="px-4 py-3">Дата</th>
+                      <th className="px-4 py-3 text-right">Действие</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {studentGrades.map((grade) => (
+                      <tr key={grade.id}>
+                        <td className="px-4 py-3">{subjects.find((s) => s.id === grade.subjectId)?.name ?? '—'}</td>
+                        <td className="px-4 py-3">{grade.value}</td>
+                        <td className="px-4 py-3">{grade.kind}</td>
+                        <td className="px-4 py-3">{grade.date}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Button variant="outline" onClick={() => app.deleteGrade(grade.id)}>
+                            Изтрий
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {studentGrades.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                          Няма оценки.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {tab === 'notes' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label>Предмет</Label>
+                    <select
+                      value={subjectId}
+                      onChange={(e) => setSubjectId(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {subjects.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Вид</Label>
+                    <select
+                      value={noteKind}
+                      onChange={(e) => setNoteKind(e.target.value as 'praise' | 'remark')}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="remark">Бележка</option>
+                      <option value="praise">Похвала</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={handleAddNote} className="w-full">
+                      Добави бележка
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-1.5 mt-4">
+                  <Label>Текст</Label>
+                  <Input value={noteText} onChange={(e) => setNoteText(e.target.value)} />
+                </div>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-border bg-card">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-4 py-3">Предмет</th>
+                      <th className="px-4 py-3">Вид</th>
+                      <th className="px-4 py-3">Текст</th>
+                      <th className="px-4 py-3">Дата</th>
+                      <th className="px-4 py-3 text-right">Действие</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {studentNotes.map((note) => (
+                      <tr key={note.id}>
+                        <td className="px-4 py-3">{subjects.find((s) => s.id === note.subjectId)?.name ?? '—'}</td>
+                        <td className="px-4 py-3">{note.kind}</td>
+                        <td className="px-4 py-3">{note.text}</td>
+                        <td className="px-4 py-3">{note.date}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Button variant="outline" onClick={() => app.deleteNote(note.id)}>
+                            Изтрий
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {studentNotes.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                          Няма бележки.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {tab === 'absences' && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <div className="grid gap-4 sm:grid-cols-4">
+                  <div className="space-y-1.5">
+                    <Label>Предмет</Label>
+                    <select
+                      value={absenceSubjectId}
+                      onChange={(e) => setAbsenceSubjectId(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {subjects.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Дата</Label>
+                    <Input type="date" value={absenceDate} onChange={(e) => setAbsenceDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Час</Label>
+                    <Input type="time" value={absenceTime} onChange={(e) => setAbsenceTime(e.target.value)} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={handleAddAbsence} className="w-full">
+                      Добави отсъствие
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="overflow-x-1 rounded-xl border border-border bg-card">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-4 py-3">Предмет</th>
+                      <th className="px-4 py-3">Дата</th>
+                      <th className="px-4 py-3">Час</th>
+                      <th className="px-4 py-3">Извинен</th>
+                      <th className="px-4 py-3 text-right">Действие</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {studentAbsences.map((absence) => (
+                      <tr key={absence.id}>
+                        <td className="px-4 py-3">{subjects.find((s) => s.id === absence.subjectId)?.name ?? '—'}</td>
+                        <td className="px-4 py-3">{absence.date}</td>
+                        <td className="px-4 py-3">{absence.time ?? '—'}</td>
+                        <td className="px-4 py-3">{absence.excused ? 'Да' : 'Не'}</td>
+                        <td className="px-4 py-3 text-right flex justify-end gap-2">
+                          <Button variant="outline" onClick={() => app.toggleAbsenceExcused(absence.id)}>
+                            {absence.excused ? 'Отмени' : 'Извини'}
+                          </Button>
+                          <Button variant="outline" onClick={() => app.deleteAbsence(absence.id)}>
+                            Изтрий
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {studentAbsences.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                          Няма отсъствия.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Отказ
+          </Button>
+          <Button onClick={onClose}>Запази промени</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
