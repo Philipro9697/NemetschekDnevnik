@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import type { User } from '@/lib/data'
 import { useApp } from '@/components/app-provider'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,9 +20,9 @@ import {
   Filter,
 } from 'lucide-react'
 
-export function StudentHomework() {
+export function StudentHomework({ student }: { student?: User }) {
   const app = useApp()
-  const me = app.currentUser
+  const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   const [filterSubject, setFilterSubject] = useState('all')
   const [sortBy, setSortBy] = useState<'date' | 'subject'>('date')
   const [selectedId, setSelectedId] = useState<string | null>(null)

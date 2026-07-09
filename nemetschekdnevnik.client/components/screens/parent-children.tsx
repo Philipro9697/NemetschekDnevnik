@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { StudentDashboard } from '@/components/screens/student-dashboard'
 import { Card, CardBody } from '@/components/ui/card'
@@ -18,8 +18,14 @@ export function ParentChildren() {
     .map((id) => userById(id, app.users))
     .filter(Boolean) as NonNullable<ReturnType<typeof userById>>[]
 
-  const [selectedId, setSelectedId] = useState<string>(childrenIds[0] ?? '')
-  const selected = children.find((c) => c.id === selectedId)
+  const { selectedChildId, setSelectedChildId } = useApp()
+  const selected = children.find((c) => c.id === selectedChildId) ?? children[0]
+
+  useEffect(() => {
+    if (!selectedChildId && children.length > 0) {
+      setSelectedChildId(children[0].id)
+    }
+  }, [children, selectedChildId, setSelectedChildId])
 
   const unexcusedFor = (id: string) =>
     app.absences.filter((a) => a.studentId === id && a.type === 'absent' && !a.excused).length
@@ -42,16 +48,16 @@ export function ParentChildren() {
       {/* Child selector */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {children.map((child) => {
-          const active = child.id === selectedId
+          const active = child.id === selected?.id
           const unexcused = unexcusedFor(child.id)
           return (
             <button
               key={child.id}
-              onClick={() => setSelectedId(child.id)}
+              onClick={() => setSelectedChildId(child.id)}
               className={cn(
                 'group flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
                 active
-                  ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
+                  ? 'border-border bg-card hover:border-primary/40 hover:shadow-sm'
                   : 'border-border bg-card hover:border-primary/40 hover:shadow-sm',
               )}
             >

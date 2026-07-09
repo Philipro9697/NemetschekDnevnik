@@ -8,7 +8,7 @@ import { MessageSquareText, Sparkles } from 'lucide-react'
 
 export function StudentNotes({ student }: { student?: User }) {
   const app = useApp()
-  const me = student ?? app.currentUser
+  const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   if (!me) return null
 
   const myNotes = app.notes.filter((n) => n.studentId === me.id)

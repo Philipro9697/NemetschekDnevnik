@@ -6,12 +6,20 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog } from '@/components/ui/dialog'
 import { GradePill } from '@/components/shared/grade-pill'
-import { classById, formatDate, subjectById, subjects, type Grade, type User } from '@/lib/data'
+import { classById, formatDate, subjectById, subjects, type Grade, type GradeSection, type User } from '@/lib/data'
 import { TrendingUp, Sparkles } from 'lucide-react'
+
+const gradeSections: { key: GradeSection; label: string }[] = [
+  { key: 'term1', label: '1ви срок' },
+  { key: 'term1Final', label: 'Срочна 1ви' },
+  { key: 'term2', label: '2ри срок' },
+  { key: 'term2Final', label: 'Срочна 2ри' },
+  { key: 'yearly', label: 'Годишна' },
+]
 
 export function StudentGrades({ student }: { student?: User }) {
   const app = useApp()
-  const me = student ?? app.currentUser
+  const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
   if (!me) return null
 
@@ -55,32 +63,65 @@ export function StudentGrades({ student }: { student?: User }) {
       <Card className="overflow-hidden border-primary/10">
         <CardHeader>
           <CardTitle>Оценки по предмети</CardTitle>
-          <p className="text-sm text-muted-foreground">Оценките са подредени по предмети и са видими в реално време.</p>
+          <p className="text-sm text-muted-foreground">Тази таблица показва оценките ти по предмети и срокове.</p>
         </CardHeader>
-        <CardBody className="space-y-3">
+        <CardBody className="p-0">
           {gradesBySubject.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Все още няма оценки.</p>
           ) : (
-            gradesBySubject.map(({ subject, grades }) => {
-              const subjAvg = (grades.reduce((a, g) => a + g.value, 0) / grades.length).toFixed(2)
-              return (
-                <div key={subject.id} className="rounded-2xl border border-border/70 bg-muted/30 p-3 sm:p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-foreground">{subject.name}</p>
-                      <p className="text-xs text-muted-foreground">Среден успех: {subjAvg}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {grades.map((g) => (
-                        <button key={g.id} type="button" onClick={() => setSelectedGrade(g)}>
-                          <GradePill value={g.value} title={`${subjectById(g.subjectId).name} · ${formatDate(g.date)}`} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )
-            })
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="w-[240px] px-4 py-3">Предмет</th>
+                    {gradeSections.map((section) => (
+                      <th key={section.key} className="border-l border-border/70 px-4 py-3 text-center">
+                        {section.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {gradesBySubject.map(({ subject, grades }) => (
+                    <tr key={subject.id} className="border-t border-border/70">
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-medium text-foreground">{subject.name}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {grades.length} оценка{grades.length === 1 ? '' : 'и'}
+                        </div>
+                      </td>
+                      {gradeSections.map((section) => {
+                        const sectionGrades = grades.filter((g) => g.section === section.key)
+                        return (
+                          <td key={section.key} className="border-l border-border/70 px-4 py-3 align-top">
+                            {sectionGrades.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {sectionGrades.map((g) => (
+                                  <button
+                                    key={g.id}
+                                    type="button"
+                                    onClick={() => setSelectedGrade(g)}
+                                    className="rounded-md border border-border/70 bg-background/80 p-0.5"
+                                  >
+                                    <GradePill
+                                      value={g.value}
+                                      title={`${subjectById(g.subjectId).name} · ${formatDate(g.date)}`}
+                                      className="size-5 text-[0.65rem]"
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">—</span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardBody>
       </Card>
