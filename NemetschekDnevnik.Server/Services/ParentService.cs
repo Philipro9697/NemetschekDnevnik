@@ -15,6 +15,10 @@ public class ParentService : IParentService
     {
         return await _db.Students.Where(s => s.Parent == parent).ToListAsync();
     }
+    public async Task<Parent?> GetParentById(int parentId)
+    {
+        return await _db.Parents.FirstOrDefaultAsync(p => p.ParentId == parentId);
+    }
 }
 
 
