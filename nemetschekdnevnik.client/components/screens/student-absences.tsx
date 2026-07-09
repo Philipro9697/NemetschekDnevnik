@@ -8,7 +8,7 @@ import { CircleAlert, Sparkles } from 'lucide-react'
 
 export function StudentAbsences({ student }: { student?: User }) {
   const app = useApp()
-  const me = student ?? app.currentUser
+  const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   if (!me) return null
 
   const myAbsences = app.absences.filter((a) => a.studentId === me.id)

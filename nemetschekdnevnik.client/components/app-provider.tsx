@@ -44,15 +44,21 @@ interface AppState {
   notifications: Notification[]
   view: string
   selectedClassId: string | null
+  selectedChildId: string | null
   login: (userId: string) => void
   logout: () => void
   setView: (v: string) => void
   setSelectedClass: (classId: string | null) => void
+  setSelectedChildId: (id: string | null) => void
   addGrade: (g: Omit<Grade, 'id' | 'date'>) => void
+  deleteGrade: (id: string) => void
   addAbsence: (a: Omit<Absence, 'id' | 'date'>) => void
+  deleteAbsence: (id: string) => void
   toggleAbsenceExcused: (id: string) => void
   addNote: (n: Omit<Note, 'id' | 'date'>) => void
-  addUser: (u: Omit<User, 'id'>) => void
+  deleteNote: (id: string) => void
+  addUser: (u: Omit<User, 'id'>) => string
+  updateUser: (id: string, updates: Partial<Omit<User, 'id'>>) => void
   updateUserStatus: (id: string, status: 'active' | 'blocked') => void
   deleteUser: (id: string) => void
   addHomework: (h: Omit<Homework, 'id' | 'assignedDate' | 'submissions'>) => void
@@ -90,6 +96,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [view, setView] = useState('')
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
 
   function notify(target: string, text: string) {
     setNotifications((prev) => [
@@ -111,10 +118,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notifications,
       view,
       selectedClassId,
+      selectedChildId,
       login: (userId) => {
         const u = users.find((x) => x.id === userId) ?? null
         setCurrentUser(u)
         if (u) {
+          setSelectedChildId(u.role === 'parent' ? u.childrenIds?.[0] ?? null : null)
           setView(
             u.role === 'admin'
               ? 'users'
@@ -130,13 +139,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCurrentUser(null)
         setView('')
         setSelectedClassId(null)
+        setSelectedChildId(null)
       },
       setView,
       setSelectedClass: (classId) => setSelectedClassId(classId),
+      setSelectedChildId: (id) => setSelectedChildId(id),
       addGrade: (g) => {
         setGrades((prev) => [{ ...g, id: nid(), date: today() }, ...prev])
         notify(g.studentId, `Нова оценка Отличен/${g.value} беше нанесена.`)
       },
+      deleteGrade: (id) => setGrades((prev) => prev.filter((grade) => grade.id !== id)),
       addAbsence: (a) => {
         setAbsences((prev) => [{ ...a, id: nid(), date: today(), type: 'absent' }, ...prev])
         notify(a.studentId, 'Отбелязано е ново отсъствие.')
@@ -145,6 +157,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setAbsences((prev) =>
           prev.map((a) => (a.id === id ? { ...a, excused: !a.excused } : a)),
         ),
+      deleteAbsence: (id) => setAbsences((prev) => prev.filter((absence) => absence.id !== id)),
       addNote: (n) => {
         setNotes((prev) => [{ ...n, id: nid(), date: today() }, ...prev])
         notify(
@@ -152,7 +165,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           n.kind === 'praise' ? 'Получихте похвала от учител.' : 'Записана е нова забележка.',
         )
       },
-      addUser: (u) => setUsers((prev) => [...prev, { ...u, id: nid() }]),
+      deleteNote: (id) => setNotes((prev) => prev.filter((note) => note.id !== id)),
+      addUser: (u) => {
+        const id = nid()
+        setUsers((prev) => [...prev, { ...u, id }])
+        return id
+      },
+      updateUser: (id, updates) =>
+        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u))),
       updateUserStatus: (id, status) =>
         setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status } : u))),
       deleteUser: (id) => setUsers((prev) => prev.filter((u) => u.id !== id)),
@@ -231,7 +251,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           prev.map((n) => (n.target === target ? { ...n, read: true } : n)),
         ),
     }),
-    [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId],
+    [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId, selectedChildId],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

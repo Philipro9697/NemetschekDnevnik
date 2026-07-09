@@ -23,16 +23,22 @@ import { MessagesScreen } from "@/components/screens/messages-screen"
 import { SettingsScreen } from "@/components/screens/settings-screen"
 
 export function Router() {
-  const { currentUser, view } = useApp()
+  const { currentUser, view, selectedChildId, users } = useApp()
 
   if (!currentUser) {
     return <LoginScreen />
   }
 
-  return <AppShell>{renderScreen(currentUser.role, view)}</AppShell>
+  const selectedChild =
+    users.find((user) => user.id === selectedChildId) ??
+    (currentUser?.role === 'parent'
+      ? users.find((user) => currentUser.childrenIds?.includes(user.id)) ?? null
+      : null)
+
+  return <AppShell>{renderScreen(currentUser.role, view, selectedChild)}</AppShell>
 }
 
-function renderScreen(role: string, view: string): ReactNode {
+function renderScreen(role: string, view: string, selectedChild: User | null): ReactNode {
   // shared views
   if (view === "calendar") return <CalendarScreen />
   if (view === "messages") return <MessagesScreen />
@@ -55,7 +61,12 @@ function renderScreen(role: string, view: string): ReactNode {
   }
 
   if (role === "parent") {
-    if (view === "parental") return <ParentalControl />
+    if (view === 'parental') return <ParentalControl />
+    if (view === 'grades') return <StudentGrades student={selectedChild} />
+    if (view === 'absences') return <StudentAbsences student={selectedChild} />
+    if (view === 'notes') return <StudentNotes student={selectedChild} />
+    if (view === 'schedule') return <StudentSchedule student={selectedChild} />
+    if (view === 'homework') return <StudentHomework student={selectedChild} />
     return <ParentDashboard />
   }
 

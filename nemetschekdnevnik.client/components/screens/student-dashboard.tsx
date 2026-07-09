@@ -91,7 +91,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-6 xl:grid-cols-2">
         <StatCard icon={TrendingUp} label="Среден успех" value={avg} tone="primary" />
         <StatCard
           icon={CircleAlert}
@@ -103,7 +103,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
         <StatCard icon={MessageSquareText} label="Бележки и похвали" value={String(myNotes.length)} tone="accent" />
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-border bg-card/70 p-1.5 shadow-sm">
+      <div className="flex flex-wrap gap-10 rounded-2xl border border-border bg-card/70 p-5 shadow-sm">
         {views.map((item) => {
           const Icon = item.icon
           const active = activeView === item.key
@@ -117,7 +117,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
               className={cn(
                 'flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all',
                 active
-                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  ? 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
@@ -128,49 +128,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
         })}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => app.setView('grades')}>Към оценките</Button>
-        <Button variant="outline" onClick={() => app.setView('absences')}>Към отсъствията</Button>
-        <Button variant="outline" onClick={() => app.setView('schedule')}>Към програмата</Button>
-        <Button variant="outline" onClick={() => app.setView('notes')}>Към бележките</Button>
-      </div>
-
-      {activeView === 'grades' && (
-        <Card className="overflow-hidden border-primary/10">
-          <CardHeader>
-            <CardTitle>Оценки по предмети</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Последните оценки са подредени по предмети и са лесно достъпни за преглед на мобилен и десктоп.
-            </p>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            {gradesBySubject.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">Все още няма нанесени оценки.</p>
-            ) : (
-              gradesBySubject.map(({ subject, grades }) => {
-                const subjAvg = (grades.reduce((a, g) => a + g.value, 0) / grades.length).toFixed(2)
-                return (
-                  <div key={subject.id} className="rounded-2xl border border-border/70 bg-muted/30 p-3 sm:p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground">{subject.name}</p>
-                        <p className="text-xs text-muted-foreground">Среден успех: {subjAvg}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {grades.map((g) => (
-                          <button key={g.id} type="button" onClick={() => setSelectedGrade(g)}>
-                            <GradePill value={g.value} title={`${subjectById(g.subjectId).name} · ${formatDate(g.date)}`} />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </CardBody>
-        </Card>
-      )}
+      
 
       {activeView === 'absences' && (
         <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
