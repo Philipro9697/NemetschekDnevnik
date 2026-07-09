@@ -50,7 +50,7 @@ export function MessagesScreen() {
   }
 
   function handleCreateThread() {
-    if (!newContactId) return
+    if (!me || !newContactId) return
     const participantIds = [me.id, newContactId]
     const target = app.users.find((u) => u.id === newContactId)
     const id = app.createThread(target?.name ?? 'Нов контакт', participantIds)
@@ -60,7 +60,7 @@ export function MessagesScreen() {
   }
 
   function handleCreateGroup() {
-    if (!groupName.trim()) return
+    if (!me || !groupName.trim()) return
     const participantIds = [me.id, ...contacts.slice(0, 3).map((u) => u.id)]
     const id = app.createGroupThread(groupName.trim(), participantIds)
     setActiveId(id)

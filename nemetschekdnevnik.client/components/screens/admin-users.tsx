@@ -1,6 +1,7 @@
 'use client'
-
-import { useMemo, useState } from 'react'
+import { userService } from '@/api/userService'
+import type { UserRole } from '@/api/types'
+import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
-import { userService } from '@/api/userService'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { classes, classById, type Role, type User } from '@/lib/data'
+import { Tabs } from '@/components/ui/tabs'
+import { classes, classById, subjects, type Role, type User } from '@/lib/data'
 import {
   UserPlus,
   Pencil,
@@ -29,6 +30,7 @@ import {
   ShieldCheck,
   Sparkles,
   UsersRound,
+  BookOpen,
 } from 'lucide-react'
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -63,6 +65,8 @@ export function AdminUsers() {
   const app = useApp()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [editCandidate, setEditCandidate] = useState<User | null>(null)
+  const [detailCandidate, setDetailCandidate] = useState<User | null>(null)
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
   const [classFilter, setClassFilter] = useState<'all' | string>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all')
@@ -119,6 +123,7 @@ export function AdminUsers() {
         </div>
       </div>
 
+      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" />
@@ -155,8 +160,9 @@ export function AdminUsers() {
             <UserPlus className="size-4" /> Регистрирай нов потребител
           </Button>
         </div>
-          </div>
+      </div>
 
+      {/* Role filter chips */}
       <div className="flex flex-wrap gap-2">
         {(
           [
@@ -181,6 +187,7 @@ export function AdminUsers() {
         ))}
       </div>
 
+      {/* Table */}
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -188,7 +195,7 @@ export function AdminUsers() {
               <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 font-semibold">Име</th>
                 <th className="px-4 py-3 font-semibold">Роля</th>
-                <th className="px-4 py-3 font-semibold">Клас</th>
+                <th className="px-4 py-3 font-semibold">Клас / Предмет</th>
                 <th className="px-4 py-3 font-semibold">Статус</th>
                 <th className="px-4 py-3 text-right font-semibold">Действия</th>
               </tr>
@@ -209,8 +216,11 @@ export function AdminUsers() {
                     <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {classById(u.classId)?.name ??
-                      (u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—')}
+                    {u.role === 'student'
+                      ? classById(u.classId)?.name ?? '—'
+                      : u.role === 'teacher'
+                      ? `${u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—'}${u.subjectIds?.length ? ` • ${u.subjectIds.map((id) => subjects.find((s) => s.id === id)?.name).filter(Boolean).join(', ')}` : ''}`
+                      : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -230,9 +240,14 @@ export function AdminUsers() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <IconBtn label="Редакция">
+                      <IconBtn label="Редакция" onClick={() => setEditCandidate(u)}>
                         <Pencil className="size-4" />
                       </IconBtn>
+                      {u.role === 'student' && (
+                        <IconBtn label="Детайли" onClick={() => setDetailCandidate(u)}>
+                          <BookOpen className="size-4" />
+                        </IconBtn>
+                      )}
                       <IconBtn
                         label={u.status === 'active' ? 'Блокирай' : 'Разблокирай'}
                         onClick={() =>
@@ -274,6 +289,22 @@ export function AdminUsers() {
       </Card>
 
       <RegisterDialog open={open} onClose={() => setOpen(false)} />
+      <EditUserDialog
+        open={Boolean(editCandidate)}
+        user={editCandidate}
+        onClose={() => setEditCandidate(null)}
+        onSave={(updates) => {
+          if (editCandidate) {
+            app.updateUser(editCandidate.id, updates)
+          }
+          setEditCandidate(null)
+        }}
+      />
+      <StudentDetailDialog
+        open={Boolean(detailCandidate)}
+        student={detailCandidate}
+        onClose={() => setDetailCandidate(null)}
+      />
 
       <Dialog open={Boolean(deleteCandidate)} onClose={() => setDeleteCandidate(null)}>
         <DialogContent className="max-w-md">
@@ -343,186 +374,502 @@ function IconBtn({
 }
 
 function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-    const app = useApp()
-    const [name, setName] = useState('')
-    const [email, setEmail] = useState('')
-    const [role, setRole] = useState<Role>('student')
-    const [classId, setClassId] = useState<string>('c5a')
+  const app = useApp()
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [role, setRole] = useState<Role>('student')
+  const [classId, setClassId] = useState<string>('c5a')
 
-    // Track loading and error states for the API request
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-    // Updated to include the generated password for the admin to copy
-    const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string } | null>(null)
-    const [copied, setCopied] = useState(false)
+  const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
-    const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
+  const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
 
-    function reset() {
-        setName('')
-        setEmail('')
-        setRole('student')
-        setClassId('c5a')
-        setCreated(null)
-        setCopied(false)
-        setError(null)
-        setLoading(false)
+  function reset() {
+    setName('')
+    setEmail('')
+    setPhoneNumber('')
+    setRole('student')
+    setClassId('c5a')
+    setCreated(null)
+    setCopied(false)
+    setError(null)
+    setLoading(false)
+  }
+
+  async function handleSubmit() {
+    if (!name.trim()) return
+
+    setLoading(true)
+    setError(null)
+
+    // Parse full name into FirstName and LastName structure required by your database entities
+    const nameParts = name.trim().split(/\s+/)
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Петров'
+
+    const generatedPassword = 'afhalfhadlfhaldfhadlkfjalkfjalkfjaslkfjaslkj'
+    
+    // Capitalize role to match Identity DB values ("Teacher", "Student", "Parent")
+    const backendRole: UserRole =
+      role === 'teacher' ? 'Teacher' : role === 'student' ? 'Student' : 'Parent'
+    const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
+
+    try {
+      // POST payload directly to your backend service router with the phone number
+      const serverUser = await userService.createUser({
+        email: targetEmail,
+        password: generatedPassword,
+        role: backendRole,
+        firstName: firstName,
+        lastName: lastName,
+        phoneNumber: phoneNumber.trim()
+      })
+
+      const accessCode =
+        role === 'student'
+          ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
+          : undefined
+
+      if (app.addUser) {
+        app.addUser({
+          name: `${serverUser.firstName} ${serverUser.lastName}`,
+          username: username,
+          email: serverUser.email,
+          role: role,
+          status: serverUser.isApproved ? 'active' : 'blocked',
+          ...(role === 'student' ? { classId, accessCode } : {}),
+        })
+      }
+
+      setCreated({ username, password: generatedPassword, accessCode })
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Възникна грешка при комуникацията със сървъра.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleClose() {
+    reset()
+    onClose()
+  }
+
+  return (
+    <Dialog open={open} onClose={handleClose}>
+      <DialogContent className="max-w-lg">
+        {created ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="size-5 text-success" />
+                Профилът е създаден успешно
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="rounded-xl border border-border bg-muted/40 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Потребителско име за вход
+                </p>
+                <p className="font-mono text-lg font-semibold">{created.username}</p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted/40 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Временна служебна парола
+                </p>
+                <p className="font-mono text-lg font-semibold text-danger">{created.password}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Предоставете тази парола на потребителя за първоначален достъп.</p>
+              </div>
+
+              {created.accessCode && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                  <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-primary">
+                    <KeyRound className="size-3.5" /> Код за достъп на родител
+                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <p className="font-mono text-lg font-semibold">{created.accessCode}</p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard?.writeText(created.accessCode!)
+                        setCopied(true)
+                      }}
+                      className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
+                    >
+                      {copied ? (
+                        <>
+                          <CheckCircle2 className="size-3.5 text-success" /> Копирано
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3.5" /> Копирай
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Предайте този код на родителя, за да свърже профила си с детето.
+                  </p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={reset}>
+                Създай още един
+              </Button>
+              <Button onClick={handleClose}>Готово</Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldCheck className="size-5 text-primary" />
+                Регистрация на нов потребител
+              </DialogTitle>
+            </DialogHeader>
+            <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 font-medium text-foreground">
+                <UsersRound className="size-4 text-primary" /> Бърз старт
+              </div>
+              <p className="mt-1">
+                Данните ще бъдат записани директно в централната база данни на училището.
+              </p>
+            </div>
+
+            {error && (
+              <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+                {error}
+              </p>
+            )}
+
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label>Три имена</Label>
+                <Input
+                  disabled={loading}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="напр. Георги Иванов Петров"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Роля</Label>
+                  <select
+                    disabled={loading}
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as Role)}
+                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="teacher">Учител</option>
+                    <option value="student">Ученик</option>
+                    <option value="parent">Родител</option>
+                  </select>
+                </div>
+                {role === 'student' && (
+                  <div className="space-y-1.5">
+                    <Label>Клас</Label>
+                    <select
+                      disabled={loading}
+                      value={classId}
+                      onChange={(e) => setClassId(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Имейл</Label>
+                <Input
+                  type="email"
+                  disabled={loading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="напр. g.petrov@example.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Телефонен номер</Label>
+                <Input
+                  type="tel"
+                  disabled={loading}
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="напр. 08XXXXXXXX"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Автоматично потребителско име</Label>
+                <div className="flex h-10 items-center rounded-lg border border-dashed border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
+                  {username || '—'}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose} disabled={loading}>
+                Отказ
+              </Button>
+              <Button onClick={handleSubmit} disabled={!name.trim() || loading}>
+                {loading ? 'Записване...' : 'Създай профил'}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EditUserDialog({
+  open,
+  user,
+  onClose,
+  onSave,
+}: {
+  open: boolean
+  user: User | null
+  onClose: () => void
+  onSave: (updates: Partial<Omit<User, 'id'>>) => void
+}) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<Role>('student')
+  const [classId, setClassId] = useState<string>('c5a')
+  const [classTeacherOf, setClassTeacherOf] = useState<string>('')
+  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+
+  useEffect(() => {
+    if (!user) return
+    setName(user.name)
+    setEmail(user.email)
+    setRole(user.role)
+    setClassId(user.classId ?? 'c5a')
+    setClassTeacherOf(user.classTeacherOf ?? '')
+    setSubjectId(user.subjectIds?.[0] ?? subjects[0]?.id ?? '')
+    setPhone(user.phone ?? '')
+    setPassword(user.password ?? '')
+  }, [user])
+
+  function handleSave() {
+    const updates: Partial<Omit<User, 'id'>> = {
+      name: name.trim(),
+      email: email.trim(),
+      role,
+      phone: phone.trim() || undefined,
+      password: password.trim() || undefined,
     }
 
-    // 2. Make handleSubmit async to handle the server database entry
-    async function handleSubmit() {
-        if (!name.trim()) return
-
-        setLoading(true)
-        setError(null)
-
-        // Split "Три имена" into FirstName and LastName for the backend DTO
-        const nameParts = name.trim().split(/\s+/)
-        const firstName = nameParts[0] || ''
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Петров'
-
-        // Generate a safe temporary password since the UI form doesn't request one
-        const generatedPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
-
-        // Map lowercase UI roles to capitalized backend system strings
-        const backendRole = role.charAt(0).toUpperCase() + role.slice(1) // "Teacher" | "Student" | "Parent"
-
-        const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
-
-        try {
-            // Send HTTP POST request to api/users
-            const serverUser = await userService.createUser({
-                email: targetEmail,
-                password: generatedPassword,
-                role: backendRole,
-                firstName: firstName,
-                lastName: lastName,
-                phoneNumber: '' // Can be gathered later or left blank
-            })
-
-            // Generate a mock child access code if it's a student assignment
-            const accessCode =
-                role === 'student'
-                    ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
-                    : undefined
-
-            // Update local state context if your application syncs client arrays
-            if (app.addUser) {
-                app.addUser({
-                    id: serverUser.userId,
-                    name: `${serverUser.firstName} ${serverUser.lastName}`,
-                    username: username,
-                    email: serverUser.email,
-                    role: role,
-                    status: serverUser.isApproved ? 'active' : 'blocked',
-                    ...(role === 'student' ? { classId, accessCode } : {}),
-                })
-            }
-
-            // Display username and the generated password to the Administrator
-            setCreated({ username, password: generatedPassword, accessCode })
-        } catch (err: any) {
-            console.error(err)
-            setError(err.message || 'Възникна грешка при комуникацията със сървъра.')
-        } finally {
-            setLoading(false)
-        }
+    if (role === 'student') {
+      updates.classId = classId
+      updates.classTeacherOf = undefined
+      updates.subjectIds = undefined
     }
 
-    function handleClose() {
-        reset()
-        onClose()
+    if (role === 'teacher') {
+      updates.classTeacherOf = classTeacherOf || undefined
+      updates.subjectIds = subjectId ? [subjectId] : []
+      updates.classId = undefined
     }
 
-    return (
-        <Dialog open={open} onClose={handleClose}>
-            <DialogContent className="max-w-lg">
-                {created ? (
-                    <>
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <CheckCircle2 className="size-5 text-success" />
-                                Профилът е създаден успешно
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-2">
-                            <div className="rounded-xl border border-border bg-muted/40 p-4">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                                    Потребителско име за вход
-                                </p>
-                                <p className="font-mono text-lg font-semibold">{created.username}</p>
-                            </div>
+    if (role === 'parent' || role === 'admin') {
+      updates.classId = undefined
+      updates.classTeacherOf = undefined
+      updates.subjectIds = undefined
+    }
 
-                            {/* Display generated password for admin distribution */}
-                            <div className="rounded-xl border border-border bg-muted/40 p-4">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                                    Временна служебна парола
-                                </p>
-                                <p className="font-mono text-lg font-semibold text-danger">{created.password}</p>
-                                <p className="mt-1 text-xs text-muted-foreground">Предоставете тази парола на потребителя за първоначален достъп.</p>
-                            </div>
+    onSave(updates)
+    onClose()
+  }
 
-                            {created.accessCode && (
-                                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-                                    <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-primary">
-                                        <KeyRound className="size-3.5" /> Код за достъп на родител
-                                    </p>
-                                    <div className="mt-1 flex items-center gap-2">
-                                        <p className="font-mono text-lg font-semibold">{created.accessCode}</p>
-                                        <button
-                                            onClick={() => {
-                                                navigator.clipboard?.writeText(created.accessCode!)
-                                                setCopied(true)
-                                            }}
-                                            className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
-                                        >
-                                            {copied ? (
-                                                <>
-                                                    <CheckCircle2 className="size-3.5 text-success" /> Копирано
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Copy className="size-3.5" /> Копирай
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                    <p className="mt-2 text-xs text-muted-foreground">
-                                        Предайте този код на родителя, за да свърже профила си с детето.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={reset}>
-                                Създай още един
-                            </Button>
-                            <Button onClick={handleClose}>Готово</Button>
-                        </DialogFooter>
-                    </>
-                ) : (
-                    <>
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <ShieldCheck className="size-5 text-primary" />
-                                Регистрация на нов потребител
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2 font-medium text-foreground">
-                                <UsersRound className="size-4 text-primary" /> Бърз старт
-                            </div>
-                            <p className="mt-1">
-                                Данните ще бъдат записани директно в централната база данни на училището.
-                            </p>
-                        </div>
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Редакция на акаунт</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Роля</Label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="student">Ученик</option>
+              <option value="teacher">Учител</option>
+              <option value="parent">Родител</option>
+              <option value="admin">Администратор</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Три имена</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Имейл</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Телефон</Label>
+              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Парола</Label>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+          </div>
+          {role === 'student' && (
+            <div className="space-y-1.5">
+              <Label>Клас</Label>
+              <select
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
+                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {role === 'teacher' && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Преподава в клас</Label>
+                <select
+                  value={classTeacherOf}
+                  onChange={(e) => setClassTeacherOf(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Няма клас</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Предмет</Label>
+                <select
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Отказ
+          </Button>
+          <Button onClick={handleSave}>Запази промени</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
-                        {error && (
-                            <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
-                                {error}
-                            </p>
-                        )}
+function StudentDetailDialog({
+  open,
+  student,
+  onClose,
+}: {
+  open: boolean
+  student: User | null
+  onClose: () => void
+}) {
+  const app = useApp()
+  const [tab, setTab] = useState<'grades' | 'notes' | 'absences'>('grades')
+  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
+  const [gradeValue, setGradeValue] = useState<number>(6)
+  const [gradeKind, setGradeKind] = useState<'oral' | 'written' | 'test' | 'active'>('oral')
+  const [noteText, setNoteText] = useState('')
+  const [noteKind, setNoteKind] = useState<'praise' | 'remark'>('remark')
+  const [absenceDate, setAbsenceDate] = useState(new Date().toISOString().slice(0, 10))
+  const [absenceTime, setAbsenceTime] = useState('08:00')
+  const [absenceSubjectId, setAbsenceSubjectId] = useState<string>(subjects[0]?.id ?? '')
+
+  useEffect(() => {
+    if (!student) return
+    setTab('grades')
+    setSubjectId(subjects[0]?.id ?? '')
+    setGradeValue(6)
+    setGradeKind('oral')
+    setNoteText('')
+    setNoteKind('remark')
+    setAbsenceDate(new Date().toISOString().slice(0, 10))
+    setAbsenceTime('08:00')
+    setAbsenceSubjectId(subjects[0]?.id ?? '')
+  }, [student])
+
+  if (!student) return null
+
+  const studentGrades = app.grades.filter((grade) => grade.studentId === student.id)
+  const studentNotes = app.notes.filter((note) => note.studentId === student.id)
+  const studentAbsences = app.absences.filter((absence) => absence.studentId === student.id)
+  const teachers = app.users.filter((u) => u.role === 'teacher')
+
+  function handleAddGrade() {
+    if (!student || !subjectId || !teachers[0]) return
+    app.addGrade({
+      studentId: student.id,
+      subjectId,
+      teacherId: teachers[0].id,
+      value: gradeValue,
+      kind: gradeKind,
+      section: 'term1',
+      description: '',
+    })
+  }
+
+  function handleAddNote() {
+    if (!student || !subjectId) return
+    app.addNote({
+      studentId: student.id,
+      subjectId,
+      teacherId: teachers[0]?.id ?? '',
+      text: noteText,
+      kind: noteKind,
+    })
+    setNoteText('')
+  }
+
+  function handleAddAbsence() {
+    if (!student || !absenceSubjectId) return
+    app.addAbsence({
+      studentId: student.id,
+      subjectId: absenceSubjectId,
+      teacherId: teachers[0]?.id,
+      time: absenceTime,
+      type: 'absent',
+      excused: false,
+    })
+  } 
 
   return (
     <Dialog open={open} onClose={onClose}>
@@ -533,7 +880,7 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
         <div className="space-y-4 py-2">
           <Tabs
             value={tab}
-            onValueChange={setTab}
+            onValueChange={(value) => setTab(value as 'grades' | 'notes' | 'absences')}
             className="w-full"
             tabs={[
               { value: 'grades', label: 'Оценки' },

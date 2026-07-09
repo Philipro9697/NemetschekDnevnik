@@ -164,6 +164,7 @@ export function ClassDiary({ lesson }: { lesson: Lesson }) {
               teacherId: currentUser!.id,
               value,
               kind: 'oral',
+              section: 'term1',
             })
             setGradeFor(null)
           }}
