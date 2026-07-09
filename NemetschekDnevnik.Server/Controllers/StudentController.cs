@@ -17,140 +17,87 @@ public class StudentController : ControllerBase
     {
         _studentService = studentservice;
     }
-    public async Task<Student> GetStudent()
+    public async Task<Student?> GetStudent()
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int studentId))
+        if (int.TryParse(userIdString, out int studentId))
         {
-            throw new UnauthorizedAccessException("User ID not found in token.");
+            Student? student = await _studentService.GetStudentById(studentId);
+            return student;
         }
-
-        if (!User.IsInRole("Student"))
-        {
-            throw new UnauthorizedAccessException("Wrong Role");
-        }
-
-        Student? student = await _studentService.GetStudentById(studentId);
-
-        if (student is null)
-        {
-            throw new UnauthorizedAccessException("Student not found");
-        }
-
-        return student;
-
+        return null;
     }
     [HttpGet("grades")]
+    [Authorize(Roles = "Student")]
     public async Task<ActionResult<List<GradeDto>>> GetGrades()
     {
-        try
-        {
-            Student student = await GetStudent();
-            return await _studentService.GetGrades(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Student? student = await GetStudent();
+        if (student is null) return NotFound("User not found");
+        return Ok(await _studentService.GetGrades(student));
     }
 
     [HttpGet("schedule")]
+    [Authorize(Roles = "Student")]
     public async Task<ActionResult<List<ScheduleDto>>> GetSchedule()
     {
-        try
-        {
-            Student student = await GetStudent();
-            return await _studentService.GetWeeklySchedule(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Student? student = await GetStudent();
+        if (student is null) return NotFound("User not found");
+        return Ok(await _studentService.GetWeeklySchedule(student));
     }
 
     [HttpGet("absences")]
+    [Authorize(Roles = "Student")]
     public async Task<ActionResult<List<AbsenceDto>>> GetAbsences()
     {
-        try
-        {
-            Student student = await GetStudent();
-            return await _studentService.GetAbsences(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Student? student = await GetStudent();
+        if (student is null) return NotFound("User not found");
+        return Ok(await _studentService.GetAbsences(student));
     }
 
     [HttpGet("remarks")]
+    [Authorize(Roles = "Student")]
     public async Task<ActionResult<List<RemarkDto>>> GetRemarks()
     {
-        try
-        {
-            Student student = await GetStudent();
-            return await _studentService.GetRemarks(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Student? student = await GetStudent();
+        if (student is null) return NotFound("User not found");
+        return Ok(await _studentService.GetRemarks(student));
     }
 
     [HttpGet("lessons")]
+    [Authorize(Roles = "Student")]
     public async Task<ActionResult<List<LessonDto>>> GetLessons()
     {
-        try
-        {
-            Student student = await GetStudent();
-            return await _studentService.GetLessons(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Student? student = await GetStudent();
+        if (student is null) return NotFound("User not found");
+        return Ok(await _studentService.GetLessons(student));
     }
 
     [HttpGet("student_info")]
+    [Authorize(Roles = "Student")]
     public async Task<ActionResult<StudentInfoDto>> GetStudentInfo()
     {
-        try
-        {
-            Student student = await GetStudent();
-            return _studentService.GetStudentInfo(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Student? student = await GetStudent();
+        if (student is null) return NotFound("User not found");
+        return Ok(_studentService.GetStudentInfo(student));
     }
 
     [HttpGet("subjects")]
+    [Authorize(Roles = "Student")]
     public async Task<ActionResult<List<SubjectDto>>> GetSubjects()
     {
-        try
-        {
-            Student student = await GetStudent();
-            return await _studentService.GetSubjects(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Student? student = await GetStudent();
+        if (student is null) return NotFound("User not found");
+        return Ok(await _studentService.GetSubjects(student));
     }
 
     [HttpGet("homework")]
+    [Authorize(Roles = "Student")]
     public async Task<ActionResult<List<HomeworkItemDto>>> GetHomework()
     {
-        try
-        {
-            Student student = await GetStudent();
-            return await _studentService.GetHomeworkItems(student);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Student? student = await GetStudent();
+        if (student is null) return NotFound("User not found");
+        return Ok(await _studentService.GetHomeworkItems(student));
     }
 }
 

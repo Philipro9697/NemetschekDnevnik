@@ -19,120 +19,82 @@ public class ParentController : ControllerBase
         _studentService = studentservice;
         _parentService = parentservice;
     }
-    public async Task<Parent> GetParent()
+    public async Task<Parent?> GetParent()
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int parentId))
+        if (int.TryParse(userIdString, out int parentId))
         {
-            throw new UnauthorizedAccessException("User ID not found in token.");
+            Parent? parent = await _parentService.GetParentById(parentId);
+            return parent;
         }
-
-        if (!User.IsInRole("Parent"))
-        {
-            throw new UnauthorizedAccessException("Wrong Role");
-        }
-
-        Parent? parent = await _parentService.GetParentById(parentId);
-
-        if (parent is null)
-        {
-            throw new UnauthorizedAccessException("Parent not found");
-        }
-
-        return parent;
-
+        return null;
     }
     [HttpGet("children")]
+    [Authorize(Roles = "Parent")]
     public async Task<ActionResult<List<StudentInfoDto>>> GetChildren()
     {
-        try
-        {
-            Parent parent = await GetParent();
-            return (await _parentService.GetChildren(parent))
-                .Select(c => _studentService.GetStudentInfo(c))
-                .ToList();
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        Parent? parent = await GetParent();
+        if (parent is null) return NotFound("Parent not found");
+        return Ok((await _parentService.GetChildren(parent))
+            .Select(c => _studentService.GetStudentInfo(c))
+            .ToList());
     }
 
     [HttpGet("grades/{id}")]
+    [Authorize(Roles = "Parent")]
     public async Task<ActionResult<List<GradeDto>>> GetStudentGrades(int id)
     {
-        try
+        Parent? parent = await GetParent();
+        if (parent is null) return NotFound("Parent not found");
+        Student? student = await _studentService.GetStudentById(id);
+        if (student is null || student.ParentId != parent.ParentId)
         {
-            Parent parent = await GetParent();
-            Student? student = await _studentService.GetStudentById(id);
-            if (student is null || student.ParentId != parent.ParentId)
-            {
-                throw new UnauthorizedAccessException("This is not your child!");
-            }
-            return await _studentService.GetGrades(student);
+            return Forbid("This is not your child!");
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        return Ok(await _studentService.GetGrades(student));
     }
 
     [HttpGet("absences/{id}")]
+    [Authorize(Roles = "Parent")]
     public async Task<ActionResult<List<AbsenceDto>>> GetStudentAbsences(int id)
     {
-        try
+        Parent? parent = await GetParent();
+        if (parent is null) return NotFound("Parent not found");
+        Student? student = await _studentService.GetStudentById(id);
+        if (student is null || student.ParentId != parent.ParentId)
         {
-            Parent parent = await GetParent();
-            Student? student = await _studentService.GetStudentById(id);
-            if (student is null || student.ParentId != parent.ParentId)
-            {
-                throw new UnauthorizedAccessException("This is not your child!");
-            }
-            return await _studentService.GetAbsences(student);
+            return Forbid("This is not your child!");
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        return Ok(await _studentService.GetAbsences(student));
     }
 
     [HttpGet("remarks/{id}")]
+    [Authorize(Roles = "Parent")]
     public async Task<ActionResult<List<RemarkDto>>> GetStudentRemarks(int id)
     {
-        try
+        Parent? parent = await GetParent();
+        if (parent is null) return NotFound("Parent not found");
+        Student? student = await _studentService.GetStudentById(id);
+        if (student is null || student.ParentId != parent.ParentId)
         {
-            Parent parent = await GetParent();
-            Student? student = await _studentService.GetStudentById(id);
-            if (student is null || student.ParentId != parent.ParentId)
-            {
-                throw new UnauthorizedAccessException("This is not your child!");
-            }
-            return await _studentService.GetRemarks(student);
+            return Forbid("This is not your child!");
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        return Ok(await _studentService.GetRemarks(student));
     }
 
     [HttpGet("subjects/{id}")]
+    [Authorize(Roles = "Parent")]
     public async Task<ActionResult<List<SubjectDto>>> GetStudentSubjects(int id)
     {
-        try
+        Parent? parent = await GetParent();
+        if (parent is null) return NotFound("Parent not found");
+        Student? student = await _studentService.GetStudentById(id);
+        if (student is null || student.ParentId != parent.ParentId)
         {
-            Parent parent = await GetParent();
-            Student? student = await _studentService.GetStudentById(id);
-            if (student is null || student.ParentId != parent.ParentId)
-            {
-                throw new UnauthorizedAccessException("This is not your child!");
-            }
-            return await _studentService.GetSubjects(student);
+            return Forbid("This is not your child!");
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        return Ok(await _studentService.GetSubjects(student));
     }
 }
 

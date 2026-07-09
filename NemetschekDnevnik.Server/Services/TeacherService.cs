@@ -4,21 +4,20 @@ using NemetschekDnevnik.Server.Models;
 
 namespace NemetschekDnevnik.Server.Services;
 
-public class StudentService : IStudentService
+public class TeacherService : ITeacherService
 {
     private readonly DnevnikContext _db;
-    public StudentService(DnevnikContext db)
+    public TeacherService(DnevnikContext db)
     {
         _db = db;
     }
-
+    // TODO
     public async Task<List<ScheduleDto>> GetWeeklySchedule(Student student)
     {
         return await _db.WeeklyScheduleItems
             .Where(ws => ws.ClassId == student.ClassId)
             .Select(ws => new ScheduleDto
             {
-                ScheduleId = ws.ScheduleItemId,
                 DayOfWeek = ws.DayOfWeek,
                 Time = ws.Time,
                 SubjectId = ws.SubjectId ?? -1,
@@ -37,7 +36,6 @@ public class StudentService : IStudentService
             .Select(g => new GradeDto
             {
                 GradeValue = g.GradeValue,
-                GradeId = g.GradeId,
                 SubjectId = g.SubjectId ?? -1,
                 TeacherId = g.TeacherId ?? -1,
                 SubjectName = g.Subject.SubjectName,
@@ -68,7 +66,6 @@ public class StudentService : IStudentService
         return await _db.Remarks.Where(r => r.StudentId == student.StudentId)
             .Select(r => new RemarkDto
             {
-                RemarkId = r.RemarkId,
                 TeacherId = r.TeacherId ?? -1,
                 DateCreated = r.DateCreated,
                 Type = r.Type,
@@ -83,7 +80,6 @@ public class StudentService : IStudentService
         return await _db.Lessons.Where(l => l.ClassId == student.ClassId)
             .Select(s => new LessonDto
             {
-                LessonId = s.LessonId,
                 Date = s.Date,
                 Time = s.Time,
                 SubjectId = s.SubjectId ?? -1,
