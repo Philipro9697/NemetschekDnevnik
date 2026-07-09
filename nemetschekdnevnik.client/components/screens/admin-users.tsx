@@ -374,91 +374,131 @@ function IconBtn({
 }
 
 function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const app = useApp()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [role, setRole] = useState<Role>('student')
-  const [classId, setClassId] = useState<string>('c5a')
+    const app = useApp()
+    const [name, setName] = useState('')
+    const [email, setEmail] = useState('')
+    const [phoneNumber, setPhoneNumber] = useState('')
+    const [role, setRole] = useState<Role>('student')
+    const [classId, setClassId] = useState<string>('c5a')
+    const [teacherSubjectId, setTeacherSubjectId] = useState<string>(subjects[0]?.id ?? '')
+    const [parentName, setParentName] = useState('')
+    const [parentEmail, setParentEmail] = useState('')
+    const [parentPhone, setParentPhone] = useState('')
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string } | null>(null)
-  const [copied, setCopied] = useState(false)
+    // Track loading and error states for the API request
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-  const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
+    // Updated to include the generated password for the admin to copy
+    const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string } | null>(null)
+    const [copied, setCopied] = useState(false)
 
-  function reset() {
-    setName('')
-    setEmail('')
-    setPhoneNumber('')
-    setRole('student')
-    setClassId('c5a')
-    setCreated(null)
-    setCopied(false)
-    setError(null)
-    setLoading(false)
-  }
+    const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
+    const parentUsername = parentName.trim() ? transliterate(parentName).replace(/\s+/g, '.') : ''
 
-  async function handleSubmit() {
-    if (!name.trim()) return
-
-    setLoading(true)
-    setError(null)
-
-    // Parse full name into FirstName and LastName structure required by your database entities
-    const nameParts = name.trim().split(/\s+/)
-    const firstName = nameParts[0] || ''
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Петров'
-
-    const generatedPassword = 'afhalfhadlfhaldfhadlkfjalkfjalkfjaslkfjaslkj'
-    
-    // Capitalize role to match Identity DB values ("Teacher", "Student", "Parent")
-    const backendRole: UserRole =
-      role === 'teacher' ? 'Teacher' : role === 'student' ? 'Student' : 'Parent'
-    const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
-
-    try {
-      // POST payload directly to your backend service router with the phone number
-      const serverUser = await userService.createUser({
-        email: targetEmail,
-        password: generatedPassword,
-        role: backendRole,
-        firstName: firstName,
-        lastName: lastName,
-        phoneNumber: phoneNumber.trim()
-      })
-
-      const accessCode =
-        role === 'student'
-          ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
-          : undefined
-
-      if (app.addUser) {
-        app.addUser({
-          name: `${serverUser.firstName} ${serverUser.lastName}`,
-          username: username,
-          email: serverUser.email,
-          role: role,
-          status: serverUser.isApproved ? 'active' : 'blocked',
-          ...(role === 'student' ? { classId, accessCode } : {}),
-        })
-      }
-
-      setCreated({ username, password: generatedPassword, accessCode })
-    } catch (err: any) {
-      console.error(err)
-      setError(err.message || 'Възникна грешка при комуникацията със сървъра.')
-    } finally {
-      setLoading(false)
+    function reset() {
+        setName('')
+        setEmail('')
+        setRole('student')
+        setClassId('c5a')
+        setCreated(null)
+        setCopied(false)
+        setError(null)
+        setLoading(false)
     }
-  }
 
-  function handleClose() {
-    reset()
-    onClose()
-  }
+    // 2. Make handleSubmit async to handle the server database entry
+    async function handleSubmit() {
+        if (!name.trim()) return
+
+        setLoading(true)
+        setError(null)
+
+        // Split "Три имена" into FirstName and LastName for the backend DTO
+        const nameParts = name.trim().split(/\s+/)
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Петров'
+
+        const parentNameParts = parentName.trim().split(/\s+/)
+        const parentFirstName = parentNameParts[0] || ''
+        const parentLastName = parentNameParts.length > 1 ? parentNameParts.slice(1).join(' ') : 'Петрова'
+
+        // Generate a safe temporary password since the UI form doesn't request one
+        const generatedPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
+        const parentPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
+
+        // Map lowercase UI roles to capitalized backend system strings
+        const backendRole: UserRole = role === 'teacher' ? 'Teacher' : role === 'student' ? 'Student' : 'Parent'
+
+        const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
+
+        try {
+            // Send HTTP POST request to api/users
+            const serverUser = await userService.createUser({
+                email: targetEmail,
+                password: generatedPassword,
+                role: backendRole,
+                firstName: firstName,
+                lastName: lastName,
+                phoneNumber: phoneNumber.trim()
+            })
+
+            const secondaryUser = role === 'student' ? await userService.createUser({
+                email: parentEmail.trim() || `${parentUsername}@ou-vazrazhdane.bg`,
+                password: parentPassword,
+                role: 'Parent',
+                firstName: parentFirstName,
+                lastName: parentLastName,
+                phoneNumber: parentPhone.trim()
+            }) : undefined
+
+            // Generate a mock child access code if it's a student assignment
+            const accessCode =
+              role === 'student'
+                ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
+                : undefined  
+
+            // Update local state context if your application syncs client arrays
+            // 1. Add the main user (Student/Teacher)
+            if (app.addUser) {
+              app.addUser({
+                name: `${serverUser.firstName} ${serverUser.lastName}`,
+                username: username,
+                email: serverUser.email,
+                role: role,
+                status: serverUser.isApproved ? 'active' : 'blocked',
+                ...(role === 'student' ? { classId, accessCode } : {}),
+              })
+            }
+
+            // 2. Add the secondary user (Parent) - Only if a student is being registered
+            if (role === 'student' && app.addUser && secondaryUser) {
+              const parentUsername = parentName.trim() ? transliterate(parentName).replace(/\s+/g, '.') : ''
+            
+              app.addUser({
+                name: `${secondaryUser.firstName} ${secondaryUser.lastName}`,
+                username: parentUsername, // Use a username derived from the parent's name
+                email: secondaryUser.email,
+                role: 'parent', // Hardcoded client-side role for parent
+                status: secondaryUser.isApproved ? 'active' : 'blocked',
+              })
+            }
+
+            // Display username and the generated password to the Administrator
+            setCreated({ username, password: generatedPassword, accessCode })
+        } catch (err: any) {
+            console.error(err)
+            setError(err.message || 'Възникна грешка при комуникацията със сървъра.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    function handleClose() {
+        reset()
+        onClose()
+    }
 
   return (
     <Dialog open={open} onClose={handleClose}>
@@ -468,25 +508,16 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <CheckCircle2 className="size-5 text-success" />
-                Профилът е създаден успешно
+                Профилът е създаден
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="rounded-xl border border-border bg-muted/40 p-4">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Потребителско име за вход
+                  Потребителско име
                 </p>
                 <p className="font-mono text-lg font-semibold">{created.username}</p>
               </div>
-
-              <div className="rounded-xl border border-border bg-muted/40 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Временна служебна парола
-                </p>
-                <p className="font-mono text-lg font-semibold text-danger">{created.password}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Предоставете тази парола на потребителя за първоначален достъп.</p>
-              </div>
-
               {created.accessCode && (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
                   <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-primary">
@@ -528,55 +559,32 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-10 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
                 <ShieldCheck className="size-5 text-primary" />
                 Регистрация на нов потребител
               </DialogTitle>
             </DialogHeader>
-            <div className="rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+            <div>
               <div className="flex items-center gap-2 font-medium text-foreground">
-                <UsersRound className="size-4 text-primary" /> Бърз старт
               </div>
-              <p className="mt-1">
-                Данните ще бъдат записани директно в централната база данни на училището.
-              </p>
             </div>
-
-            {error && (
-              <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
-                {error}
-              </p>
-            )}
-
             <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>Три имена</Label>
-                <Input
-                  disabled={loading}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="напр. Георги Иванов Петров"
-                />
-              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Роля</Label>
                   <select
-                    disabled={loading}
                     value={role}
                     onChange={(e) => setRole(e.target.value as Role)}
                     className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <option value="teacher">Учител</option>
                     <option value="student">Ученик</option>
-                    <option value="parent">Родител</option>
                   </select>
                 </div>
                 {role === 'student' && (
                   <div className="space-y-1.5">
                     <Label>Клас</Label>
                     <select
-                      disabled={loading}
                       value={classId}
                       onChange={(e) => setClassId(e.target.value)}
                       className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -589,40 +597,90 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                     </select>
                   </div>
                 )}
+                {role === 'teacher' && (
+                  <div className="space-y-1.5">
+                    <Label>Предмет</Label>
+                    <select
+                      value={teacherSubjectId}
+                      onChange={(e) => setTeacherSubjectId(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {subjects.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
-                <Label>Имейл</Label>
+                <Label>Три имена</Label>
                 <Input
-                  type="email"
-                  disabled={loading}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="напр. g.petrov@example.com"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="напр. Георги Иванов Петров"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label>Телефонен номер</Label>
-                <Input
-                  type="tel"
-                  disabled={loading}
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="напр. 08XXXXXXXX"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Автоматично потребителско име</Label>
-                <div className="flex h-10 items-center rounded-lg border border-dashed border-border bg-muted/40 px-3 font-mono text-sm text-muted-foreground">
-                  {username || '—'}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Имейл</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="напр. g.petrov@example.com"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Телефон</Label>
+                  <Input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="напр. +359 87 123 4567"
+                  />
                 </div>
               </div>
+              {role === 'student' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>Три имена на родителя</Label>
+                    <Input
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      placeholder="напр. Мария Иванова Петрова"
+                    />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Имейл на родителя</Label>
+                      <Input
+                        type="email"
+                        value={parentEmail}
+                        onChange={(e) => setParentEmail(e.target.value)}
+                        placeholder="имейл на родителя"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Телефон на родителя</Label>
+                      <Input
+                        type="tel"
+                        value={parentPhone}
+                        onChange={(e) => setParentPhone(e.target.value)}
+                        placeholder="напр. +359 88 765 4321"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose} disabled={loading}>
+              <Button variant="outline" onClick={handleClose}>
                 Отказ
               </Button>
-              <Button onClick={handleSubmit} disabled={!name.trim() || loading}>
-                {loading ? 'Записване...' : 'Създай профил'}
+              <Button onClick={handleSubmit} disabled={!name.trim()}>
+                Създай профил
               </Button>
             </DialogFooter>
           </>
@@ -631,6 +689,7 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
     </Dialog>
   )
 }
+
 
 function EditUserDialog({
   open,
