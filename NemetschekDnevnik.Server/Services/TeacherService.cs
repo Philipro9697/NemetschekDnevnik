@@ -70,6 +70,25 @@ public class TeacherService : ITeacherService
         return await _db.Remarks.Where(r => r.TeacherId == teacher.TeacherId && r.Student.ClassId == classId)
             .Select(r => new RemarkDto
             {
+                RemarkId = r.RemarkId,
+                StudentId = r.StudentId ?? -1,
+                TeacherId = r.TeacherId ?? -1,
+                DateCreated = r.DateCreated,
+                Type = r.Type,
+                Text = r.Text,
+                TeacherFirstName = r.Teacher.TeacherNavigation.FirstName,
+                TeacherLastName = r.Teacher.TeacherNavigation.LastName
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<RemarkDto>> GetRemarksForStudent(Teacher teacher, int studentId)
+    {
+        return await _db.Remarks.Where(r => r.TeacherId == teacher.TeacherId && r.StudentId == studentId)
+            .Select(r => new RemarkDto
+            {
+                RemarkId = r.RemarkId,
+                StudentId = r.StudentId ?? -1,
                 TeacherId = r.TeacherId ?? -1,
                 DateCreated = r.DateCreated,
                 Type = r.Type,
@@ -100,6 +119,7 @@ public class TeacherService : ITeacherService
         return await _db.Lessons.Where(l => l.TeacherId == teacher.TeacherId && l.ClassId == classId)
             .Select(s => new LessonDto
             {
+                LessonId = s.LessonId,
                 Date = s.Date,
                 Time = s.Time,
                 SubjectId = s.SubjectId ?? -1,
@@ -152,8 +172,11 @@ public class TeacherService : ITeacherService
         return await _db.Grades.Where(g => g.TeacherId == teacher.TeacherId && g.Student.ClassId == classId)
             .Select(g => new GradeDto
             {
+                GradeId = g.GradeId,
                 GradeValue = g.GradeValue,
                 StudentId = g.StudentId ?? -1,
+                StudentFirstName = g.Student.StudentNavigation.FirstName,
+                StudentLastName = g.Student.StudentNavigation.LastName,
                 SubjectId = g.SubjectId ?? -1,
                 TeacherId = g.TeacherId ?? -1,
                 SubjectName = g.Subject.SubjectName,

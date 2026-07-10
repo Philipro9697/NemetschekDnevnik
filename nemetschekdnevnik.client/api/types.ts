@@ -21,7 +21,6 @@ export interface CreateUserDto {
 export interface GradeDto {
     gradeValue: number;
     gradeId: number;
-    classId: number;
     studentId: number;
     studentFirstName: string;
     studentLastName: string;
@@ -37,11 +36,19 @@ export interface GradeDto {
 
 export interface ClassDto {
     classId: number;
-    className: string;
+    classGrade: number;
     classLetter: string;
-    headTeacherId: number;
+    headTeacherId?: number | null;
     headTeacherFirstName: string;
     headTeacherLastName: string;
+}
+
+export interface AddGradeDto {
+    studentId: number;
+    subjectId: number;
+    teacherId: number;
+    value: number;
+    comment?: string | null;
 }
 
 export interface HomeworkItemDto {
@@ -83,6 +90,7 @@ export interface RegisterDto {
 
 export interface RemarkDto {
     remarkId: number;
+    studentId: number;
     teacherId: number;
     dateCreated: string;
     type: string;

@@ -1,45 +1,61 @@
 import { apiClient } from "./apiClient";
 import{
     GradeDto,
+    AddGradeDto,
+    ClassDto,
     ScheduleDto,
     AbsenceDto,
     RemarkDto,
     LessonDto,
-    TeacherInfoDto,
     SubjectDto,
     HomeworkItemDto,
 } from "./types";
 
 export const teacherService = {
     getGrades: (classId: number) => {
-        return apiClient<GradeDto[]>(`/teacher/grades/${classId}");
+        return apiClient<GradeDto[]>(`/teacher/grades/${classId}`);
+    },
+
+    addGrade: (dto: AddGradeDto) => {
+        return apiClient<GradeDto>("/teacher/grades", {
+            method: "POST",
+            body: JSON.stringify(dto),
+        });
+    },
+
+    getClasses: () => {
+        return apiClient<ClassDto[]>("/teacher/classes");
+    },
+
+    getClass: () => {
+        return apiClient<ClassDto | null>("/teacher/class");
     },
 
     getSchedule: () => {
         return apiClient<ScheduleDto[]>("/teacher/schedule");
     },
 
-    getAbsences: () => {
-        return apiClient<AbsenceDto[]>("/teacher/absences");
+    getAbsences: (classId: number) => {
+        return apiClient<AbsenceDto[]>(`/teacher/absences/${classId}`);
     },
 
-    getRemarks: () => {
-        return apiClient<RemarkDto[]>("/teacher/remarks");
+    getRemarks: (classId: number) => {
+        return apiClient<RemarkDto[]>(`/teacher/remarks/${classId}`);
     },
 
-    getLessons: () => {
-        return apiClient<LessonDto[]>("/teacher/lessons");
+    getRemarksForStudent: (studentId: number) => {
+        return apiClient<RemarkDto[]>(`/teacher/remarks/student/${studentId}`);
     },
 
-    getTeacherInfo: () => {
-        return apiClient<TeacherInfoDto>("/teacher/teacher_info");
+    getLessons: (classId: number) => {
+        return apiClient<LessonDto[]>(`/teacher/lessons/${classId}`);
     },
 
     getSubjects: () => {
         return apiClient<SubjectDto[]>("/teacher/subjects");
     },
 
-    getHomework: () => {
-        return apiClient<HomeworkItemDto[]>("/teacher/homework");
+    getHomework: (classId: number) => {
+        return apiClient<HomeworkItemDto[]>(`/teacher/homework/${classId}`);
     }
 };
