@@ -37,7 +37,9 @@ public class AuthService : IAuthService
         return new AuthResult
         {
             AccessToken = accessToken,
-            RefreshToken = refreshTokenString
+            RefreshToken = refreshTokenString,
+            UserId = user.UserId,
+            Role = user.Role
         };
     }
 
