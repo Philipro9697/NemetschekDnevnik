@@ -40,7 +40,6 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'users', label: 'Потребители', icon: Users },
     { view: 'reports', label: 'Справки и архив', icon: FileBarChart },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
-    { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
     { view: 'settings', label: 'Настройки', icon: Settings },
   ],
   teacher: [
@@ -49,7 +48,6 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'classteacher', label: 'Класен ръководител', icon: UsersRound },
     { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
-    { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
   ],
   student: [
     { view: 'dashboard', label: 'Моето табло', icon: LayoutDashboard },
@@ -59,7 +57,6 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'schedule', label: 'Програма', icon: CalendarRange },
     { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
-    { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
   ],
   parent: [
     { view: 'children', label: 'Моите деца', icon: GraduationCap },
@@ -69,7 +66,7 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'schedule', label: 'Програма', icon: CalendarRange },
     { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
-    { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
+
   ],
 }
 
