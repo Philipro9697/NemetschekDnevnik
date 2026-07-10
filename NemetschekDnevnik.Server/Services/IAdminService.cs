@@ -9,6 +9,6 @@ public interface IAdminService
     Task<UserAccountDto?> BlockAsync(int userId);
     Task<bool> DeleteAsync(int userId);
     Task<IEnumerable<UserAccountDto>> GetAllUsersAsync();
-    Task<GradeDto?> UpdateGrade(int gradeId, decimal newValue, string? newComment);
-    Task<bool> DeleteGrade(int gradeId);
+    Task<List<TeacherDto>> GetAllTeachers();
+    Task<List<ParentDto>> GetAllParents();
 }

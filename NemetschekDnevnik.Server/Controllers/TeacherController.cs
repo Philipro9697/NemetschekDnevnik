@@ -14,10 +14,12 @@ public class TeacherController : ControllerBase
 {
     private readonly IStudentService _studentService;
     private readonly ITeacherService _teacherService;
-    public TeacherController(IStudentService studentservice, ITeacherService teacherservice)
+    private readonly IGradeService _gradeService;
+    public TeacherController(IStudentService studentservice, ITeacherService teacherservice, IGradeService gradeservice)
     {
         _studentService = studentservice;
         _teacherService = teacherservice;
+        _gradeService = gradeservice;
     }
 
     private async Task<Teacher?> GetTeacher()
@@ -27,6 +29,22 @@ public class TeacherController : ControllerBase
             return null;
 
         return await _teacherService.GetTeacher(teacherId);
+    }
+
+    [HttpPost("grades")]
+    public async Task<ActionResult<GradeDto>> AddGrade(AddGradeDto dto)
+    {
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        var student = await _studentService.GetStudentById(dto.StudentId);
+        if (student is null) return NotFound();
+
+        if (!await _teacherService.TeachesStudent(teacher, student))
+            return Forbid();
+
+        var grade = await _gradeService.AddGrade(dto.StudentId, teacher.TeacherId, dto.SubjectId, dto.Value, dto.Comment);
+        return Ok(grade);
     }
 
     [HttpGet("grades/{id}")]
@@ -77,7 +95,7 @@ public class TeacherController : ControllerBase
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
         if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
-        return Ok(await _teacherService.GetRemarks(teacher));
+        return Ok(await _teacherService.GetRemarks(teacher, id));
     }
 
     [HttpGet("lessons/{id}")]
@@ -86,7 +104,7 @@ public class TeacherController : ControllerBase
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
         if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
-        return Ok(await _teacherService.GetLessons(teacher));
+        return Ok(await _teacherService.GetLessons(teacher, id));
     }
 
     [HttpGet("absences/{id}")]
@@ -95,7 +113,7 @@ public class TeacherController : ControllerBase
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
         if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
-        return Ok(await _teacherService.GetAbsences(teacher));
+        return Ok(await _teacherService.GetAbsences(teacher, id));
     }
 
     [HttpGet("homework/{id}")]
@@ -104,17 +122,7 @@ public class TeacherController : ControllerBase
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
         if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
-        return Ok(await _teacherService.GetHomeworkItems(teacher));
-    }
-
-    [HttpPost("grades")]
-    public async Task<ActionResult<GradeDto>> AddGrade(GradeDto grade)
-    {
-        Teacher? teacher = await GetTeacher();
-        if (teacher is null) return NotFound("User not found");
-        GradeDto? addedgrade = await _teacherService.AddGrade(teacher, await _studentService.GetStudentById(grade.StudentId), grade.SubjectId, grade.GradeValue, grade.Comment);
-        if (addedgrade is null) return Forbid("Failed adding grade (maybe you have no common classes with this student).");
-        return Ok(addedgrade);
+        return Ok(await _teacherService.GetHomeworkItems(teacher, id));
     }
 }
 
