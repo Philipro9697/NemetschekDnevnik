@@ -36,13 +36,13 @@ export function LoginScreen() {
 
             const tokenString = typeof data.token === 'string'
                 ? data.token
-                : data.token?.accessToken;
+                : data.token?.accessToken ?? null;
 
             if (tokenString) {
                 localStorage.setItem('accessToken', tokenString)
             }
 
-            login(username)
+            login(String(data.userId), data.role)
 
         } catch (err: any) {
             console.error("Login failure:", err)

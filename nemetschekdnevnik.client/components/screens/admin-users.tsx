@@ -932,7 +932,7 @@ function StudentDetailDialog({
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Детайли за {student.name}</DialogTitle>
         </DialogHeader>
@@ -1116,7 +1116,7 @@ function StudentDetailDialog({
           {tab === 'absences' && (
             <div className="space-y-4">
               <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-4">
+                <div className="grid gap-4 grid-cols-1">
                   <div className="space-y-1.5">
                     <Label>Предмет</Label>
                     <select
@@ -1164,7 +1164,7 @@ function StudentDetailDialog({
                         <td className="px-4 py-3">{absence.date}</td>
                         <td className="px-4 py-3">{absence.time ?? '—'}</td>
                         <td className="px-4 py-3">{absence.excused ? 'Да' : 'Не'}</td>
-                        <td className="px-4 py-3 text-right flex justify-end gap-2">
+                        <td className="px-4 py-3 text-right space-y-2">
                           <Button variant="outline" onClick={() => app.toggleAbsenceExcused(absence.id)}>
                             {absence.excused ? 'Отмени' : 'Извини'}
                           </Button>
