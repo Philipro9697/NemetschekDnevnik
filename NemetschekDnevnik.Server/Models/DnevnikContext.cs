@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace NemetschekDnevnik.Server.Models;
@@ -45,9 +47,28 @@ public partial class DnevnikContext : DbContext
 
     public virtual DbSet<WeeklyScheduleItem> WeeklyScheduleItems { get; set; }
 
+    // АВТОМАТИЧНО УПРАВЛЕНИЕ НА SOFT DELETE ПРИ ЗАПИС
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<ISoftDelete>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Deleted:
+                    entry.State = EntityState.Modified; // Променяме състоянието на Редактиран
+                    entry.Entity.IsDeleted = true;     // Маркираме го като изтрит
+                    break;
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=Dnevnik; Integrated Security=True; TrustServerCertificate=True");
+    {
+        optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=Dnevnik; Integrated Security=True; TrustServerCertificate=True");
+        optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -377,13 +398,25 @@ public partial class DnevnikContext : DbContext
 
             entity.ToTable("users");
 
-            entity.HasIndex(e => e.Email, "UQ__users__AB6E61649DF4B344").IsUnique();
+            // 1. ГЛОБАЛЕН ФИЛТЪР: Скрива меко изтритите записи при заявки (LINQ)
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
+            // 2. ФИЛТРИРАН УНИКАЛЕН ИНДЕКС: Уникалността важи само за неизтрити (IsDeleted = 0)
+            entity.HasIndex(e => e.Email, "UQ__users__AB6E61649DF4B344")
+                  .IsUnique()
+                  .HasFilter("[is_deleted] = 0"); 
 
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
+            
+            // Задължително описваме колоната от ISoftDelete в базата
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false)
+                .HasColumnName("is_deleted");
+
             entity.Property(e => e.Email)
                 .HasMaxLength(255)
                 .IsUnicode(false)

@@ -3,5 +3,6 @@
     <Build />
     <Deploy />
   </Project>
+  <Project Path="NemetschekDnevnik.Server.Tests/NemetschekDnevnik.Server.Tests.csproj" />
   <Project Path="NemetschekDnevnik.Server/NemetschekDnevnik.Server.csproj" />
 </Solution>

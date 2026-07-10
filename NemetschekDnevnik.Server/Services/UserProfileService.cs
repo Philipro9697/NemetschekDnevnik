@@ -5,8 +5,8 @@ using NemetschekDnevnik.Server.Models;
 namespace NemetschekDnevnik.Server.Services;
 public class UserProfileService : IUserProfileService
 {
-    private readonly NemetschekSchoolDiaryContext _db;
-    public UserProfileService(NemetschekSchoolDiaryContext db)
+    private readonly DnevnikContext _db;
+    public UserProfileService(DnevnikContext db)
     {
         _db = db;
     }
