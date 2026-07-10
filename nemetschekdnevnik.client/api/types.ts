@@ -35,6 +35,15 @@ export interface GradeDto {
     entryDate: string;
 }
 
+export interface ClassDto {
+    classId: number;
+    className: string;
+    classLetter: string;
+    headTeacherId: number;
+    headTeacherFirstName: string;
+    headTeacherLastName: string;
+}
+
 export interface HomeworkItemDto {
     homeworkId: number;
     subjectId: number;
@@ -47,6 +56,7 @@ export interface HomeworkItemDto {
 }
 
 export interface LessonDto {
+    lessonId: number;
     date: string;
     time: string;
     subjectId: number;
@@ -72,6 +82,7 @@ export interface RegisterDto {
 }
 
 export interface RemarkDto {
+    remarkId: number;
     teacherId: number;
     dateCreated: string;
     type: string;
@@ -81,6 +92,7 @@ export interface RemarkDto {
 }
 
 export interface ScheduleDto {
+    scheduleId: number;
     dayOfWeek: number;
     time: string;
     subjectId: number;
