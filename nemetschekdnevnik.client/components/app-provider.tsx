@@ -72,6 +72,7 @@ interface AppState {
   createThread: (name: string, participantIds: string[]) => string
   createGroupThread: (name: string, participantIds: string[]) => string
   markNotificationsRead: (target: string) => void
+  sendGlobalAnnouncement: (text: string) => void
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -279,6 +280,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setNotifications((prev) =>
           prev.map((n) => (n.target === target ? { ...n, read: true } : n)),
         ),
+      sendGlobalAnnouncement: (text) => {
+        const normalized = text.trim()
+        if (!normalized) return
+        const recipients = users.filter((u) => u.role !== 'admin' && u.status === 'active')
+        recipients.forEach((user) => {
+          notify(user.id, normalized)
+        })
+      },
     }),
     [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId, selectedChildId],
   )
