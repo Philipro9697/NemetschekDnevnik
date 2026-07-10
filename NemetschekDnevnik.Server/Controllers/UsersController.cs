@@ -36,8 +36,8 @@ public class UsersController : ControllerBase
         }
 
         return Ok(profile);
-    }   
-    
+    }
+
     [HttpGet]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<IEnumerable<UserAccountDto>>> GetAllUsers()
@@ -96,7 +96,13 @@ public class UsersController : ControllerBase
             Ok(new { message = "User deleted successfully." }) :
             NotFound(new { message = "User not found." });
     }
+    [HttpGet("me")]
+    public async Task<ActionResult<UserAccountDto>> GetCurrentUser()
+    {
 
-  
-   
+        var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        return await GetUserProfile(requesterId);
+    }
+
+
 }

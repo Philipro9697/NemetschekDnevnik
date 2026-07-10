@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useApp } from '@/components/app-provider'
 import { demoAccounts } from '@/lib/data'
 import { authService } from '@/api/authService'
+import { userService } from '@/api/userService'
 
 export function LoginScreen() {
     const { login } = useApp()
@@ -42,7 +43,9 @@ export function LoginScreen() {
                 localStorage.setItem('accessToken', tokenString)
             }
 
-            login(username)
+            // Fetch current user profile from API
+            const userProfile = await userService.getCurrentUser()
+            await login(userProfile)
 
         } catch (err: any) {
             console.error("Login failure:", err)
@@ -56,9 +59,32 @@ export function LoginScreen() {
         setShow((value) => !value)
     }
 
-    function handleDemoLogin(userId: string) {
+    async function handleDemoLogin(userId: string) {
         setError('')
-        login(userId)
+        setLoading(true)
+        try {
+            // For demo login, fetch the user profile from mock data
+            // Find the user in demoAccounts and create a UserAccountDto-like object
+            const demoAccount = demoAccounts.find(a => a.userId === userId)
+            if (demoAccount) {
+                // Mock a UserAccountDto for demo purposes
+                const mockUserData = {
+                    userId: parseInt(userId),
+                    email: demoAccount.username + '@demo.local',
+                    role: demoAccount.role,
+                    isApproved: true,
+                    firstName: demoAccount.label.split(' ')[0],
+                    lastName: demoAccount.label.split(' ').slice(1).join(' '),
+                    phoneNumber: '',
+                }
+                await login(mockUserData as any)
+            }
+        } catch (err) {
+            console.error("Demo login error:", err)
+            setError('Грешка при демо вход.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (

@@ -7,6 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { userService } from '@/api/userService'
+import type { UserAccountDto } from '@/api/types'
 import {
   users as seedUsers,
   seedGrades,
@@ -33,7 +35,7 @@ interface Notification {
 }
 
 interface AppState {
-  currentUser: User | null
+  currentUser: (User & { apiData?: UserAccountDto }) | null
   users: User[]
   grades: Grade[]
   absences: Absence[]
@@ -45,7 +47,7 @@ interface AppState {
   view: string
   selectedClassId: string | null
   selectedChildId: string | null
-  login: (userId: string) => void
+  login: (user: UserAccountDto) => Promise<void>
   logout: () => void
   setView: (v: string) => void
   setSelectedClass: (classId: string | null) => void
@@ -119,17 +121,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       view,
       selectedClassId,
       selectedChildId,
-      login: (userId) => {
-        const u = users.find((x) => x.id === userId) ?? null
-        setCurrentUser(u)
-        if (u) {
-          setSelectedChildId(u.role === 'parent' ? u.childrenIds?.[0] ?? null : null)
+      login: async (userData: UserAccountDto) => {
+        const user: User & { apiData?: UserAccountDto } = {
+          id: String(userData.userId),
+          name: `${userData.firstName} ${userData.lastName}`,
+          username: userData.email,
+          email: userData.email,
+          role: (userData.role?.toLowerCase() as any) || 'student',
+          status: userData.isApproved ? 'active' : 'blocked',
+          classId: '1',
+          childrenIds: [],
+          phone: userData.phoneNumber,
+          apiData: userData,
+        }
+        setCurrentUser(user)
+        if (user) {
+          setSelectedChildId(user.role === 'parent' ? user.childrenIds?.[0] ?? null : null)
           setView(
-            u.role === 'admin'
+            user.role === 'admin'
               ? 'users'
-              : u.role === 'teacher'
+              : user.role === 'teacher'
                 ? 'diary'
-                : u.role === 'student'
+                : user.role === 'student'
                   ? 'dashboard'
                   : 'children',
           )
