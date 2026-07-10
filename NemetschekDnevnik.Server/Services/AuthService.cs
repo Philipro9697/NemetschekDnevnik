@@ -37,7 +37,9 @@ public class AuthService : IAuthService
         return new AuthResult
         {
             AccessToken = accessToken,
-            RefreshToken = refreshTokenString
+            RefreshToken = refreshTokenString,
+            UserId = user.UserId,
+            Role = user.Role
         };
     }
 
@@ -64,7 +66,13 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
-        return new AuthResult { AccessToken = newAccessToken, RefreshToken = newRefreshTokenString };
+        return new AuthResult
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshTokenString,
+            UserId = storedToken.UserId,
+            Role = storedToken.User.Role
+        };
     }
 
     public async Task<bool> LogoutAsync(string refreshToken)
