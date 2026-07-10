@@ -48,63 +48,81 @@ public class TeacherController : ControllerBase
     }
 
     [HttpGet("grades/{id}")]
-    public async Task<ActionResult<List<GradeDto>>> GetStudentGrades(int id)
+    public async Task<ActionResult<List<GradeDto>>> GetGrades(int id)
     {
-        var teacher = await GetTeacher();
-        if (teacher is null) return Unauthorized();
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
 
-        var student = await _studentService.GetStudentById(id);
-        if (student is null) return NotFound();
+        return Ok(await _teacherService.GetGrades(teacher, id));
+    }
 
-        if (!await _teacherService.TeachesStudent(teacher, student))
-            return Forbid();
+    [HttpGet("classes")]
+    public async Task<ActionResult<List<ClassDto>>> GetClasses()
+    {
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        return Ok(await _teacherService.GetClasses(teacher));
+    }
 
-        return await _studentService.GetGrades(student);
+    [HttpGet("class")]
+    public async Task<ActionResult<ClassDto?>> GetClass()
+    {
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        return Ok(await _teacherService.GetClass(teacher));
+    }
+
+    [HttpGet("schedule")]
+    public async Task<ActionResult<List<ScheduleDto>>> GetSchedule()
+    {
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        return Ok(await _teacherService.GetWeeklySchedule(teacher));
+    }
+
+    [HttpGet("subjects")]
+    public async Task<ActionResult<List<SubjectDto>>> GetSubjects()
+    {
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        return Ok(await _teacherService.GetSubjects(teacher));
+    }
+    //TODO: add class filter for these GETs
+    [HttpGet("remarks/{id}")]
+    public async Task<ActionResult<List<RemarkDto>>> GetRemarks(int id)
+    {
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        return Ok(await _teacherService.GetRemarks(teacher, id));
+    }
+
+    [HttpGet("lessons/{id}")]
+    public async Task<ActionResult<List<LessonDto>>> GetLessons(int id)
+    {
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        return Ok(await _teacherService.GetLessons(teacher, id));
     }
 
     [HttpGet("absences/{id}")]
-    public async Task<ActionResult<List<AbsenceDto>>> GetStudentAbsences(int id)
+    public async Task<ActionResult<List<AbsenceDto>>> GetAbsences(int id)
     {
-        var teacher = await GetTeacher();
-        if (teacher is null) return Unauthorized();
-
-        var student = await _studentService.GetStudentById(id);
-        if (student is null) return NotFound();
-
-        if (!await _teacherService.TeachesStudent(teacher, student))
-            return Forbid();
-
-        return await _studentService.GetAbsences(student);
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        return Ok(await _teacherService.GetAbsences(teacher, id));
     }
 
-    [HttpGet("remarks/{id}")]
-    public async Task<ActionResult<List<RemarkDto>>> GetStudentRemarks(int id)
+    [HttpGet("homework/{id}")]
+    public async Task<ActionResult<List<HomeworkItemDto>>> GetHomework(int id)
     {
-        var teacher = await GetTeacher();
-        if (teacher is null) return Unauthorized();
-
-        var student = await _studentService.GetStudentById(id);
-        if (student is null) return NotFound();
-
-        if (!await _teacherService.TeachesStudent(teacher, student))
-            return Forbid();
-
-        return await _studentService.GetRemarks(student);
-    }
-
-    [HttpGet("subjects/{id}")]
-    public async Task<ActionResult<List<SubjectDto>>> GetStudentSubjects(int id)
-    {
-        var teacher = await GetTeacher();
-        if (teacher is null) return Unauthorized();
-
-        var student = await _studentService.GetStudentById(id);
-        if (student is null) return NotFound();
-
-        if (!await _teacherService.TeachesStudent(teacher, student))
-            return Forbid();
-
-        return await _studentService.GetSubjects(student);
+        Teacher? teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        return Ok(await _teacherService.GetHomeworkItems(teacher, id));
     }
 }
 
