@@ -17,6 +17,21 @@ public class TeacherService : ITeacherService
         return await _db.Teachers.FirstOrDefaultAsync(u => u.TeacherId == userId);
     }
 
+    public async Task<ClassDto?> GetClass(Teacher teacher)
+    {
+        Class? _class = await _db.Classes.FirstOrDefaultAsync(c => c.HeadTeacherId == teacher.TeacherId);
+        if (_class is null) return null;
+        return new ClassDto
+        {
+            ClassId = _class.ClassId,
+            ClassGrade = _class.ClassGrade,
+            ClassLetter = _class.ClassLetter,
+            HeadTeacherId = _class.HeadTeacherId,
+            HeadTeacherFirstName = teacher.TeacherNavigation.FirstName,
+            HeadTeacherLastName = teacher.TeacherNavigation.LastName
+        };
+    }
+
     public async Task<List<ScheduleDto>> GetWeeklySchedule(Teacher teacher)
     {
         return await _db.WeeklyScheduleItems
@@ -36,9 +51,9 @@ public class TeacherService : ITeacherService
             .ToListAsync();
     }
 
-    public async Task<List<AbsenceDto>> GetAbsences(Teacher teacher)
+    public async Task<List<AbsenceDto>> GetAbsences(Teacher teacher, int classId)
     {
-        return await _db.Attendances.Where(a => a.Lesson.TeacherId == teacher.TeacherId && a.IsAbsent)
+        return await _db.Attendances.Where(a => a.Lesson.TeacherId == teacher.TeacherId && a.IsAbsent && a.Lesson.ClassId == classId)
             .Select(a => new AbsenceDto
             {
                 IsExcused = a.IsExcused,
@@ -50,9 +65,9 @@ public class TeacherService : ITeacherService
             })
             .ToListAsync();
     }
-    public async Task<List<RemarkDto>> GetRemarks(Teacher teacher)
+    public async Task<List<RemarkDto>> GetRemarks(Teacher teacher, int classId)
     {
-        return await _db.Remarks.Where(r => r.TeacherId == teacher.TeacherId)
+        return await _db.Remarks.Where(r => r.TeacherId == teacher.TeacherId && r.Student.ClassId == classId)
             .Select(r => new RemarkDto
             {
                 TeacherId = r.TeacherId ?? -1,
@@ -80,9 +95,9 @@ public class TeacherService : ITeacherService
             })
             .ToListAsync();
     }
-    public async Task<List<LessonDto>> GetLessons(Teacher teacher)
+    public async Task<List<LessonDto>> GetLessons(Teacher teacher, int classId)
     {
-        return await _db.Lessons.Where(l => l.TeacherId == teacher.TeacherId)
+        return await _db.Lessons.Where(l => l.TeacherId == teacher.TeacherId && l.ClassId == classId)
             .Select(s => new LessonDto
             {
                 Date = s.Date,
@@ -114,9 +129,9 @@ public class TeacherService : ITeacherService
             .ToListAsync();
     }
 
-    public async Task<List<HomeworkItemDto>> GetHomeworkItems(Teacher teacher)
+    public async Task<List<HomeworkItemDto>> GetHomeworkItems(Teacher teacher, int classId)
     {
-        return await _db.HomeworkItems.Where(hw => hw.TeacherId == teacher.TeacherId)
+        return await _db.HomeworkItems.Where(hw => hw.TeacherId == teacher.TeacherId && hw.ClassId == classId)
             .Select(hw => new HomeworkItemDto
             {
                 HomeworkId = hw.HomeworkId,
