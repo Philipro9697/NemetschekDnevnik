@@ -36,6 +36,14 @@ public class UsersController : ControllerBase
         }
 
         return Ok(profile);
+    }   
+    
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<IEnumerable<UserAccountDto>>> GetAllUsers()
+    {
+        var users = await _adminService.GetAllUsersAsync();
+        return Ok(users);
     }
 
     [HttpPost]
@@ -89,11 +97,6 @@ public class UsersController : ControllerBase
             NotFound(new { message = "User not found." });
     }
 
-    [HttpGet]
-    [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<UserAccountDto>>> GetAllUsers()
-    {
-        var users = await _adminService.GetAllUsersAsync();
-        return Ok(users);
-    }
+  
+   
 }

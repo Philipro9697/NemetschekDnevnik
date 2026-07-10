@@ -18,7 +18,7 @@ public class HomeworkItemDto
     public string Title { get; set; }
 
     [Required]
-    public string Descritpion { get; set; }
+    public string Description { get; set; }
 
     [Required]
     public string ResourceLink { get; set; }
