@@ -14,11 +14,12 @@ public class TeacherController : ControllerBase
 {
     private readonly IStudentService _studentService;
     private readonly ITeacherService _teacherService;
-    private readonly IParentService _parentService;
-    public TeacherController(IStudentService studentservice, ITeacherService teacherservice)
+    private readonly IGradeService _gradeService;
+    public TeacherController(IStudentService studentservice, ITeacherService teacherservice, IGradeService gradeservice)
     {
         _studentService = studentservice;
         _teacherService = teacherservice;
+        _gradeService = gradeservice;
     }
 
     private async Task<Teacher?> GetTeacher()
@@ -28,6 +29,22 @@ public class TeacherController : ControllerBase
             return null;
 
         return await _teacherService.GetTeacher(teacherId);
+    }
+
+    [HttpPost("grades")]
+    public async Task<ActionResult<GradeDto>> AddGrade(AddGradeDto dto)
+    {
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        var student = await _studentService.GetStudentById(dto.StudentId);
+        if (student is null) return NotFound();
+
+        if (!await _teacherService.TeachesStudent(teacher, student))
+            return Forbid();
+
+        var grade = await _gradeService.AddGrade(dto.StudentId, teacher.TeacherId, dto.SubjectId, dto.Value, dto.Comment);
+        return Ok(grade);
     }
 
     [HttpGet("grades/{id}")]

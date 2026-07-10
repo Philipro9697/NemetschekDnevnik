@@ -150,40 +150,10 @@ public class TeacherService : ITeacherService
             .ToListAsync();
     }
 
-    public async Task<GradeDto?> AddGrade(Teacher teacher, Student student, int subjectId, decimal value, string? comment)
+    public async Task<bool> TeachesStudent(Teacher teacher, Student student)
     {
-        var grade = new Grade()
-        {
-            StudentId = student.StudentId,
-            TeacherId = teacher.TeacherId,
-            SubjectId = subjectId,
-            GradeValue = value,
-            Comment = comment,
-            EntryDate = DateOnly.FromDateTime(DateTime.UtcNow)
-        };
-        _db.Grades.Add(grade);
-        await _db.SaveChangesAsync();
-        
-        return await LoadGradeDto(grade.GradeId);
-    }
-
-    private async Task<GradeDto?> LoadGradeDto(int gradeId)
-    {
-        return await _db.Grades.Where(g => g.GradeId == gradeId)
-            .Select(g => new GradeDto
-            {
-                GradeId = g.GradeId,
-                GradeValue = g.GradeValue,
-                SubjectId = g.SubjectId ?? -1,
-                TeacherId = g.TeacherId ?? -1,
-                SubjectName = g.Subject!.SubjectName,
-                TeacherFirstName = g.Teacher!.TeacherNavigation.FirstName,
-                TeacherLastName = g.Teacher!.TeacherNavigation.LastName,
-                GradeTypeName = g.GradeType != null ? g.GradeType.TypeName : string.Empty,
-                Comment = g.Comment,
-                EntryDate = g.EntryDate
-            })
-            .FirstOrDefaultAsync();
+        return await _db.WeeklyScheduleItems
+            .AnyAsync(ws => ws.TeacherId == teacher.TeacherId && ws.ClassId == student.ClassId);
     }
 }
 

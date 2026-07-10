@@ -14,7 +14,7 @@ public interface ITeacherService
     Task<List<AbsenceDto>> GetAbsences(Teacher teacher);
     Task<List<HomeworkItemDto>> GetHomeworkItems(Teacher teacher);
     Task<List<GradeDto>> GetGrades(Teacher teacher);
-    Task<GradeDto> AddGrade(Teacher teacher, Student student, int subjectId, decimal value, string? comment);
+    Task<bool> TeachesStudent(Teacher teacher, Student student);
 
     //GetMessages
 }
