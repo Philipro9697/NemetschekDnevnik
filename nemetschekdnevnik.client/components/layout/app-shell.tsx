@@ -11,7 +11,6 @@ import {
   ClipboardList,
   GraduationCap,
   UsersRound,
-  Bell,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -22,6 +21,7 @@ import {
   CircleAlert,
   MessageSquareText,
   CalendarRange,
+  Megaphone,
 } from 'lucide-react'
 import { Logo } from '@/components/logo'
 import { Avatar } from '@/components/ui/avatar'
@@ -46,7 +46,7 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'diary', label: 'Програма', icon: BookOpenCheck },
     { view: 'grades', label: 'Дневник', icon: TrendingUp },
     { view: 'classteacher', label: 'Класен ръководител', icon: UsersRound },
-    { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
+    { view: 'homework', label: 'Домашни', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
   ],
   student: [
@@ -55,7 +55,7 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'absences', label: 'Отсъствия', icon: CircleAlert },
     { view: 'notes', label: 'Бележки', icon: MessageSquareText },
     { view: 'schedule', label: 'Програма', icon: CalendarRange },
-    { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
+    { view: 'homework', label: 'Домашни', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
   ],
   parent: [
@@ -64,7 +64,7 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'absences', label: 'Отсъствия', icon: CircleAlert },
     { view: 'notes', label: 'Бележки', icon: MessageSquareText },
     { view: 'schedule', label: 'Програма', icon: CalendarRange },
-    { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
+    { view: 'homework', label: 'Домашни', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
 
   ],
@@ -91,14 +91,14 @@ function profileSvgDataUrl(name: string) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { currentUser, view, setView, logout, notifications, markNotificationsRead } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [bellOpen, setBellOpen] = useState(false)
+  const [announcementsOpen, setAnnouncementsOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   if (!currentUser) return null
 
   const items = NAV[currentUser.role]
-  const showBell = currentUser.role === 'student' || currentUser.role === 'parent'
+  const showAnnouncements = currentUser.role === 'student' || currentUser.role === 'parent' || currentUser.role === 'teacher'
   const targets =
-    currentUser.role === 'student'
+    currentUser.role === 'student' || currentUser.role === 'teacher'
       ? [currentUser.id]
       : currentUser.childrenIds ?? []
   const myNotifs = notifications.filter((n) => targets.includes(n.target))
@@ -211,17 +211,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            {showBell && (
+            {showAnnouncements && (
               <div className="relative">
                 <button
                   onClick={() => {
-                    setBellOpen((o) => !o)
-                    if (!bellOpen) targets.forEach((t) => markNotificationsRead(t))
+                    setAnnouncementsOpen((o) => !o)
+                    if (!announcementsOpen) targets.forEach((t) => markNotificationsRead(t))
                   }}
                   className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label="Известия"
+                  aria-label="Глобални съобщения"
                 >
-                  <Bell className="size-5" />
+                  <Megaphone className="size-5" />
                   {unread > 0 && (
                     <span className="absolute right-1.5 top-1.5 flex size-2.5 items-center justify-center">
                       <span className="absolute size-2.5 animate-ping rounded-full bg-danger/70" />
@@ -229,14 +229,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </span>
                   )}
                 </button>
-                {bellOpen && (
+                {announcementsOpen && (
                   <div className="absolute right-0 top-12 z-40 w-80 rounded-xl border border-border bg-card p-2 shadow-xl">
                     <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Известия
+                      Глобални съобщения
                     </p>
                     {myNotifs.length === 0 ? (
                       <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-                        Няма нови известия.
+                        Няма глобални съобщения.
                       </p>
                     ) : (
                       <ul className="max-h-80 space-y-0.5 overflow-y-auto">

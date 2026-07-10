@@ -16,9 +16,7 @@ import {
   type User,
 } from '@/lib/data'
 import {
-  FileBarChart,
   Megaphone,
-  Download,
   Server,
   Clock,
   CheckCircle2,
@@ -38,7 +36,6 @@ export function AdminReports() {
   const [classId, setClassId] = useState<string>('all')
   const [subjectId, setSubjectId] = useState<string>('all')
   const [msgOpen, setMsgOpen] = useState(false)
-  const [exported, setExported] = useState(false)
 
   // Build a per-student success summary from current grades
   const rows = useMemo(() => {
@@ -62,11 +59,6 @@ export function AdminReports() {
     rows.length > 0
       ? (rows.reduce((a, r) => a + r.avg, 0) / rows.length).toFixed(2)
       : '—'
-
-  function handleExport() {
-    setExported(true)
-    setTimeout(() => setExported(false), 2500)
-  }
 
   return (
     <div className="space-y-6">
@@ -99,26 +91,8 @@ export function AdminReports() {
         </CardBody>
       </Card>
 
-      {/* Export actions */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-4 rounded-2xl border border-brand-blue/30 bg-brand-blue/5 p-5 text-left transition-colors hover:bg-brand-blue/10"
-        >
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-blue text-brand-blue-foreground">
-            {exported ? <CheckCircle2 className="size-6" /> : <FileBarChart className="size-6" />}
-          </span>
-          <div>
-            <p className="font-heading font-bold">
-              {exported ? 'Справката е генерирана' : 'Генерирай справка за успех'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {exported ? 'Файлът е готов за изтегляне (PDF/Excel).' : 'Изтегли оценките като PDF или Excel.'}
-            </p>
-          </div>
-          <Download className="ml-auto size-5 text-muted-foreground" />
-        </button>
-
+      {/* Global message action */}
+      <div className="grid gap-4 sm:grid-cols-1">
         <button
           onClick={() => setMsgOpen(true)}
           className="flex items-center gap-4 rounded-2xl border border-success/30 bg-success/5 p-5 text-left transition-colors hover:bg-success/10"
@@ -223,11 +197,14 @@ export function AdminReports() {
 }
 
 function GlobalMessageDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const app = useApp()
   const [text, setText] = useState('')
   const [sent, setSent] = useState(false)
 
   function handleSend() {
-    if (!text.trim()) return
+    const normalized = text.trim()
+    if (!normalized) return
+    app.sendGlobalAnnouncement(normalized)
     setSent(true)
   }
   function handleClose() {
