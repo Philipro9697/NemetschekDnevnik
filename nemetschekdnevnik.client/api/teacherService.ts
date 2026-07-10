@@ -11,8 +11,8 @@ import{
 } from "./types";
 
 export const teacherService = {
-    getGrades: () => {
-        return apiClient<GradeDto[]>("/teacher/class/grades");
+    getGrades: (classId: number) => {
+        return apiClient<GradeDto[]>(`/teacher/grades/${classId}");
     },
 
     getSchedule: () => {
