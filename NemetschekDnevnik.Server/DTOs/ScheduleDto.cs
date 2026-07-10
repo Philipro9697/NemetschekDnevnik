@@ -6,6 +6,9 @@ namespace NemetschekDnevnik.Server.DTOs;
 public class ScheduleDto
 {
     [Required]
+    public int ScheduleId { get; set; }
+
+    [Required]
     public int DayOfWeek { get; set; }
 
     [Required]

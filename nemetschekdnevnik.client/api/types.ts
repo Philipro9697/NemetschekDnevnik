@@ -20,6 +20,10 @@ export interface CreateUserDto {
 
 export interface GradeDto {
     gradeValue: number;
+    gradeId: number;
+    studentId: number;
+    studentFirstName: string;
+    studentLastName: string;
     subjectId: number;
     teacherId: number;
     subjectName: string;
@@ -30,18 +34,36 @@ export interface GradeDto {
     entryDate: string;
 }
 
+export interface ClassDto {
+    classId: number;
+    classGrade: number;
+    classLetter: string;
+    headTeacherId?: number | null;
+    headTeacherFirstName: string;
+    headTeacherLastName: string;
+}
+
+export interface AddGradeDto {
+    studentId: number;
+    subjectId: number;
+    teacherId: number;
+    value: number;
+    comment?: string | null;
+}
+
 export interface HomeworkItemDto {
     homeworkId: number;
     subjectId: number;
     teacherId: number;
     title: string;
-    descritpion: string; //fun typo
+    description: string;
     resourceLink: string;
     dateAssigned: string;
     dateDue: string;
 }
 
 export interface LessonDto {
+    lessonId: number;
     date: string;
     time: string;
     subjectId: number;
@@ -67,6 +89,8 @@ export interface RegisterDto {
 }
 
 export interface RemarkDto {
+    remarkId: number;
+    studentId: number;
     teacherId: number;
     dateCreated: string;
     type: string;
@@ -76,6 +100,7 @@ export interface RemarkDto {
 }
 
 export interface ScheduleDto {
+    scheduleId: number;
     dayOfWeek: number;
     time: string;
     subjectId: number;
@@ -105,6 +130,14 @@ export interface StudentInfoDto {
     studentId: number;
     parentId: number;
     classId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+}
+
+export interface TeacherInfoDto {
+    teacherId: number;
     firstName: string;
     lastName: string;
     email: string;
