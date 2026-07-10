@@ -40,7 +40,7 @@ public class TeacherController : ControllerBase
         var student = await _studentService.GetStudentById(dto.StudentId);
         if (student is null) return NotFound();
 
-        if (!await _teacherService.TeachesStudent(teacher, student))
+        if (!_teacherService.TeachesStudent(teacher, student))
             return Forbid();
 
         var grade = await _gradeService.AddGrade(dto.StudentId, teacher.TeacherId, dto.SubjectId, dto.Value, dto.Comment);
