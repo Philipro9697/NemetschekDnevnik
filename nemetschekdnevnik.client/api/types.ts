@@ -35,7 +35,7 @@ export interface HomeworkItemDto {
     subjectId: number;
     teacherId: number;
     title: string;
-    descritpion: string; //fun typo
+    description: string;
     resourceLink: string;
     dateAssigned: string;
     dateDue: string;
@@ -105,6 +105,14 @@ export interface StudentInfoDto {
     studentId: number;
     parentId: number;
     classId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+}
+
+export interface TeacherInfoDto {
+    teacherId: number;
     firstName: string;
     lastName: string;
     email: string;
