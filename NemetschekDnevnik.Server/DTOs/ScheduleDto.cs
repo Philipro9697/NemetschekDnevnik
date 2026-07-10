@@ -1,17 +1,18 @@
+
 using System.ComponentModel.DataAnnotations;
 
 namespace NemetschekDnevnik.Server.DTOs;
 
-public class GradeDto
+public class ScheduleDto
 {
     [Required]
-    public decimal GradeValue { get; set; }
+    public int ScheduleId { get; set; }
 
     [Required]
-    public int GradeId { get; set; }
+    public int DayOfWeek { get; set; }
 
     [Required]
-    public int StudentId { get; set; }
+    public TimeOnly Time { get; set; }
 
     [Required]
     public int SubjectId { get; set; }
@@ -20,18 +21,13 @@ public class GradeDto
     public int TeacherId { get; set; }
 
     [Required]
-    public string SubjectName { get; set; }
-
-    [Required]
     public string TeacherFirstName { get; set; }
 
     [Required]
     public string TeacherLastName { get; set; }
 
     [Required]
-    public string GradeTypeName { get; set; }
+    public string SubjectName { get; set; }
 
-    public string? Comment { get; set; }
-
-    public DateOnly EntryDate { get; set; }
+    public string? Location { get; set; }
 }
