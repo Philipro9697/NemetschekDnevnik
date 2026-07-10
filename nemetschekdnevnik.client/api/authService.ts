@@ -2,7 +2,11 @@ import { apiClient } from './apiClient';
 import { LoginDto, RegisterDto } from './types';
 
 export interface AuthResponse {
-    token: string | { accessToken: string };
+    token: {
+        accessToken: string;
+        userId: number;
+        role: string;
+    };
 }
 
 export const authService = {

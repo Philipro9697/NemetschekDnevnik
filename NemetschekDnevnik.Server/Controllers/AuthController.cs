@@ -23,7 +23,12 @@ public class AuthController : ControllerBase
 
         SetRefreshTokenCookie(token.RefreshToken);
 
-        return Ok(new { token });
+        return Ok(new 
+        { 
+            token = token.AccessToken, 
+            userId = token.UserId, 
+            role = token.Role 
+        });
     }
 
     [HttpPost("refresh")]
