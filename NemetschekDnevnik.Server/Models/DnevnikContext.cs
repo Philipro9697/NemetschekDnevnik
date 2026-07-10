@@ -47,7 +47,6 @@ public partial class DnevnikContext : DbContext
 
     public virtual DbSet<WeeklyScheduleItem> WeeklyScheduleItems { get; set; }
 
-    // АВТОМАТИЧНО УПРАВЛЕНИЕ НА SOFT DELETE ПРИ ЗАПИС
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         foreach (var entry in ChangeTracker.Entries<ISoftDelete>())
@@ -321,10 +320,17 @@ public partial class DnevnikContext : DbContext
 
             entity.ToTable("subjects");
 
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
             entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+            
             entity.Property(e => e.SubjectName)
                 .HasMaxLength(100)
                 .HasColumnName("subject_name");
+
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false)
+                .HasColumnName("is_deleted");
         });
 
         modelBuilder.Entity<SubmittedHomework>(entity =>
@@ -398,10 +404,8 @@ public partial class DnevnikContext : DbContext
 
             entity.ToTable("users");
 
-            // 1. ГЛОБАЛЕН ФИЛТЪР: Скрива меко изтритите записи при заявки (LINQ)
             entity.HasQueryFilter(e => !e.IsDeleted);
 
-            // 2. ФИЛТРИРАН УНИКАЛЕН ИНДЕКС: Уникалността важи само за неизтрити (IsDeleted = 0)
             entity.HasIndex(e => e.Email, "UQ__users__AB6E61649DF4B344")
                   .IsUnique()
                   .HasFilter("[is_deleted] = 0"); 
@@ -412,7 +416,6 @@ public partial class DnevnikContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
             
-            // Задължително описваме колоната от ISoftDelete в базата
             entity.Property(e => e.IsDeleted)
                 .HasDefaultValue(false)
                 .HasColumnName("is_deleted");
