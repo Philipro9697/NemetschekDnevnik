@@ -8,6 +8,18 @@ public class GradeDto
     public decimal GradeValue { get; set; }
 
     [Required]
+    public int GradeId { get; set; }
+
+    [Required]
+    public int StudentId { get; set; }
+
+    [Required]
+    public string StudentFirstName { get; set; }
+
+    [Required]
+    public string StudentLastName { get; set; }
+
+    [Required]
     public int SubjectId { get; set; }
 
     [Required]

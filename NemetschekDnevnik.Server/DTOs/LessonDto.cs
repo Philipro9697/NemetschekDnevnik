@@ -6,6 +6,9 @@ namespace NemetschekDnevnik.Server.DTOs;
 public class LessonDto
 {
     [Required]
+    public int LessonId { get; set; }
+
+    [Required]
     public DateOnly Date { get; set; }
 
     [Required]
