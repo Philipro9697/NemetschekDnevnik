@@ -20,6 +20,7 @@ export interface CreateUserDto {
 
 export interface GradeDto {
 	gradeValue: number;
+	gradeId: number;
 	subjectId: number;
 	teacherId: number;
 	subjectName: string;

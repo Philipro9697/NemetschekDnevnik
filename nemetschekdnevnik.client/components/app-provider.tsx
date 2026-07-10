@@ -3,12 +3,14 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import { userService } from '@/api/userService'
-import type { UserAccountDto } from '@/api/types'
+import { studentService } from '@/api/studentService'
+import type { UserAccountDto, GradeDto, AbsenceDto, RemarkDto, ScheduleDto, SubjectDto } from '@/api/types'
 import {
   users as seedUsers,
   seedGrades,
@@ -40,6 +42,12 @@ interface AppState {
   grades: Grade[]
   absences: Absence[]
   notes: Note[]
+  // API data for students
+  apiGrades: GradeDto[]
+  apiAbsences: AbsenceDto[]
+  apiRemarks: RemarkDto[]
+  apiSchedule: ScheduleDto[]
+  apiSubjects: SubjectDto[]
   homework: Homework[]
   events: CalendarEvent[]
   threads: Thread[]
@@ -96,6 +104,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<CalendarEvent[]>(seedEvents)
   const [threads, setThreads] = useState<Thread[]>(seedThreads)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  // API data for students
+  const [apiGrades, setApiGrades] = useState<GradeDto[]>([])
+  const [apiAbsences, setApiAbsences] = useState<AbsenceDto[]>([])
+  const [apiRemarks, setApiRemarks] = useState<RemarkDto[]>([])
+  const [apiSchedule, setApiSchedule] = useState<ScheduleDto[]>([])
+  const [apiSubjects, setApiSubjects] = useState<SubjectDto[]>([])
   const [view, setView] = useState('')
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
@@ -106,6 +120,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...prev,
     ])
   }
+
+  // Sync currentUser and student data from API on app load
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken')
+    if (token && !currentUser) {
+      userService.getCurrentUser().then((userData) => {
+        const user: User & { apiData?: UserAccountDto } = {
+          id: String(userData.userId),
+          name: `${userData.firstName} ${userData.lastName}`,
+          username: userData.email,
+          email: userData.email,
+          role: (userData.role?.toLowerCase() as any) || 'student',
+          status: userData.isApproved ? 'active' : 'blocked',
+          classId: '1',
+          childrenIds: [],
+          phone: userData.phoneNumber,
+          apiData: userData,
+        }
+        setCurrentUser(user)
+        
+        // Fetch student data if user is a student
+        if (user.role === 'student') {
+          Promise.all([
+            studentService.getGrades(),
+            studentService.getAbsences(),
+            studentService.getRemarks(),
+            studentService.getSchedule(),
+            studentService.getSubjects(),
+          ]).then(([gradesRes, absencesRes, remarksRes, scheduleRes, subjectsRes]) => {
+            setApiGrades(gradesRes)
+            setApiAbsences(absencesRes)
+            setApiRemarks(remarksRes)
+            setApiSchedule(scheduleRes)
+            setApiSubjects(subjectsRes)
+          }).catch((error) => {
+            console.error('Failed to sync student data:', error)
+          })
+        }
+        
+        if (user) {
+          setSelectedChildId(user.role === 'parent' ? user.childrenIds?.[0] ?? null : null)
+          setView(
+            user.role === 'admin'
+              ? 'users'
+              : user.role === 'teacher'
+                ? 'diary'
+                : user.role === 'student'
+                  ? 'dashboard'
+                  : 'children',
+          )
+        }
+      }).catch((error) => {
+        console.error('Failed to sync user from API:', error)
+        localStorage.removeItem('accessToken')
+      })
+    }
+  }, [])
 
   const value = useMemo<AppState>(
     () => ({
@@ -118,6 +189,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       events,
       threads,
       notifications,
+      apiGrades,
+      apiAbsences,
+      apiRemarks,
+      apiSchedule,
+      apiSubjects,
       view,
       selectedClassId,
       selectedChildId,
@@ -135,6 +211,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
           apiData: userData,
         }
         setCurrentUser(user)
+        
+        // Fetch student data if user is a student
+        if (user.role === 'student') {
+          Promise.all([
+            studentService.getGrades(),
+            studentService.getAbsences(),
+            studentService.getRemarks(),
+            studentService.getSchedule(),
+            studentService.getSubjects(),
+          ]).then(([gradesRes, absencesRes, remarksRes, scheduleRes, subjectsRes]) => {
+            setApiGrades(gradesRes)
+            setApiAbsences(absencesRes)
+            setApiRemarks(remarksRes)
+            setApiSchedule(scheduleRes)
+            setApiSubjects(subjectsRes)
+          }).catch((error) => {
+            console.error('Failed to fetch student data:', error)
+          })
+        }
+        
         if (user) {
           setSelectedChildId(user.role === 'parent' ? user.childrenIds?.[0] ?? null : null)
           setView(
@@ -153,6 +249,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setView('')
         setSelectedClassId(null)
         setSelectedChildId(null)
+        setGrades([])
+        setAbsences([])
+        setNotes([])
+        setApiGrades([])
+        setApiAbsences([])
+        setApiRemarks([])
+        setApiSchedule([])
+        setApiSubjects([])
+        localStorage.removeItem('accessToken')
       },
       setView,
       setSelectedClass: (classId) => setSelectedClassId(classId),
@@ -264,7 +369,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
           prev.map((n) => (n.target === target ? { ...n, read: true } : n)),
         ),
     }),
-    [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId, selectedChildId],
+    [
+      currentUser, 
+      users, 
+      grades, 
+      absences, 
+      notes, 
+      homework, 
+      events, 
+      threads, 
+      notifications, 
+      view, 
+      selectedClassId, 
+      selectedChildId,
+      // ADD THESE VALUES HERE:
+      apiGrades,
+      apiAbsences,
+      apiRemarks,
+      apiSchedule,
+      apiSubjects
+    ],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
