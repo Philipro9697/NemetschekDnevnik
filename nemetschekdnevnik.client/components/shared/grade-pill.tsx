@@ -1,11 +1,11 @@
 import { cn } from '@/lib/utils'
 
 const styles: Record<number, string> = {
-  6: 'bg-success text-success-foreground',
-  5: 'bg-brand-blue text-brand-blue-foreground',
-  4: 'bg-warning text-warning-foreground',
+  6: 'bg-success text-white',
+  5: 'bg-brand-blue text-white',
+  4: 'bg-warning text-white',
   3: 'bg-orange-500 text-white',
-  2: 'bg-danger text-danger-foreground',
+  2: 'bg-danger text-white',
 }
 
 export function GradePill({
@@ -24,7 +24,7 @@ export function GradePill({
       title={label}
       aria-label={label}
       className={cn(
-        'inline-flex size-8 items-center justify-center rounded-lg text-sm font-bold shadow-sm',
+        'inline-flex size-8 items-center justify-center rounded-md border border-transparent px-2 text-sm font-bold shadow-none',
         styles[value] ?? 'bg-muted text-foreground',
         className,
       )}

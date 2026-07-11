@@ -217,7 +217,7 @@ export function StudentGrades({ student }: { student?: User }) {
                                     key={g.id}
                                     type="button"
                                     onClick={() => setSelectedGrade(g)}
-                                    className="rounded-md border border-border/70 bg-background/80 p-0.5"
+                                    className="rounded-sm p-0 text-left"
                                   >
                                     <GradePill
                                       value={g.value}
