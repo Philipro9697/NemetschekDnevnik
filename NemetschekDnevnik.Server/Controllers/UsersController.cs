@@ -99,9 +99,15 @@ public class UsersController : ControllerBase
     [HttpGet("me")]
     public async Task<ActionResult<UserAccountDto>> GetCurrentUser()
     {
-
-        var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        return await GetUserProfile(requesterId);
+        try
+        {
+            var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return await GetUserProfile(requesterId);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
 
