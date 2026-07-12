@@ -1,17 +1,10 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useApp } from "@/components/app-provider";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	classById,
-	schedule,
-	subjectById,
-	userById,
-	type User,
-} from "@/lib/data";
+import type { User } from "@/lib/data";
 import { CalendarDays, Sparkles } from "lucide-react";
 import { studentService } from "@/api/studentService";
 import { ScheduleDto } from "@/api/types";
@@ -24,8 +17,11 @@ const WEEK_DAYS = [
 	{ key: "friday", label: "Петък", value: 5 },
 ];
 
-export function StudentSchedule() {
-	const app = useApp();
+// NOTE: like the other Student* screens, this still always fetches the logged-in
+// user's own schedule — there's no backend endpoint yet for "this child's schedule"
+// scoped by a parent. `student` is accepted for prop-shape consistency and to label
+// whose schedule is shown, not to actually change which data gets fetched.
+export function StudentSchedule({ student }: { student?: User } = {}) {
 	const [schedule, setSchedule] = useState<ScheduleDto[]>([]);
 	const [selectedDay, setSelectedDay] = useState("monday");
 	const [loading, setLoading] = useState(true);
@@ -64,7 +60,7 @@ export function StudentSchedule() {
 							<Sparkles className="size-3.5" /> Програма за седмицата
 						</div>
 						<h2 className="font-heading text-2xl font-bold">
-							Седмична програма
+							{student ? `Седмична програма на ${student.name}` : 'Седмична програма'}
 						</h2>
 						<p className="mt-1 text-sm text-muted-foreground">
 							Изберете ден за подробен преглед

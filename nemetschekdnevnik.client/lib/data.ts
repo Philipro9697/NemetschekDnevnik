@@ -26,6 +26,7 @@ export interface User {
 	accessCode?: string; // parent link code
 	phone?: string;
 	password?: string;
+	apiUserId?: number; // real backend user_id, only set for accounts created via the real API
 }
 
 export type GradeSection =

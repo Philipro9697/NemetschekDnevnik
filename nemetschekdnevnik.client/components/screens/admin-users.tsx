@@ -1,6 +1,7 @@
 'use client'
 import { userService } from '@/api/userService'
-import type { UserRole } from '@/api/types'
+import { adminService } from '@/api/adminService'
+import type { UserRole, UserAccountDto, GradeDto } from '@/api/types'
 import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card } from '@/components/ui/card'
@@ -390,8 +391,8 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Updated to include the generated password for the admin to copy
-    const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string } | null>(null)
+    // Updated to include the generated password(s) for the admin to copy
+    const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string; parentUsername?: string; parentPassword?: string } | null>(null)
     const [copied, setCopied] = useState(false)
 
     const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
@@ -468,6 +469,7 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 email: serverUser.email,
                 role: role,
                 status: serverUser.isApproved ? 'active' : 'blocked',
+                apiUserId: serverUser.userId,
                 ...(role === 'student' ? { classId, accessCode } : {}),
               })
             }
@@ -485,8 +487,14 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
               })
             }
 
-            // Display username and the generated password to the Administrator
-            setCreated({ username, password: generatedPassword, accessCode })
+            // Display username(s) and the generated password(s) to the Administrator
+            setCreated({
+              username,
+              password: generatedPassword,
+              accessCode,
+              parentUsername: role === 'student' ? parentUsername : undefined,
+              parentPassword: role === 'student' ? parentPassword : undefined,
+            })
         } catch (err: any) {
             console.error(err)
             setError(err.message || 'Възникна грешка при комуникацията със сървъра.')
@@ -517,7 +525,31 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                   Потребителско име
                 </p>
                 <p className="font-mono text-lg font-semibold">{created.username}</p>
+                {created.password && (
+                  <>
+                    <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
+                      Парола
+                    </p>
+                    <p className="font-mono text-lg font-semibold">{created.password}</p>
+                  </>
+                )}
               </div>
+              {created.parentUsername && (
+                <div className="rounded-xl border border-border bg-muted/40 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Потребителско име на родителя
+                  </p>
+                  <p className="font-mono text-lg font-semibold">{created.parentUsername}</p>
+                  {created.parentPassword && (
+                    <>
+                      <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
+                        Парола на родителя
+                      </p>
+                      <p className="font-mono text-lg font-semibold">{created.parentPassword}</p>
+                    </>
+                  )}
+                </div>
+              )}
               {created.accessCode && (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
                   <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-primary">
@@ -642,15 +674,9 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Парола</Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="изберете парола"
-                />
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Паролата се генерира автоматично и се показва след създаването на профила.
+              </p>
               {role === 'student' && (
                 <>
                   <div className="space-y-1.5">
@@ -680,15 +706,6 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                         placeholder="напр. +359 88 765 4321"
                       />
                     </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Парола на родителя</Label>
-                    <Input
-                      type="password"
-                      value={parentPassword}
-                      onChange={(e) => setParentPassword(e.target.value)}
-                      placeholder="изберете парола на родителя"
-                    />
                   </div>
                 </>
               )}
@@ -883,222 +900,89 @@ function StudentDetailDialog({
   const [tab, setTab] = useState<'grades' | 'notes' | 'absences'>('grades')
   const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
   const [gradeValue, setGradeValue] = useState<number>(6)
-  const [gradeKind, setGradeKind] = useState<'oral' | 'written' | 'test' | 'active'>('oral')
   const [noteText, setNoteText] = useState('')
   const [noteKind, setNoteKind] = useState<'praise' | 'remark'>('remark')
   const [absenceDate, setAbsenceDate] = useState(new Date().toISOString().slice(0, 10))
   const [absenceTime, setAbsenceTime] = useState('08:00')
   const [absenceSubjectId, setAbsenceSubjectId] = useState<string>(subjects[0]?.id ?? '')
 
+  // Real backend grade management. There's no endpoint to list all subjects (every
+  // /subjects route is scoped to "my own" teaching/enrollment, which an admin has none
+  // of) or to fetch a student's existing grades as an admin — so the subject is a plain
+  // numeric ID input, and the table below only shows grades added during this session.
+  const [realTeachers, setRealTeachers] = useState<UserAccountDto[]>([])
+  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null)
+  const [subjectIdInput, setSubjectIdInput] = useState('')
+  const [gradeComment, setGradeComment] = useState('')
+  const [realGrades, setRealGrades] = useState<GradeDto[]>([])
+  const [addingGrade, setAddingGrade] = useState(false)
+  const [gradeError, setGradeError] = useState<string | null>(null)
+
   useEffect(() => {
-    if (!student) return
-    setTab('grades')
-    setSubjectId(subjects[0]?.id ?? '')
-    setGradeValue(6)
-    setGradeKind('oral')
-    setNoteText('')
-    setNoteKind('remark')
-    setAbsenceDate(new Date().toISOString().slice(0, 10))
-    setAbsenceTime('08:00')
-    setAbsenceSubjectId(subjects[0]?.id ?? '')
-  }, [student])
-
-  if (!student) return null
-
-  const studentGrades = app.grades.filter((grade) => grade.studentId === student.id)
-  const studentNotes = app.notes.filter((note) => note.studentId === student.id)
-  const studentAbsences = app.absences.filter((absence) => absence.studentId === student.id)
-  const teachers = app.users.filter((u) => u.role === 'teacher')
-
-  function handleAddGrade() {
-    if (!student || !subjectId || !teachers[0]) return
-    app.addGrade({
-      studentId: student.id,
-      subjectId,
-      teacherId: teachers[0].id,
-      value: gradeValue,
-      kind: gradeKind,
-      section: 'term1',
-      description: '',
-    })
-  }
-
-  function handleAddNote() {
-    if (!student || !subjectId) return
-    app.addNote({
-      studentId: student.id,
-      subjectId,
-      teacherId: teachers[0]?.id ?? '',
-      text: noteText,
-      kind: noteKind,
-      date: new Date().toISOString().slice(0, 10),
-    })
-    setNoteText('')
-  }
-
-  function handleAddAbsence() {
-    if (!student || !absenceSubjectId) return
-    app.addAbsence({
-      studentId: student.id,
-      subjectId: absenceSubjectId,
-      teacherId: teachers[0]?.id,
-      date: absenceDate,
-      time: absenceTime,
-      type: 'absent',
-      excused: false,
-    })
-  }
-
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Редакция на акаунт</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label>Роля</Label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="student">Ученик</option>
-              <option value="teacher">Учител</option>
-              <option value="parent">Родител</option>
-              <option value="admin">Администратор</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Три имена</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Имейл</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Телефон</Label>
-              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Парола</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-          </div>
-          {role === 'student' && (
-            <div className="space-y-1.5">
-              <Label>Клас</Label>
-              <select
-                value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          {role === 'teacher' && (
-            <>
-              <div className="space-y-1.5">
-                <Label>Преподава в клас</Label>
-                <select
-                  value={classTeacherOf}
-                  onChange={(e) => setClassTeacherOf(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Няма клас</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Предмет</Label>
-                <select
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {subjects.map((subject) => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-        <DialogFooter className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Отказ
-          </Button>
-          <Button onClick={handleSave}>Запази промени</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function StudentDetailDialog({
-  open,
-  student,
-  onClose,
-}: {
-  open: boolean
-  student: User | null
-  onClose: () => void
-}) {
-  const app = useApp()
-  const [tab, setTab] = useState<'grades' | 'notes' | 'absences'>('grades')
-  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
-  const [gradeValue, setGradeValue] = useState<number>(6)
-  const [gradeKind, setGradeKind] = useState<'oral' | 'written' | 'test' | 'active'>('oral')
-  const [noteText, setNoteText] = useState('')
-  const [noteKind, setNoteKind] = useState<'praise' | 'remark'>('remark')
-  const [absenceDate, setAbsenceDate] = useState(new Date().toISOString().slice(0, 10))
-  const [absenceTime, setAbsenceTime] = useState('08:00')
-  const [absenceSubjectId, setAbsenceSubjectId] = useState<string>(subjects[0]?.id ?? '')
+    userService.getAllUsers()
+      .then((users) => {
+        const list = users.filter((u) => u.role === 'Teacher')
+        setRealTeachers(list)
+        setSelectedTeacherId((prev) => prev ?? list[0]?.userId ?? null)
+      })
+      .catch((err) => console.error('Failed to load teachers:', err))
+  }, [])
 
   useEffect(() => {
     if (!student) return
     setTab('grades')
     setSubjectId(subjects[0]?.id ?? '')
     setGradeValue(6)
-    setGradeKind('oral')
     setNoteText('')
     setNoteKind('remark')
     setAbsenceDate(new Date().toISOString().slice(0, 10))
     setAbsenceTime('08:00')
     setAbsenceSubjectId(subjects[0]?.id ?? '')
+    setSubjectIdInput('')
+    setGradeComment('')
+    setRealGrades([])
+    setGradeError(null)
   }, [student])
 
   if (!student) return null
 
-  const studentGrades = app.grades.filter((grade) => grade.studentId === student.id)
   const studentNotes = app.notes.filter((note) => note.studentId === student.id)
   const studentAbsences = app.absences.filter((absence) => absence.studentId === student.id)
   const teachers = app.users.filter((u) => u.role === 'teacher')
 
-  function handleAddGrade() {
-    if (!student || !subjectId || !teachers[0]) return
-    app.addGrade({
-      studentId: student.id,
-      subjectId,
-      teacherId: teachers[0].id,
-      value: gradeValue,
-      kind: gradeKind,
-      section: 'term1',
-      description: '',
-    })
+  async function handleAddGrade() {
+    if (!student?.apiUserId || selectedTeacherId === null || !subjectIdInput.trim()) return
+    const subjectIdNum = Number(subjectIdInput)
+    if (!Number.isInteger(subjectIdNum) || subjectIdNum <= 0) {
+      setGradeError('Въведете валидно числово ID на предмет.')
+      return
+    }
+    setAddingGrade(true)
+    setGradeError(null)
+    try {
+      const created = await adminService.addGrade({
+        studentId: student.apiUserId,
+        subjectId: subjectIdNum,
+        teacherId: selectedTeacherId,
+        value: gradeValue,
+        comment: gradeComment.trim() || null,
+      })
+      setRealGrades((prev) => [created, ...prev])
+      setGradeComment('')
+    } catch (err: any) {
+      setGradeError(err.message || 'Грешка при добавяне на оценка.')
+    } finally {
+      setAddingGrade(false)
+    }
+  }
+
+  async function handleDeleteGrade(gradeId: number) {
+    try {
+      await adminService.deleteGrade(gradeId)
+      setRealGrades((prev) => prev.filter((g) => g.gradeId !== gradeId))
+    } catch (err: any) {
+      setGradeError(err.message || 'Грешка при изтриване на оценка.')
+    }
   }
 
   function handleAddNote() {
@@ -1143,86 +1027,104 @@ function StudentDetailDialog({
             ]}
           />
           {tab === 'grades' && (
-            <div className="space-y-10">
-              <div className="rounded-xl border border-border bg-muted/10 p-10">
-                <div className="grid gap-1 sm:grid-cols-1">
-                  <div className="space-y-1.5">
-                    <Label>Предмет</Label>
-                    <select
-                      value={subjectId}
-                      onChange={(e) => setSubjectId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {subjects.map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </option>
-                      ))}
-                    </select>
+            <div className="space-y-6">
+              {!student.apiUserId ? (
+                <div className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
+                  Този ученик няма реален акаунт в бекенда (създаден е само в демо/примерните данни), затова не могат да се записват реални оценки за него. Само ученици, регистрирани през този екран, имат реален акаунт.
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border bg-muted/10 p-4">
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Няма endpoint за списък с предмети или за преглед на съществуващите оценки на ученика — въведете реалното ID на предмета от базата данни. Таблицата по-долу показва само оценките, добавени в тази сесия.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>Учител</Label>
+                      <select
+                        value={selectedTeacherId ?? ''}
+                        onChange={(e) => setSelectedTeacherId(Number(e.target.value))}
+                        className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {realTeachers.map((t) => (
+                          <option key={t.userId} value={t.userId}>
+                            {t.firstName} {t.lastName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Subject ID</Label>
+                      <Input
+                        type="number"
+                        value={subjectIdInput}
+                        onChange={(e) => setSubjectIdInput(e.target.value)}
+                        placeholder="напр. 3"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Оценка</Label>
+                      <select
+                        value={gradeValue}
+                        onChange={(e) => setGradeValue(Number(e.target.value))}
+                        className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {[2, 3, 4, 5, 6].map((value) => (
+                          <option key={value} value={value}>
+                            {value}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Коментар</Label>
+                      <Input
+                        value={gradeComment}
+                        onChange={(e) => setGradeComment(e.target.value)}
+                        placeholder="незадължително"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Оценка</Label>
-                    <select
-                      value={gradeValue}
-                      onChange={(e) => setGradeValue(Number(e.target.value))}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  {gradeError && <p className="mt-3 text-sm text-danger">{gradeError}</p>}
+                  <div className="mt-4">
+                    <Button
+                      onClick={handleAddGrade}
+                      disabled={addingGrade || selectedTeacherId === null || !subjectIdInput.trim()}
+                      className="w-full"
                     >
-                      {[2, 3, 4, 5, 6].map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Тип</Label>
-                    <select
-                      value={gradeKind}
-                      onChange={(e) => setGradeKind(e.target.value as 'oral' | 'written' | 'test' | 'active')}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="oral">Устна</option>
-                      <option value="written">Писмена</option>
-                      <option value="test">Тест</option>
-                      <option value="active">Активност</option>
-                    </select>
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleAddGrade} className="w-full">
-                      Добави оценка
+                      {addingGrade ? 'Добавяне...' : 'Добави оценка'}
                     </Button>
                   </div>
                 </div>
-              </div>
+              )}
               <div className="overflow-x-auto rounded-xl border border-border bg-card">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                       <th className="px-4 py-3">Предмет</th>
                       <th className="px-4 py-3">Оценка</th>
-                      <th className="px-4 py-3">Тип</th>
+                      <th className="px-4 py-3">Коментар</th>
                       <th className="px-4 py-3">Дата</th>
                       <th className="px-4 py-3 text-right">Действие</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {studentGrades.map((grade) => (
-                      <tr key={grade.id}>
-                        <td className="px-4 py-3">{subjects.find((s) => s.id === grade.subjectId)?.name ?? '—'}</td>
-                        <td className="px-4 py-3">{grade.value}</td>
-                        <td className="px-4 py-3">{grade.kind}</td>
-                        <td className="px-4 py-3">{grade.date}</td>
+                    {realGrades.map((grade) => (
+                      <tr key={grade.gradeId}>
+                        <td className="px-4 py-3">{grade.subjectName}</td>
+                        <td className="px-4 py-3">{grade.gradeValue}</td>
+                        <td className="px-4 py-3">{grade.comment || '—'}</td>
+                        <td className="px-4 py-3">{grade.entryDate}</td>
                         <td className="px-4 py-3 text-right">
-                          <Button variant="outline" onClick={() => app.deleteGrade(grade.id)}>
+                          <Button variant="outline" onClick={() => handleDeleteGrade(grade.gradeId)}>
                             Изтрий
                           </Button>
                         </td>
                       </tr>
                     ))}
-                    {studentGrades.length === 0 && (
+                    {realGrades.length === 0 && (
                       <tr>
                         <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                          Няма оценки.
+                          Няма добавени оценки в тази сесия.
                         </td>
                       </tr>
                     )}

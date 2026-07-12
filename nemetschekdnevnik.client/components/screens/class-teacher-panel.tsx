@@ -12,7 +12,7 @@ import { studentsOfClass, classById, subjectById, userById, formatDate, type Abs
 import { cn } from '@/lib/utils'
 
 const gradeSections: { key: GradeSection; label: string }[] = [
-  { key: 'term1', label: '1ви срок' },
+  { key: 'Текущо изпитване', label: '1ви срок' },
   { key: 'term1Final', label: 'Срочна 1ви' },
   { key: 'term2', label: '2ри срок' },
   { key: 'term2Final', label: 'Срочна 2ри' },

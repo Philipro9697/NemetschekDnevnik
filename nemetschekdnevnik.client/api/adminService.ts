@@ -1,0 +1,17 @@
+import { apiClient } from "./apiClient";
+import { AddGradeDto, GradeDto } from "./types";
+
+export const adminService = {
+    addGrade: (dto: AddGradeDto) => {
+        return apiClient<GradeDto>("/admin/grades", {
+            method: "POST",
+            body: JSON.stringify(dto),
+        });
+    },
+
+    deleteGrade: (gradeId: number) => {
+        return apiClient<void>(`/admin/grades/${gradeId}`, {
+            method: "DELETE",
+        });
+    },
+};
