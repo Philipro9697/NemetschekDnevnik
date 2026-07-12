@@ -25,8 +25,6 @@ import {
   Ban,
   Trash2,
   Search,
-  KeyRound,
-  Copy,
   CheckCircle2,
   ShieldCheck,
   Sparkles,
@@ -392,8 +390,7 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
     const [error, setError] = useState<string | null>(null)
 
     // Updated to include the generated password(s) for the admin to copy
-    const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string; parentUsername?: string; parentPassword?: string } | null>(null)
-    const [copied, setCopied] = useState(false)
+    const [created, setCreated] = useState<{ username: string; password?: string; parentUsername?: string; parentPassword?: string } | null>(null)
 
     const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
     const parentUsername = parentName.trim() ? transliterate(parentName).replace(/\s+/g, '.') : ''
@@ -404,7 +401,6 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
         setRole('student')
         setClassId('c5a')
         setCreated(null)
-        setCopied(false)
         setError(null)
         setLoading(false)
     }
@@ -454,12 +450,6 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 phoneNumber: parentPhone.trim()
             }) : undefined
 
-            // Generate a mock child access code if it's a student assignment
-            const accessCode =
-              role === 'student'
-                ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
-                : undefined  
-
             // Update local state context if your application syncs client arrays
             // 1. Add the main user (Student/Teacher)
             if (app.addUser) {
@@ -470,7 +460,7 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 role: role,
                 status: serverUser.isApproved ? 'active' : 'blocked',
                 apiUserId: serverUser.userId,
-                ...(role === 'student' ? { classId, accessCode } : {}),
+                ...(role === 'student' ? { classId } : {}),
               })
             }
 
@@ -491,7 +481,6 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
             setCreated({
               username,
               password: generatedPassword,
-              accessCode,
               parentUsername: role === 'student' ? parentUsername : undefined,
               parentPassword: role === 'student' ? parentPassword : undefined,
             })
@@ -548,36 +537,6 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                       <p className="font-mono text-lg font-semibold">{created.parentPassword}</p>
                     </>
                   )}
-                </div>
-              )}
-              {created.accessCode && (
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-                  <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-primary">
-                    <KeyRound className="size-3.5" /> Код за достъп на родител
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <p className="font-mono text-lg font-semibold">{created.accessCode}</p>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard?.writeText(created.accessCode!)
-                        setCopied(true)
-                      }}
-                      className="ml-auto flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
-                    >
-                      {copied ? (
-                        <>
-                          <CheckCircle2 className="size-3.5 text-success" /> Копирано
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="size-3.5" /> Копирай
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Предайте този код на родителя, за да свърже профила си с детето.
-                  </p>
                 </div>
               )}
             </div>
