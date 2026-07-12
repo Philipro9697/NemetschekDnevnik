@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { authService } from '@/api/authService'
 import {
   users as seedUsers,
   seedGrades,
@@ -16,6 +17,7 @@ import {
   seedEvents,
   seedThreads,
   type User,
+  type Role,
   type Grade,
   type Absence,
   type Note,
@@ -45,7 +47,7 @@ interface AppState {
   view: string
   selectedClassId: string | null
   selectedChildId: string | null
-  login: (userId: string) => void
+  login: (userId: string, role?: string) => void
   logout: () => void
   setView: (v: string) => void
   setSelectedClass: (classId: string | null) => void
@@ -70,6 +72,7 @@ interface AppState {
   createThread: (name: string, participantIds: string[]) => string
   createGroupThread: (name: string, participantIds: string[]) => string
   markNotificationsRead: (target: string) => void
+  sendGlobalAnnouncement: (text: string) => void
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -82,6 +85,28 @@ function today() {
 }
 function nowTime() {
   return today() + ' ' + new Date().toTimeString().slice(0, 5)
+}
+
+function normalizeRole(role?: string): Role {
+  const normalized = role?.trim().toLowerCase()
+  if (normalized === 'admin' || normalized === 'teacher' || normalized === 'student' || normalized === 'parent') {
+    return normalized
+  }
+  return 'student'
+}
+
+function getDefaultView(role: Role) {
+  switch (role) {
+    case 'admin':
+      return 'users'
+    case 'teacher':
+      return 'diary'
+    case 'student':
+      return 'dashboard'
+    case 'parent':
+    default:
+      return 'children'
+  }
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -119,23 +144,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       view,
       selectedClassId,
       selectedChildId,
-      login: (userId) => {
-        const u = users.find((x) => x.id === userId) ?? null
-        setCurrentUser(u)
-        if (u) {
-          setSelectedChildId(u.role === 'parent' ? u.childrenIds?.[0] ?? null : null)
-          setView(
-            u.role === 'admin'
-              ? 'users'
-              : u.role === 'teacher'
-                ? 'diary'
-                : u.role === 'student'
-                  ? 'dashboard'
-                  : 'children',
-          )
-        }
+      login: (userId, role) => {
+        const normalizedRole = normalizeRole(role)
+        const existingUser =
+          users.find((x) => x.id === userId) ??
+          users.find((x) => x.username === userId || x.email === userId) ??
+          null
+
+        const nextUser = existingUser ?? ({
+          id: userId,
+          name: userId,
+          username: userId,
+          email: userId,
+          role: normalizedRole,
+          status: 'active' as const,
+        } satisfies User)
+
+        setCurrentUser(nextUser)
+        setSelectedChildId(nextUser.role === 'parent' ? nextUser.childrenIds?.[0] ?? null : null)
+        setView(getDefaultView(nextUser.role))
       },
       logout: () => {
+        void authService.logout().catch(() => undefined)
         setCurrentUser(null)
         setView('')
         setSelectedClassId(null)
@@ -250,6 +280,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setNotifications((prev) =>
           prev.map((n) => (n.target === target ? { ...n, read: true } : n)),
         ),
+      sendGlobalAnnouncement: (text) => {
+        const normalized = text.trim()
+        if (!normalized) return
+        const recipients = users.filter((u) => u.role !== 'admin' && u.status === 'active')
+        recipients.forEach((user) => {
+          notify(user.id, normalized)
+        })
+      },
     }),
     [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId, selectedChildId],
   )

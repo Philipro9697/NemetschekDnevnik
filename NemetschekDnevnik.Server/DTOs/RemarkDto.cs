@@ -5,6 +5,12 @@ namespace NemetschekDnevnik.Server.DTOs;
 public class RemarkDto
 {
     [Required]
+    public int RemarkId { get; set; }
+
+    [Required]
+    public int StudentId { get; set; }
+
+    [Required]
     public int TeacherId { get; set; }
 
     [Required]

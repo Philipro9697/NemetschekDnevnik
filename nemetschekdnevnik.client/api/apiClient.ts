@@ -1,7 +1,25 @@
 const BASE_URL = 'http://localhost:5014/api';
 
+function getStoredValue(key: string) {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(key);
+}
+
+function setStoredValue(key: string, value: string | null) {
+    if (typeof window === 'undefined') return;
+    if (value === null) {
+        window.localStorage.removeItem(key);
+        return;
+    }
+    window.localStorage.setItem(key, value);
+}
+
 export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('accessToken');
+    if (getStoredValue('authSessionRevoked') === '1') {
+        throw new Error('Session revoked');
+    }
+
+    const token = getStoredValue('accessToken');
 
     const headers = new Headers(options.headers);
 

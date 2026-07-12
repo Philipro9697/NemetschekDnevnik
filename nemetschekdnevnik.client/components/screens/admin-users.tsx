@@ -1,6 +1,7 @@
 'use client'
-
-import { useMemo, useState } from 'react'
+import { userService } from '@/api/userService'
+import type { UserRole } from '@/api/types'
+import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
-import { userService } from '@/api/userService'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { classes, classById, type Role, type User } from '@/lib/data'
+import { Tabs } from '@/components/ui/tabs'
+import { classes, classById, subjects, type Role, type User } from '@/lib/data'
 import {
   UserPlus,
   Pencil,
@@ -29,6 +30,7 @@ import {
   ShieldCheck,
   Sparkles,
   UsersRound,
+  BookOpen,
 } from 'lucide-react'
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -63,6 +65,8 @@ export function AdminUsers() {
   const app = useApp()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [editCandidate, setEditCandidate] = useState<User | null>(null)
+  const [detailCandidate, setDetailCandidate] = useState<User | null>(null)
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
   const [classFilter, setClassFilter] = useState<'all' | string>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all')
@@ -119,6 +123,7 @@ export function AdminUsers() {
         </div>
       </div>
 
+      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" />
@@ -155,8 +160,9 @@ export function AdminUsers() {
             <UserPlus className="size-4" /> Регистрирай нов потребител
           </Button>
         </div>
-          </div>
+      </div>
 
+      {/* Role filter chips */}
       <div className="flex flex-wrap gap-2">
         {(
           [
@@ -181,6 +187,7 @@ export function AdminUsers() {
         ))}
       </div>
 
+      {/* Table */}
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -188,7 +195,7 @@ export function AdminUsers() {
               <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-3 font-semibold">Име</th>
                 <th className="px-4 py-3 font-semibold">Роля</th>
-                <th className="px-4 py-3 font-semibold">Клас</th>
+                <th className="px-4 py-3 font-semibold">Клас / Предмет</th>
                 <th className="px-4 py-3 font-semibold">Статус</th>
                 <th className="px-4 py-3 text-right font-semibold">Действия</th>
               </tr>
@@ -209,8 +216,11 @@ export function AdminUsers() {
                     <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {classById(u.classId)?.name ??
-                      (u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—')}
+                    {u.role === 'student'
+                      ? classById(u.classId)?.name ?? '—'
+                      : u.role === 'teacher'
+                      ? `${u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—'}${u.subjectIds?.length ? ` • ${u.subjectIds.map((id) => subjects.find((s) => s.id === id)?.name).filter(Boolean).join(', ')}` : ''}`
+                      : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -230,9 +240,14 @@ export function AdminUsers() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <IconBtn label="Редакция">
+                      <IconBtn label="Редакция" onClick={() => setEditCandidate(u)}>
                         <Pencil className="size-4" />
                       </IconBtn>
+                      {u.role === 'student' && (
+                        <IconBtn label="Детайли" onClick={() => setDetailCandidate(u)}>
+                          <BookOpen className="size-4" />
+                        </IconBtn>
+                      )}
                       <IconBtn
                         label={u.status === 'active' ? 'Блокирай' : 'Разблокирай'}
                         onClick={() =>
@@ -274,6 +289,22 @@ export function AdminUsers() {
       </Card>
 
       <RegisterDialog open={open} onClose={() => setOpen(false)} />
+      <EditUserDialog
+        open={Boolean(editCandidate)}
+        user={editCandidate}
+        onClose={() => setEditCandidate(null)}
+        onSave={(updates) => {
+          if (editCandidate) {
+            app.updateUser(editCandidate.id, updates)
+          }
+          setEditCandidate(null)
+        }}
+      />
+      <StudentDetailDialog
+        open={Boolean(detailCandidate)}
+        student={detailCandidate}
+        onClose={() => setDetailCandidate(null)}
+      />
 
       <Dialog open={Boolean(deleteCandidate)} onClose={() => setDeleteCandidate(null)}>
         <DialogContent className="max-w-md">
@@ -346,8 +377,14 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
     const app = useApp()
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
+    const [phoneNumber, setPhoneNumber] = useState('')
     const [role, setRole] = useState<Role>('student')
     const [classId, setClassId] = useState<string>('c5a')
+    const [teacherSubjectId, setTeacherSubjectId] = useState<string>(subjects[0]?.id ?? '')
+    const [parentName, setParentName] = useState('')
+    const [parentEmail, setParentEmail] = useState('')
+    const [parentPhone, setParentPhone] = useState('')
+
 
     // Track loading and error states for the API request
     const [loading, setLoading] = useState(false)
@@ -358,6 +395,7 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
     const [copied, setCopied] = useState(false)
 
     const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
+    const parentUsername = parentName.trim() ? transliterate(parentName).replace(/\s+/g, '.') : ''
 
     function reset() {
         setName('')
@@ -382,11 +420,16 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
         const firstName = nameParts[0] || ''
         const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Петров'
 
+        const parentNameParts = parentName.trim().split(/\s+/)
+        const parentFirstName = parentNameParts[0] || ''
+        const parentLastName = parentNameParts.length > 1 ? parentNameParts.slice(1).join(' ') : 'Петрова'
+
         // Generate a safe temporary password since the UI form doesn't request one
         const generatedPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
+        const parentPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
 
         // Map lowercase UI roles to capitalized backend system strings
-        const backendRole = role.charAt(0).toUpperCase() + role.slice(1) // "Teacher" | "Student" | "Parent"
+        const backendRole: UserRole = role === 'teacher' ? 'Teacher' : role === 'student' ? 'Student' : 'Parent'
 
         const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
 
@@ -398,26 +441,48 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 role: backendRole,
                 firstName: firstName,
                 lastName: lastName,
-                phoneNumber: '' // Can be gathered later or left blank
+                phoneNumber: phoneNumber.trim()
             })
+
+            const secondaryUser = role === 'student' ? await userService.createUser({
+                email: parentEmail.trim() || `${parentUsername}@ou-vazrazhdane.bg`,
+                password: parentPassword,
+                role: 'Parent',
+                firstName: parentFirstName,
+                lastName: parentLastName,
+                phoneNumber: parentPhone.trim()
+            }) : undefined
 
             // Generate a mock child access code if it's a student assignment
             const accessCode =
-                role === 'student'
-                    ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
-                    : undefined
+              role === 'student'
+                ? `AC-${(classById(classId)?.name ?? 'X').replace('.', '')}-${Math.floor(1000 + Math.random() * 8999)}`
+                : undefined  
 
             // Update local state context if your application syncs client arrays
+            // 1. Add the main user (Student/Teacher)
             if (app.addUser) {
-                app.addUser({
-                    id: serverUser.userId,
-                    name: `${serverUser.firstName} ${serverUser.lastName}`,
-                    username: username,
-                    email: serverUser.email,
-                    role: role,
-                    status: serverUser.isApproved ? 'active' : 'blocked',
-                    ...(role === 'student' ? { classId, accessCode } : {}),
-                })
+              app.addUser({
+                name: `${serverUser.firstName} ${serverUser.lastName}`,
+                username: username,
+                email: serverUser.email,
+                role: role,
+                status: serverUser.isApproved ? 'active' : 'blocked',
+                ...(role === 'student' ? { classId, accessCode } : {}),
+              })
+            }
+
+            // 2. Add the secondary user (Parent) - Only if a student is being registered
+            if (role === 'student' && app.addUser && secondaryUser) {
+              const parentUsername = parentName.trim() ? transliterate(parentName).replace(/\s+/g, '.') : ''
+            
+              app.addUser({
+                name: `${secondaryUser.firstName} ${secondaryUser.lastName}`,
+                username: parentUsername, // Use a username derived from the parent's name
+                email: secondaryUser.email,
+                role: 'parent', // Hardcoded client-side role for parent
+                status: secondaryUser.isApproved ? 'active' : 'blocked',
+              })
             }
 
             // Display username and the generated password to the Administrator
@@ -571,8 +636,8 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                   <Label>Телефон</Label>
                   <Input
                     type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="напр. +359 87 123 4567"
                   />
                 </div>
@@ -886,14 +951,190 @@ function StudentDetailDialog({
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Редакция на акаунт</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Роля</Label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="student">Ученик</option>
+              <option value="teacher">Учител</option>
+              <option value="parent">Родител</option>
+              <option value="admin">Администратор</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Три имена</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Имейл</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Телефон</Label>
+              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Парола</Label>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+          </div>
+          {role === 'student' && (
+            <div className="space-y-1.5">
+              <Label>Клас</Label>
+              <select
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
+                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {role === 'teacher' && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Преподава в клас</Label>
+                <select
+                  value={classTeacherOf}
+                  onChange={(e) => setClassTeacherOf(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Няма клас</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Предмет</Label>
+                <select
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Отказ
+          </Button>
+          <Button onClick={handleSave}>Запази промени</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function StudentDetailDialog({
+  open,
+  student,
+  onClose,
+}: {
+  open: boolean
+  student: User | null
+  onClose: () => void
+}) {
+  const app = useApp()
+  const [tab, setTab] = useState<'grades' | 'notes' | 'absences'>('grades')
+  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
+  const [gradeValue, setGradeValue] = useState<number>(6)
+  const [gradeKind, setGradeKind] = useState<'oral' | 'written' | 'test' | 'active'>('oral')
+  const [noteText, setNoteText] = useState('')
+  const [noteKind, setNoteKind] = useState<'praise' | 'remark'>('remark')
+  const [absenceDate, setAbsenceDate] = useState(new Date().toISOString().slice(0, 10))
+  const [absenceTime, setAbsenceTime] = useState('08:00')
+  const [absenceSubjectId, setAbsenceSubjectId] = useState<string>(subjects[0]?.id ?? '')
+
+  useEffect(() => {
+    if (!student) return
+    setTab('grades')
+    setSubjectId(subjects[0]?.id ?? '')
+    setGradeValue(6)
+    setGradeKind('oral')
+    setNoteText('')
+    setNoteKind('remark')
+    setAbsenceDate(new Date().toISOString().slice(0, 10))
+    setAbsenceTime('08:00')
+    setAbsenceSubjectId(subjects[0]?.id ?? '')
+  }, [student])
+
+  if (!student) return null
+
+  const studentGrades = app.grades.filter((grade) => grade.studentId === student.id)
+  const studentNotes = app.notes.filter((note) => note.studentId === student.id)
+  const studentAbsences = app.absences.filter((absence) => absence.studentId === student.id)
+  const teachers = app.users.filter((u) => u.role === 'teacher')
+
+  function handleAddGrade() {
+    if (!student || !subjectId || !teachers[0]) return
+    app.addGrade({
+      studentId: student.id,
+      subjectId,
+      teacherId: teachers[0].id,
+      value: gradeValue,
+      kind: gradeKind,
+      section: 'term1',
+      description: '',
+    })
+  }
+
+  function handleAddNote() {
+    if (!student || !subjectId) return
+    app.addNote({
+      studentId: student.id,
+      subjectId,
+      teacherId: teachers[0]?.id ?? '',
+      text: noteText,
+      kind: noteKind,
+    })
+    setNoteText('')
+  }
+
+  function handleAddAbsence() {
+    if (!student || !absenceSubjectId) return
+    app.addAbsence({
+      studentId: student.id,
+      subjectId: absenceSubjectId,
+      teacherId: teachers[0]?.id,
+      time: absenceTime,
+      type: 'absent',
+      excused: false,
+    })
+  } 
+
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Детайли за {student.name}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <Tabs
             value={tab}
-            onValueChange={setTab}
+            onValueChange={(value) => setTab(value as 'grades' | 'notes' | 'absences')}
             className="w-full"
             tabs={[
               { value: 'grades', label: 'Оценки' },
@@ -1070,7 +1311,7 @@ function StudentDetailDialog({
           {tab === 'absences' && (
             <div className="space-y-4">
               <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-4">
+                <div className="grid gap-4 grid-cols-1">
                   <div className="space-y-1.5">
                     <Label>Предмет</Label>
                     <select
@@ -1118,7 +1359,7 @@ function StudentDetailDialog({
                         <td className="px-4 py-3">{absence.date}</td>
                         <td className="px-4 py-3">{absence.time ?? '—'}</td>
                         <td className="px-4 py-3">{absence.excused ? 'Да' : 'Не'}</td>
-                        <td className="px-4 py-3 text-right flex justify-end gap-2">
+                        <td className="px-4 py-3 text-right space-y-2">
                           <Button variant="outline" onClick={() => app.toggleAbsenceExcused(absence.id)}>
                             {absence.excused ? 'Отмени' : 'Извини'}
                           </Button>

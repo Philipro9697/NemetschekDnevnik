@@ -9,4 +9,6 @@ public interface IAdminService
     Task<UserAccountDto?> BlockAsync(int userId);
     Task<bool> DeleteAsync(int userId);
     Task<IEnumerable<UserAccountDto>> GetAllUsersAsync();
+    Task<List<TeacherDto>> GetAllTeachers();
+    Task<List<ParentDto>> GetAllParents();
 }

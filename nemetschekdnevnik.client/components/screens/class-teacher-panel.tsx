@@ -109,7 +109,7 @@ export function ClassTeacherPanel() {
                               <div className="space-y-1">
                                 {sectionGrades.map((g) => (
                                   <div key={g.id} className="flex items-center gap-1 rounded-md border border-border/70 bg-background/80 px-2 py-1">
-                                    <GradePill value={g.value} className="size-6 text-[0.65rem]" />
+                                    <GradePill value={g.value} className="size-6 text-[0.65rem]" classId={student.classId} />
                                   </div>
                                 ))}
                                 {sectionGrades.length === 0 && <span className="text-[11px] text-muted-foreground">Няма</span>}
@@ -205,7 +205,7 @@ export function ClassTeacherPanel() {
                     <Badge variant="blue">{subjectById(g.subjectId).abbr}</Badge>
                     <span className="text-xs text-muted-foreground">{formatDate(g.date)}</span>
                   </div>
-                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">Нанесена оценка <GradePill value={g.value} className="size-6 text-xs" /></p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">Нанесена оценка <GradePill value={g.value} className="size-6 text-xs" classId={student?.classId} /></p>
                 </li>
               )
             })}

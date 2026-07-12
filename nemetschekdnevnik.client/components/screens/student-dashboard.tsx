@@ -246,7 +246,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
               <div className="font-semibold">{subjectById(selectedGrade.subjectId).name}</div>
-              <GradePill value={selectedGrade.value} className="size-8 text-sm" />
+              <GradePill value={selectedGrade.value} className="size-8 text-sm" classId={me.classId} />
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Дата и час</div>
