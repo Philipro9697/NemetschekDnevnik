@@ -1,21 +1,21 @@
-export type UserRole = 'Teacher' | 'Student' | 'Parent';
+export type UserRole = "Teacher" | "Student" | "Parent";
 
 export interface AbsenceDto {
-    isExcused: boolean;
-    date: string; // "YYYY-MM-DD"
-    time: string; // "HH:mm:ss"
-    subjectId: number;
-    subjectName: string;
-    lessonId: number;
+	isExcused: boolean;
+	date: string; // "YYYY-MM-DD"
+	time: string; // "HH:mm:ss"
+	subjectId: number;
+	subjectName: string;
+	lessonId: number;
 }
 
 export interface CreateUserDto {
-    email: string;
-    password: string;
-    role: UserRole;
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
+	email: string;
+	password: string;
+	role: UserRole;
+	firstName: string;
+	lastName: string;
+	phoneNumber: string;
 }
 
 export interface GradeDto {
@@ -75,17 +75,17 @@ export interface LessonDto {
 }
 
 export interface LoginDto {
-    email: string;
-    password: string;
+	email: string;
+	password: string;
 }
 
 export interface RegisterDto {
-    email: string;
-    password: string;
-    role: UserRole;
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
+	email: string;
+	password: string;
+	role: UserRole;
+	firstName: string;
+	lastName: string;
+	phoneNumber: string;
 }
 
 export interface RemarkDto {
@@ -112,18 +112,18 @@ export interface ScheduleDto {
 }
 
 export interface SubjectDto {
-    subjectId: number;
-    subjectName: string;
+	subjectId: number;
+	subjectName: string;
 }
 
 export interface UserAccountDto {
-    userId: number;
-    email: string;
-    role: UserRole | string;
-    isApproved: boolean;
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
+	userId: number;
+	email: string;
+	role: UserRole | string;
+	isApproved: boolean;
+	firstName: string;
+	lastName: string;
+	phoneNumber: string;
 }
 
 export interface StudentInfoDto {

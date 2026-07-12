@@ -2,6 +2,10 @@ import {apiClient} from "./apiClient";
 import { UserAccountDto, CreateUserDto } from "./types";
 
 export const userService = {
+    getCurrentUser: () => {
+        return apiClient<UserAccountDto>("/users/me");
+    },
+
     getAllUsers:() => {
         return apiClient<UserAccountDto[]>("/users");
     },
