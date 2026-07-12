@@ -107,6 +107,7 @@ export function StudentGrades({ student }: { student?: User }) {
                                       value={g.value}
                                       title={`${subjectById(g.subjectId).name} · ${formatDate(g.date)}`}
                                       className="size-5 text-[0.65rem]"
+                                      classId={me.classId}
                                     />
                                   </button>
                                 ))}
