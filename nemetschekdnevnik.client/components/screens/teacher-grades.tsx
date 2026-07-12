@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Search, GraduationCap, Sparkles, Plus, ChevronDown, CircleAlert, MessageSquareText, BookOpenCheck, CalendarRange } from 'lucide-react'
+import { Search, GraduationCap, Sparkles, Plus, ChevronDown, CircleAlert, MessageSquareText, BookOpenCheck, CalendarRange, Star, Heart, ThumbsUp, Frown } from 'lucide-react'
 import { useApp } from '@/components/app-provider'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
-import { GradePill } from '@/components/shared/grade-pill'
+import { GradePill, getGradeIcon } from '@/components/shared/grade-pill'
 import { classes, classById, studentsOfClass, subjects, subjectById, userById, type Grade, type GradeSection } from '@/lib/data'
 import { cn } from '@/lib/utils'
 
@@ -246,7 +246,7 @@ export function TeacherGrades() {
                             <div className="flex flex-wrap gap-1">
                               {sectionGrades.map((g) => (
                                 <button key={g.id} type="button" onClick={() => setSelectedGrade(g)} className="rounded-md border border-border/70 bg-background/80 p-0.5">
-                                  <GradePill value={g.value} className="size-5 text-[0.6rem]" />
+                                  <GradePill value={g.value} className="size-6 text-xs" classId={student.classId} />
                                 </button>
                               ))}
                               {sectionGrades.length === 0 && <span className="text-[11px] text-muted-foreground">—</span>}
@@ -291,11 +291,34 @@ export function TeacherGrades() {
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium">Оценка</label>
-            <select value={gradeValue} onChange={(e) => setGradeValue(Number(e.target.value))} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm">
-              {[2, 3, 4, 5, 6].map((value) => (
-                <option key={value} value={value}>{value}</option>
-              ))}
-            </select>
+            {['c1a', 'c2a', 'c2b'].includes(classId) ? (
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { value: 6, icon: Star, label: 'Отлично' },
+                  { value: 5, icon: Heart, label: 'Добре' },
+                  { value: 4, icon: ThumbsUp, label: 'Средно' },
+                  { value: 3, icon: Frown, label: 'зле' },
+                ].map(({ value, icon: Icon, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setGradeValue(value)}
+                    className={cn(
+                      'flex flex-col items-center gap-1 rounded-lg border-2 p-2 transition-colors',
+                      gradeValue === value ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    <Icon className="size-6 text-primary" />
+                    <span className="text-xs font-medium">{label}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <select value={gradeValue} onChange={(e) => setGradeValue(Number(e.target.value))} className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm">
+                {[2, 3, 4, 5, 6].map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium">Описание</label>
@@ -362,7 +385,7 @@ export function TeacherGrades() {
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
               <div className="font-semibold">{userById(selectedGrade.studentId, users)?.name}</div>
-              <GradePill value={selectedGrade.value} className="size-8 text-sm" />
+              <GradePill value={selectedGrade.value} className="size-8 text-sm" classId={userById(selectedGrade.studentId, users)?.classId} />
             </div>
             <div className="rounded-lg border border-border bg-muted/30 p-3">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Дата и час</div>

@@ -121,6 +121,8 @@ export interface Lesson {
 /* ---------------- Seed data ---------------- */
 
 export const classes: SchoolClass[] = [
+  { id: 'c1a', name: '1.А' },
+  { id: 'c2b', name: '2.В' },
   { id: 'c5a', name: '5.А' },
   { id: 'c5b', name: '5.Б' },
   { id: 'c6b', name: '6.Б' },
@@ -149,6 +151,14 @@ const studentNames5A = [
   'Никола Колев',
   'Ралица Василева',
   'Симеон Христов',
+]
+
+const studentNames2B = [
+  'Ава Козлова',
+  'Би Нцоло',
+  'Виктория Новакова',
+  'Георгина Маринова',
+  'Дора Левова',
 ]
 
 export const users: User[] = [
@@ -190,6 +200,16 @@ export const users: User[] = [
     status: 'active',
     subjectIds: ['ae'],
   },
+  {
+    id: 't4',
+    name: 'Светлана Петрова',
+    username: 's.petrova',
+    email: 's.petrova@ou-vazrazhdane.bg',
+    role: 'teacher',
+    status: 'active',
+    subjectIds: ['mat', 'chp'],
+    classTeacherOf: 'c2b',
+  },
   // Students (5.А)
   ...studentNames5A.map<User>((name, i) => ({
     id: `s${i + 1}`,
@@ -206,6 +226,23 @@ export const users: User[] = [
     classId: 'c5a',
     number: i + 1,
     accessCode: `AC-5A-${1000 + i}`,
+  })),
+  // Students (2.В)
+  ...studentNames2B.map<User>((name, i) => ({
+    id: `s2b${i + 1}`,
+    name,
+    username: name
+      .toLowerCase()
+      .replace(/[^a-zа-я ]/gi, '')
+      .split(' ')
+      .map((p) => p[0])
+      .join('') + (i + 1),
+    email: `student2b${i + 1}@ou-vazrazhdane.bg`,
+    role: 'student',
+    status: 'active',
+    classId: 'c2b',
+    number: i + 1,
+    accessCode: `AC-2B-${2000 + i}`,
   })),
   // Parent linked to two children (Борис Иванов s2 and Мария Ангелова s9)
   {
@@ -267,6 +304,17 @@ export const seedGrades: Grade[] = [
   { id: 'g10', studentId: 's1', subjectId: 'mat', teacherId: 't1', value: 5, date: iso(2), time: '10:05', kind: 'oral', section: 'term2', description: 'Устно решение на задача.' },
   { id: 'g11', studentId: 's3', subjectId: 'mat', teacherId: 't1', value: 6, date: iso(2), time: '09:55', kind: 'oral', section: 'term2Final', description: 'Отличен отговор.' },
   { id: 'g12', studentId: 's4', subjectId: 'mat', teacherId: 't1', value: 3, date: iso(2), time: '09:20', kind: 'test', section: 'term1', description: 'Мини контролно.' },
+  // Grades for 2.В (primary grades with emoji system)
+  { id: 'g2b1', studentId: 's2b1', subjectId: 'mat', teacherId: 't4', value: 6, date: iso(1), time: '09:00', kind: 'oral', section: 'term1', description: 'Отличен отговор в час.' },
+  { id: 'g2b2', studentId: 's2b1', subjectId: 'chp', teacherId: 't4', value: 5, date: iso(3), time: '10:30', kind: 'active', section: 'term1', description: 'Добра работа в час.' },
+  { id: 'g2b3', studentId: 's2b2', subjectId: 'mat', teacherId: 't4', value: 4, date: iso(2), time: '09:15', kind: 'oral', section: 'term1', description: 'Среден отговор.' },
+  { id: 'g2b4', studentId: 's2b2', subjectId: 'chp', teacherId: 't4', value: 5, date: iso(4), time: '11:00', kind: 'oral', section: 'term1', description: 'Добро участие.' },
+  { id: 'g2b5', studentId: 's2b3', subjectId: 'mat', teacherId: 't4', value: 6, date: iso(2), time: '08:50', kind: 'test', section: 'term1Final', description: 'Контролно — отлично.' },
+  { id: 'g2b6', studentId: 's2b3', subjectId: 'chp', teacherId: 't4', value: 6, date: iso(1), time: '10:15', kind: 'active', section: 'term1', description: 'Активен и съсредоточен.' },
+  { id: 'g2b7', studentId: 's2b4', subjectId: 'mat', teacherId: 't4', value: 3, date: iso(3), time: '09:20', kind: 'oral', section: 'term1', description: 'Нужно е більше внимание.' },
+  { id: 'g2b8', studentId: 's2b4', subjectId: 'chp', teacherId: 't4', value: 4, date: iso(5), time: '11:30', kind: 'oral', section: 'term1', description: 'Среден прогрес.' },
+  { id: 'g2b9', studentId: 's2b5', subjectId: 'mat', teacherId: 't4', value: 5, date: iso(1), time: '09:05', kind: 'oral', section: 'term1', description: 'Добър отговор.' },
+  { id: 'g2b10', studentId: 's2b5', subjectId: 'chp', teacherId: 't4', value: 5, date: iso(4), time: '10:45', kind: 'active', section: 'term1', description: 'Добро участие.' },
 ]
 
 export const seedAbsences: Absence[] = [
