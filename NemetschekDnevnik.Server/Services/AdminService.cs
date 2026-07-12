@@ -99,8 +99,30 @@ public class AdminService : IAdminService
                 _db.Teachers.Add(new Teacher { TeacherId = user.UserId });
                 break;
             case "Student":
-                _db.Students.Add(new Student { StudentId = user.UserId });
+            {
+                var student = new Student { StudentId = user.UserId };
+
+                if (dto.ParentId.HasValue)
+                {
+                    var parent = await _db.Parents.FindAsync(dto.ParentId.Value);
+                    if (parent != null)
+                    {
+                        student.ParentId = parent.ParentId;
+                    }
+                }
+
+                if (dto.ClassId.HasValue)
+                {
+                    var schoolClass = await _db.Classes.FindAsync(dto.ClassId.Value);
+                    if (schoolClass != null)
+                    {
+                        student.ClassId = schoolClass.ClassId;
+                    }
+                }
+
+                _db.Students.Add(student);
                 break;
+            }
             case "Parent":
                 _db.Parents.Add(new Parent { ParentId = user.UserId });
                 break;

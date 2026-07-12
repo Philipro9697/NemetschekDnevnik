@@ -16,6 +16,8 @@ export interface CreateUserDto {
     firstName: string;
     lastName: string;
     phoneNumber: string;
+    parentId?: number;
+    classId?: number;
 }
 
 export interface GradeDto {

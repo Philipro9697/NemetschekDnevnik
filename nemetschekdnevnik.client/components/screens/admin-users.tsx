@@ -394,6 +394,12 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
     const [created, setCreated] = useState<{ username: string; password?: string; accessCode?: string } | null>(null)
     const [copied, setCopied] = useState(false)
 
+    const backendClassIdByClientId: Record<string, number> = {
+      c5a: 1,
+      c5b: 2,
+      c6b: 3,
+    }
+
     const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
     const parentUsername = parentName.trim() ? transliterate(parentName).replace(/\s+/g, '.') : ''
 
@@ -434,6 +440,19 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
         const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
 
         try {
+            const secondaryUser = role === 'student'
+              ? await userService.createUser({
+                  email: parentEmail.trim() || `${parentUsername}@ou-vazrazhdane.bg`,
+                  password: parentPassword,
+                  role: 'Parent',
+                  firstName: parentFirstName,
+                  lastName: parentLastName,
+                  phoneNumber: parentPhone.trim(),
+                })
+              : undefined
+
+            const studentClassId = backendClassIdByClientId[classId] ?? 1
+
             // Send HTTP POST request to api/users
             const serverUser = await userService.createUser({
                 email: targetEmail,
@@ -441,17 +460,10 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 role: backendRole,
                 firstName: firstName,
                 lastName: lastName,
-                phoneNumber: phoneNumber.trim()
+                phoneNumber: phoneNumber.trim(),
+                parentId: role === 'student' && secondaryUser ? secondaryUser.userId : undefined,
+                classId: role === 'student' ? studentClassId : undefined,
             })
-
-            const secondaryUser = role === 'student' ? await userService.createUser({
-                email: parentEmail.trim() || `${parentUsername}@ou-vazrazhdane.bg`,
-                password: parentPassword,
-                role: 'Parent',
-                firstName: parentFirstName,
-                lastName: parentLastName,
-                phoneNumber: parentPhone.trim()
-            }) : undefined
 
             // Generate a mock child access code if it's a student assignment
             const accessCode =

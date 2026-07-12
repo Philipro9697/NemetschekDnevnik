@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { studentService } from '@/api/studentService'
+import type { AbsenceDto, GradeDto, RemarkDto } from '@/api/types'
 import { useApp } from '@/components/app-provider'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
@@ -31,6 +33,78 @@ import {
 
 type ViewKey = 'grades' | 'absences' | 'schedule' | 'notes'
 
+type DisplayAbsence = {
+  id: string
+  studentId: string
+  subjectId: string
+  date: string
+  time?: string
+  excused: boolean
+  subjectName: string
+}
+
+type DisplayGrade = {
+  id: string
+  studentId: string
+  subjectId: string
+  teacherId: string
+  value: number
+  date: string
+  time?: string
+  description?: string
+  subjectName: string
+  teacherName: string
+}
+
+type DisplayRemark = {
+  id: string
+  text: string
+  date: string
+  kind: 'praise' | 'remark'
+  teacherName: string
+}
+
+function toDisplayAbsenceFromDto(dto: AbsenceDto, studentId: string): DisplayAbsence {
+  return {
+    id: `${studentId}-${dto.lessonId}-${dto.date}`,
+    studentId,
+    subjectId: `${dto.subjectId}`,
+    date: dto.date,
+    time: dto.time?.length ? dto.time.slice(0, 5) : undefined,
+    excused: dto.isExcused,
+    subjectName: dto.subjectName || 'Предмет',
+  }
+}
+
+function toDisplayGradeFromDto(dto: GradeDto, studentId: string): DisplayGrade {
+  const teacherName = [dto.teacherFirstName, dto.teacherLastName].filter(Boolean).join(' ').trim() || 'Учител'
+
+  return {
+    id: `${studentId}-${dto.subjectId}-${dto.entryDate}-${dto.gradeValue}`,
+    studentId,
+    subjectId: `${dto.subjectId}`,
+    teacherId: `${dto.teacherId}`,
+    value: Number(dto.gradeValue),
+    date: dto.entryDate,
+    description: dto.comment || dto.gradeTypeName,
+    subjectName: dto.subjectName || 'Предмет',
+    teacherName,
+  }
+}
+
+function toDisplayRemark(dto: RemarkDto): DisplayRemark {
+  const teacherName = [dto.teacherFirstName, dto.teacherLastName].filter(Boolean).join(' ').trim() || 'Учител'
+  const kind = dto.type?.toLowerCase() === 'praise' ? 'praise' : 'remark'
+
+  return {
+    id: `${dto.remarkId}`,
+    text: dto.text,
+    date: dto.dateCreated,
+    kind,
+    teacherName,
+  }
+}
+
 const views: { key: ViewKey; label: string; icon: React.ElementType }[] = [
   { key: 'grades', label: 'Оценки', icon: TrendingUp },
   { key: 'absences', label: 'Отсъствия', icon: CircleAlert },
@@ -44,19 +118,106 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
   const [activeView, setActiveView] = useState<ViewKey>('grades')
   const [, setView] = useState('dashboard')
   const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null)
+  const [dbGrades, setDbGrades] = useState<DisplayGrade[]>([])
+  const [dbAbsences, setDbAbsences] = useState<DisplayAbsence[]>([])
+  const [dbRemarks, setDbRemarks] = useState<DisplayRemark[]>([])
+  const [loadingGrades, setLoadingGrades] = useState(false)
+  const [loadingAbsences, setLoadingAbsences] = useState(false)
+  const [loadingRemarks, setLoadingRemarks] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!app.currentUser || app.currentUser.role !== 'student' || Boolean(student)) {
+      setDbGrades([])
+      setDbAbsences([])
+      setDbRemarks([])
+      return () => {
+        cancelled = true
+      }
+    }
+
+    async function loadDashboardData() {
+      setLoadingGrades(true)
+      setLoadingAbsences(true)
+      setLoadingRemarks(true)
+
+      try {
+        const [gradeData, absenceData, remarkData] = await Promise.all([
+          studentService.getGrades(),
+          studentService.getAbsences(),
+          studentService.getRemarks(),
+        ])
+
+        if (cancelled) return
+
+        setDbGrades(gradeData.map((grade) => toDisplayGradeFromDto(grade, app.currentUser!.id)))
+        setDbAbsences(absenceData.map((absence) => toDisplayAbsenceFromDto(absence, app.currentUser!.id)))
+        setDbRemarks(remarkData.map(toDisplayRemark))
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load dashboard data', error)
+          setDbGrades([])
+          setDbAbsences([])
+          setDbRemarks([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingGrades(false)
+          setLoadingAbsences(false)
+          setLoadingRemarks(false)
+        }
+      }
+    }
+
+    void loadDashboardData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [app.currentUser?.id, app.currentUser?.role, student])
 
   if (!me) return null
 
-  const myGrades = app.grades.filter((g) => g.studentId === me.id)
-  const myAbsences = app.absences.filter((a) => a.studentId === me.id)
-  const myNotes = app.notes.filter((n) => n.studentId === me.id)
+  const myGrades = dbGrades.length > 0
+    ? dbGrades
+    : app.grades
+        .filter((g) => g.studentId === me.id)
+        .map((grade) => ({
+          id: grade.id,
+          studentId: grade.studentId,
+          subjectId: grade.subjectId,
+          teacherId: grade.teacherId,
+          value: grade.value,
+          date: grade.date,
+          time: grade.time,
+          description: grade.description,
+          subjectName: subjects.find((subject) => subject.id === grade.subjectId)?.name ?? 'Предмет',
+          teacherName: userById(grade.teacherId, app.users)?.name ?? 'Учител',
+        }))
+  const myAbsences = dbAbsences.length > 0
+    ? dbAbsences
+    : app.absences
+        .filter((a) => a.studentId === me.id)
+        .map((absence) => ({
+          id: absence.id,
+          studentId: absence.studentId,
+          subjectId: absence.subjectId,
+          date: absence.date,
+          time: absence.time,
+          excused: absence.excused,
+          subjectName: subjects.find((subject) => subject.id === absence.subjectId)?.name ?? 'Предмет',
+        }))
+  const myNotes = dbRemarks.length > 0
+    ? dbRemarks
+    : []
 
   const gradeVals = myGrades.map((g) => g.value)
   const avg =
     gradeVals.length > 0
       ? (gradeVals.reduce((a, b) => a + b, 0) / gradeVals.length).toFixed(2)
       : '—'
-  const unexcused = myAbsences.filter((a) => a.type === 'absent' && !a.excused).length
+  const unexcused = myAbsences.filter((a) => !a.excused).length
   const excused = myAbsences.filter((a) => a.excused).length
 
   const gradesBySubject = subjects
@@ -157,7 +318,9 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
               <CardTitle>Детайли</CardTitle>
             </CardHeader>
             <CardBody className="space-y-2">
-              {myAbsences.length === 0 ? (
+              {loadingAbsences ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">Зареждане на отсъствия…</p>
+              ) : myAbsences.length === 0 ? (
                 <p className="py-4 text-center text-sm text-muted-foreground">Няма отсъствия.</p>
               ) : (
                 myAbsences
@@ -168,10 +331,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
                       <div>
                         <p className="text-sm font-medium">Отсъствие</p>
                         <p className="text-xs text-muted-foreground">
-                          {subjectById(a.subjectId).name} · {formatDate(a.date)} · {a.time ?? '—'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Учител: {app.users.find((u) => u.id === a.teacherId)?.name ?? '—'}
+                          {a.subjectName} · {formatDate(a.date)} · {a.time ?? '—'}
                         </p>
                       </div>
                       <Badge tone={a.excused ? 'success' : 'danger'}>
@@ -218,7 +378,9 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
             </p>
           </CardHeader>
           <CardBody className="space-y-3">
-            {orderedNotes.length === 0 ? (
+            {loadingRemarks ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Зареждане на бележки…</p>
+            ) : orderedNotes.length === 0 ? (
               <p className="py-4 text-center text-sm text-muted-foreground">Няма записани бележки.</p>
             ) : (
               orderedNotes.map((n) => (
@@ -227,7 +389,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
                     <div className="min-w-0">
                       <p className="text-sm leading-relaxed text-foreground">{n.text}</p>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {subjectById(n.subjectId).name} · {userById(n.teacherId, app.users)?.name} · {formatDate(n.date)} · {n.time ?? '—'}
+                        {formatDate(n.date)} · {n.teacherName}
                       </p>
                     </div>
                     <Badge tone={n.kind === 'praise' ? 'success' : 'danger'}>
