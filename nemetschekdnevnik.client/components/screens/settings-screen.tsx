@@ -90,7 +90,7 @@ export function SettingsScreen() {
             <Bell className="size-4.5 text-primary" /> Известия
           </CardTitle>
         </CardHeader>
-        <CardBody className="divide-y divide-border">
+        <CardBody className="divide-y divide-border [&_button]:relative [&_button_span]:absolute [&_button_span]:top-0.5 [&_button_span]:left-0.5 [&_button[aria-checked=true]_span]:translate-x-5 [&_button[aria-checked=false]_span]:translate-x-0 [&_button_span]:transition-transform">
           <ToggleRow
             label="Нови оценки"
             description="Известие при нанесена нова оценка"
@@ -115,42 +115,6 @@ export function SettingsScreen() {
             checked={emailDigest}
             onChange={setEmailDigest}
           />
-        </CardBody>
-      </Card>
-
-      {/* Appearance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Palette className="size-4.5 text-primary" /> Изглед
-          </CardTitle>
-        </CardHeader>
-        <CardBody>
-          <p className="text-sm text-muted-foreground">
-            Приложението използва светлата тема на училището (синьо-зелена гама). Допълнителни
-            теми ще бъдат добавени в бъдеща версия.
-          </p>
-        </CardBody>
-      </Card>
-
-      {/* Security */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="size-4.5 text-primary" /> Сигурност
-          </CardTitle>
-        </CardHeader>
-        <CardBody className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Нова парола</Label>
-              <Input type="password" placeholder="••••••••" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Потвърди паролата</Label>
-              <Input type="password" placeholder="••••••••" />
-            </div>
-          </div>
         </CardBody>
       </Card>
 

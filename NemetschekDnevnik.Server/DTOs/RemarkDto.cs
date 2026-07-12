@@ -8,6 +8,9 @@ public class RemarkDto
     public int RemarkId { get; set; }
 
     [Required]
+    public int StudentId { get; set; }
+
+    [Required]
     public int TeacherId { get; set; }
 
     [Required]

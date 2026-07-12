@@ -59,7 +59,7 @@ export function StudentProfile({ student }: { student: User }) {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {gs.map((g) => (
-                      <GradePill key={g.id} value={g.value} />
+                      <GradePill key={g.id} value={g.value} classId={student.classId} />
                     ))}
                   </div>
                 </div>

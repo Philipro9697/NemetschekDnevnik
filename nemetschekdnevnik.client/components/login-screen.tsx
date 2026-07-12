@@ -37,14 +37,15 @@ export function LoginScreen() {
 
             const tokenString = typeof data.token === 'string'
                 ? data.token
-                : data.token?.accessToken;
+                : data.token?.accessToken ?? null;
 
             if (tokenString) {
                 localStorage.setItem('accessToken', tokenString)
             }
 
-            // Fetch current user profile from API
-            const userProfile = await userService.getCurrentUser()
+            // /auth/login already returns userId, so fetch that user's own profile
+            // (self-service is allowed by the backend) instead of a separate "current user" call.
+            const userProfile = await userService.getUserProfile(data.userId)
             await login(userProfile)
 
         } catch (err: any) {

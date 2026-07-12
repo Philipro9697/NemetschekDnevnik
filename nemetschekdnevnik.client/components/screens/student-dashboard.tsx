@@ -35,12 +35,12 @@ export function StudentDashboard({
 }) {
   const app = useApp();
   const me = student ?? app.currentUser;
-  
+
   // FIX: If app context drives the view, sync with it. Otherwise, use only local state.
   // Assuming app.view exposes the current view string. Adjust if named differently.
-  const activeView = (app.view as ViewKey) || "grades"; 
+  const activeView = (app.view as ViewKey) || "grades";
   const [selectedGrade, setSelectedGrade] = useState<any>(null);
-  
+
   // Data stays reactive because it directly reads from the updated context values
   const myGrades = app.apiGrades || [];
   const myAbsences = app.apiAbsences || [];

@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Upload,
   FileText,
-  BookMarked,
   Search,
   Filter,
 } from 'lucide-react'
@@ -34,18 +33,12 @@ export function StudentHomework({ student }: { student?: User }) {
     .sort((a, b) => (a.dueDate < b.dueDate ? 1 : -1))
 
   const homeworkItems = items.filter((h) => h.type === 'homework')
-  const materialItems = items.filter((h) => h.type === 'material')
 
   const filteredHomework = useMemo(() => {
     const list = [...homeworkItems]
     const filtered = filterSubject === 'all' ? list : list.filter((item) => item.subjectId === filterSubject)
     return filtered.sort((a, b) => (sortBy === 'date' ? (a.dueDate < b.dueDate ? 1 : -1) : subjectById(a.subjectId).abbr.localeCompare(subjectById(b.subjectId).abbr)))
   }, [filterSubject, homeworkItems, sortBy])
-
-  const filteredMaterial = useMemo(() => {
-    const list = [...materialItems]
-    return filterSubject === 'all' ? list : list.filter((item) => item.subjectId === filterSubject)
-  }, [filterSubject, materialItems])
 
   return (
     <div className="space-y-8">
@@ -66,11 +59,6 @@ export function StudentHomework({ student }: { student?: User }) {
 
       <Section title="Домашни работи" icon={FileText} empty="Няма зададени домашни.">
         {filteredHomework.map((h) => (
-          <HomeworkCard key={h.id} id={h.id} studentId={me.id} selected={selectedId === h.id} onSelect={() => setSelectedId(selectedId === h.id ? null : h.id)} />
-        ))}
-      </Section>
-      <Section title="Учебни материали" icon={BookMarked} empty="Няма качени материали.">
-        {filteredMaterial.map((h) => (
           <HomeworkCard key={h.id} id={h.id} studentId={me.id} selected={selectedId === h.id} onSelect={() => setSelectedId(selectedId === h.id ? null : h.id)} />
         ))}
       </Section>

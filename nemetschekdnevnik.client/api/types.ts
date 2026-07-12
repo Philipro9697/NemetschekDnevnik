@@ -19,38 +19,59 @@ export interface CreateUserDto {
 }
 
 export interface GradeDto {
-	gradeValue: number;
-	gradeId: number;
-	subjectId: number;
-	teacherId: number;
-	subjectName: string;
-	teacherFirstName: string;
-	teacherLastName: string;
-	gradeTypeName: string;
-	comment?: string | null;
-	entryDate: string;
+    gradeValue: number;
+    gradeId: number;
+    studentId: number;
+    studentFirstName: string;
+    studentLastName: string;
+    subjectId: number;
+    teacherId: number;
+    subjectName: string;
+    teacherFirstName: string;
+    teacherLastName: string;
+    gradeTypeName: string;
+    comment?: string | null;
+    entryDate: string;
+}
+
+export interface ClassDto {
+    classId: number;
+    classGrade: number;
+    classLetter: string;
+    headTeacherId?: number | null;
+    headTeacherFirstName: string;
+    headTeacherLastName: string;
+}
+
+export interface AddGradeDto {
+    studentId: number;
+    subjectId: number;
+    teacherId: number;
+    value: number;
+    comment?: string | null;
 }
 
 export interface HomeworkItemDto {
-	homeworkId: number;
-	subjectId: number;
-	teacherId: number;
-	title: string;
-	description: string; //fun typo
-	resourceLink: string;
-	dateAssigned: string;
-	dateDue: string;
+    homeworkId: number;
+    subjectId: number;
+    teacherId: number;
+    title: string;
+    description: string;
+    resourceLink: string;
+    dateAssigned: string;
+    dateDue: string;
 }
 
 export interface LessonDto {
-	date: string;
-	time: string;
-	subjectId: number;
-	teacherId: number;
-	teacherFirstName: string;
-	teacherLastName: string;
-	subjectName: string;
-	scheduleItemId: number;
+    lessonId: number;
+    date: string;
+    time: string;
+    subjectId: number;
+    teacherId: number;
+    teacherFirstName: string;
+    teacherLastName: string;
+    subjectName: string;
+    scheduleItemId: number;
 }
 
 export interface LoginDto {
@@ -68,23 +89,26 @@ export interface RegisterDto {
 }
 
 export interface RemarkDto {
-	teacherId: number;
-	dateCreated: string;
-	type: string;
-	text: string;
-	teacherFirstName: string;
-	teacherLastName: string;
+    remarkId: number;
+    studentId: number;
+    teacherId: number;
+    dateCreated: string;
+    type: string;
+    text: string;
+    teacherFirstName: string;
+    teacherLastName: string;
 }
 
 export interface ScheduleDto {
-	dayOfWeek: number;
-	time: string;
-	subjectId: number;
-	teacherId: number;
-	teacherFirstName: string;
-	teacherLastName: string;
-	subjectName: string;
-	location?: string | null;
+    scheduleId: number;
+    dayOfWeek: number;
+    time: string;
+    subjectId: number;
+    teacherId: number;
+    teacherFirstName: string;
+    teacherLastName: string;
+    subjectName: string;
+    location?: string | null;
 }
 
 export interface SubjectDto {
@@ -103,11 +127,19 @@ export interface UserAccountDto {
 }
 
 export interface StudentInfoDto {
-	studentId: number;
-	parentId: number;
-	classId: number;
-	firstName: string;
-	lastName: string;
-	email: string;
-	phoneNumber: string;
+    studentId: number;
+    parentId: number;
+    classId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+}
+
+export interface TeacherInfoDto {
+    teacherId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
 }

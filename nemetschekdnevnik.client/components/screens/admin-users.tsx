@@ -642,6 +642,15 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                   />
                 </div>
               </div>
+              <div className="space-y-1.5">
+                <Label>Парола</Label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="изберете парола"
+                />
+              </div>
               {role === 'student' && (
                 <>
                   <div className="space-y-1.5">
@@ -672,6 +681,15 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
                       />
                     </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <Label>Парола на родителя</Label>
+                    <Input
+                      type="password"
+                      value={parentPassword}
+                      onChange={(e) => setParentPassword(e.target.value)}
+                      placeholder="изберете парола на родителя"
+                    />
+                  </div>
                 </>
               )}
             </div>
@@ -689,7 +707,6 @@ function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void 
     </Dialog>
   )
 }
-
 
 function EditUserDialog({
   open,
@@ -914,6 +931,184 @@ function StudentDetailDialog({
       teacherId: teachers[0]?.id ?? '',
       text: noteText,
       kind: noteKind,
+      date: new Date().toISOString().slice(0, 10),
+    })
+    setNoteText('')
+  }
+
+  function handleAddAbsence() {
+    if (!student || !absenceSubjectId) return
+    app.addAbsence({
+      studentId: student.id,
+      subjectId: absenceSubjectId,
+      teacherId: teachers[0]?.id,
+      date: absenceDate,
+      time: absenceTime,
+      type: 'absent',
+      excused: false,
+    })
+  }
+
+  return (
+    <Dialog open={open} onClose={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Редакция на акаунт</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Роля</Label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="student">Ученик</option>
+              <option value="teacher">Учител</option>
+              <option value="parent">Родител</option>
+              <option value="admin">Администратор</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Три имена</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Имейл</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Телефон</Label>
+              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Парола</Label>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+          </div>
+          {role === 'student' && (
+            <div className="space-y-1.5">
+              <Label>Клас</Label>
+              <select
+                value={classId}
+                onChange={(e) => setClassId(e.target.value)}
+                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {role === 'teacher' && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Преподава в клас</Label>
+                <select
+                  value={classTeacherOf}
+                  onChange={(e) => setClassTeacherOf(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Няма клас</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Предмет</Label>
+                <select
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Отказ
+          </Button>
+          <Button onClick={handleSave}>Запази промени</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function StudentDetailDialog({
+  open,
+  student,
+  onClose,
+}: {
+  open: boolean
+  student: User | null
+  onClose: () => void
+}) {
+  const app = useApp()
+  const [tab, setTab] = useState<'grades' | 'notes' | 'absences'>('grades')
+  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
+  const [gradeValue, setGradeValue] = useState<number>(6)
+  const [gradeKind, setGradeKind] = useState<'oral' | 'written' | 'test' | 'active'>('oral')
+  const [noteText, setNoteText] = useState('')
+  const [noteKind, setNoteKind] = useState<'praise' | 'remark'>('remark')
+  const [absenceDate, setAbsenceDate] = useState(new Date().toISOString().slice(0, 10))
+  const [absenceTime, setAbsenceTime] = useState('08:00')
+  const [absenceSubjectId, setAbsenceSubjectId] = useState<string>(subjects[0]?.id ?? '')
+
+  useEffect(() => {
+    if (!student) return
+    setTab('grades')
+    setSubjectId(subjects[0]?.id ?? '')
+    setGradeValue(6)
+    setGradeKind('oral')
+    setNoteText('')
+    setNoteKind('remark')
+    setAbsenceDate(new Date().toISOString().slice(0, 10))
+    setAbsenceTime('08:00')
+    setAbsenceSubjectId(subjects[0]?.id ?? '')
+  }, [student])
+
+  if (!student) return null
+
+  const studentGrades = app.grades.filter((grade) => grade.studentId === student.id)
+  const studentNotes = app.notes.filter((note) => note.studentId === student.id)
+  const studentAbsences = app.absences.filter((absence) => absence.studentId === student.id)
+  const teachers = app.users.filter((u) => u.role === 'teacher')
+
+  function handleAddGrade() {
+    if (!student || !subjectId || !teachers[0]) return
+    app.addGrade({
+      studentId: student.id,
+      subjectId,
+      teacherId: teachers[0].id,
+      value: gradeValue,
+      kind: gradeKind,
+      section: 'term1',
+      description: '',
+    })
+  }
+
+  function handleAddNote() {
+    if (!student || !subjectId) return
+    app.addNote({
+      studentId: student.id,
+      subjectId,
+      teacherId: teachers[0]?.id ?? '',
+      text: noteText,
+      kind: noteKind,
     })
     setNoteText('')
   }
@@ -932,7 +1127,7 @@ function StudentDetailDialog({
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Детайли за {student.name}</DialogTitle>
         </DialogHeader>
@@ -1116,7 +1311,7 @@ function StudentDetailDialog({
           {tab === 'absences' && (
             <div className="space-y-4">
               <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-4">
+                <div className="grid gap-4 grid-cols-1">
                   <div className="space-y-1.5">
                     <Label>Предмет</Label>
                     <select
@@ -1164,7 +1359,7 @@ function StudentDetailDialog({
                         <td className="px-4 py-3">{absence.date}</td>
                         <td className="px-4 py-3">{absence.time ?? '—'}</td>
                         <td className="px-4 py-3">{absence.excused ? 'Да' : 'Не'}</td>
-                        <td className="px-4 py-3 text-right flex justify-end gap-2">
+                        <td className="px-4 py-3 text-right space-y-2">
                           <Button variant="outline" onClick={() => app.toggleAbsenceExcused(absence.id)}>
                             {absence.excused ? 'Отмени' : 'Извини'}
                           </Button>
