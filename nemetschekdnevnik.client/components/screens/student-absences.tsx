@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { studentService } from '@/api/studentService'
-import { userService } from '@/api/userService'
-import type { AbsenceDto, UserAccountDto } from '@/api/types'
+import { parentService } from '@/api/parentService'
+import type { AbsenceDto } from '@/api/types'
 import { useApp } from '@/components/app-provider'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { classById, formatDate, subjects, type User } from '@/lib/data'
+import { formatDate, subjects, type User } from '@/lib/data'
 import { CircleAlert, Sparkles } from 'lucide-react'
 
 type DisplayAbsence = {
@@ -27,22 +27,8 @@ function toDisplayAbsenceFromDto(dto: AbsenceDto, studentId: string): DisplayAbs
     subjectId: `${dto.subjectId}`,
     date: dto.date,
     time: dto.time?.length ? dto.time.slice(0, 5) : undefined,
-    excused: dto.isExcused,
+    excused: typeof dto.isExcused !== 'undefined' ? dto.isExcused : (dto as any).excused,
     subjectName: dto.subjectName || 'Предмет',
-  }
-}
-
-type DisplayStudentUserData = {
-  id: string
-  firstName: string
-  lastName: string
-}
-
-function toDisplayUserFromDto(dto: UserAccountDto): DisplayStudentUserData {
-  return {
-    id: `${dto.userId}`,
-    firstName: dto.firstName,
-    lastName: dto.lastName,
   }
 }
 
@@ -50,39 +36,34 @@ export function StudentAbsences({ student }: { student?: User }) {
   const app = useApp()
   const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   const [dbAbsences, setDbAbsences] = useState<DisplayAbsence[]>([])
-  const [dbUser, setDbUser] = useState<DisplayStudentUserData | null>(null)
   const [loadingAbsences, setLoadingAbsences] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
-    if (!app.currentUser || app.currentUser.role !== 'student' || Boolean(student)) {
+    if (!me) {
       setDbAbsences([])
-      setDbUser(null)
-      return () => {
-        cancelled = true
-      }
+      return
     }
 
     async function loadAbsences() {
       setLoadingAbsences(true)
 
       try {
-        const [absenceData, userData] = await Promise.all([
-          studentService.getAbsences(),
-          // studentId and userId refer to the same row for a student, so we can
-          // look up their profile (first/last name) via the user endpoint.
-          userService.getUserProfile(Number(app.currentUser!.id)),
-        ])
+        const targetStudentId = student && student.id ? student.id : app.currentUser!.id
+
+        // Премахваме Promise.all и userService, за да избегнем 403 грешката
+        const absenceData = student && student.id
+          ? await parentService.getChildAbsences(Number(student.id))
+          : await studentService.getAbsences()
+
         if (cancelled) return
 
-        setDbAbsences(absenceData.map((absence) => toDisplayAbsenceFromDto(absence, app.currentUser!.id)))
-        setDbUser(toDisplayUserFromDto(userData))
+        setDbAbsences((absenceData || []).map((absence) => toDisplayAbsenceFromDto(absence, targetStudentId)))
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to load absences', error)
           setDbAbsences([])
-          setDbUser(null)
         }
       } finally {
         if (!cancelled) {
@@ -96,27 +77,27 @@ export function StudentAbsences({ student }: { student?: User }) {
     return () => {
       cancelled = true
     }
-  }, [app.currentUser?.id, app.currentUser?.role, student])
+  }, [app.currentUser?.id, student?.id, me?.id])
 
   if (!me) return null
 
-  const displayName = dbUser
-    ? [dbUser.firstName, dbUser.lastName].filter(Boolean).join(' ').trim() || me.name
-    : me.name
+  // Взимаме името директно от обекта, предаден от рутера
+  const displayName = me.name
 
   const myAbsences = dbAbsences.length > 0
     ? dbAbsences
-    : app.absences
-        .filter((a) => a.studentId === me.id)
+    : (app.absences || [])
+        .filter((a) => String(a.studentId) === String(me.id))
         .map((absence) => ({
           id: absence.id,
           studentId: absence.studentId,
           subjectId: absence.subjectId,
           date: absence.date,
           time: absence.time,
-          excused: absence.excused,
+          excused: typeof absence.excused !== 'undefined' ? absence.excused : !!absence.excused,
           subjectName: subjects.find((subject) => subject.id === absence.subjectId)?.name ?? 'Предмет',
         }))
+
   const unexcused = myAbsences.filter((a) => !a.excused).length
   const excused = myAbsences.filter((a) => a.excused).length
 
@@ -171,10 +152,9 @@ export function StudentAbsences({ student }: { student?: User }) {
             {loadingAbsences ? (
               <p className="py-4 text-center text-sm text-muted-foreground">Зареждане на отсъствия…</p>
             ) : myAbsences.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">Няма отсъствия.</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">Няма регистрирани отсъствия.</p>
             ) : (
-              myAbsences
-                .slice()
+              [...myAbsences]
                 .sort((a, b) => (a.date < b.date ? 1 : -1))
                 .map((a) => (
                   <div key={a.id} className="flex flex-col gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -184,7 +164,9 @@ export function StudentAbsences({ student }: { student?: User }) {
                         {a.subjectName} · {formatDate(a.date)} · {a.time ?? '—'}
                       </p>
                     </div>
-                    <Badge tone={a.excused ? 'success' : 'danger'}>{a.excused ? 'Извинено' : 'Неизвинено'}</Badge>
+                    <Badge tone={a.excused ? 'success' : 'danger'}>
+                      {a.excused ? 'Извинено' : 'Неизвинено'}
+                    </Badge>
                   </div>
                 ))
             )}
