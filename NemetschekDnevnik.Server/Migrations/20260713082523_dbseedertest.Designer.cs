@@ -12,8 +12,8 @@ using NemetschekDnevnik.Server.Models;
 namespace NemetschekDnevnik.Server.Migrations
 {
     [DbContext(typeof(DnevnikContext))]
-    [Migration("20260713080019_dbseedertest3")]
-    partial class dbseedertest3
+    [Migration("20260713082523_dbseedertest")]
+    partial class dbseedertest
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -636,7 +636,7 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Lesson", "Lesson")
                         .WithMany("Attendances")
                         .HasForeignKey("LessonId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK__attendanc__lesso__6477ECF3");
 
@@ -656,7 +656,6 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "HeadTeacher")
                         .WithMany("Classes")
                         .HasForeignKey("HeadTeacherId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__classes__head_te__52593CB8");
 
                     b.Navigation("HeadTeacher");
@@ -667,25 +666,21 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.GradeType", "GradeType")
                         .WithMany("Grades")
                         .HasForeignKey("GradeTypeId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__grades__grade_ty__6E01572D");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Student", "Student")
                         .WithMany("Grades")
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__grades__student___6C190EBB");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", "Subject")
                         .WithMany("Grades")
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__grades__subject___6B24EA82");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
                         .WithMany("Grades")
                         .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__grades__teacher___6D0D32F4");
 
                     b.Navigation("GradeType");
@@ -702,19 +697,16 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
                         .WithMany("HomeworkItems")
                         .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__homework___class__76969D2E");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", "Subject")
                         .WithMany("HomeworkItems")
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__homework___subje__778AC167");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
                         .WithMany("HomeworkItems")
                         .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__homework___teach__787EE5A0");
 
                     b.Navigation("Class");
@@ -729,7 +721,6 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
                         .WithMany("Lessons")
                         .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__lessons__class_i__60A75C0F");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.WeeklyScheduleItem", "ScheduleItem")
@@ -741,13 +732,11 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", "Subject")
                         .WithMany("Lessons")
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__lessons__subject__5EBF139D");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
                         .WithMany("Lessons")
                         .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__lessons__teacher__5FB337D6");
 
                     b.Navigation("Class");
@@ -788,13 +777,12 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Student", "Student")
                         .WithMany("Remarks")
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("FK__remarks__student__70DDC3D8");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
                         .WithMany("Remarks")
                         .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__remarks__teacher__71D1E811");
 
                     b.Navigation("Student");
@@ -807,13 +795,11 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
                         .WithMany("Students")
                         .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK_student_class_id");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Parent", "Parent")
                         .WithMany("Students")
                         .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__student__parent___44FF419A");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.User", "StudentNavigation")
@@ -841,7 +827,6 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Student", "Student")
                         .WithMany("SubmittedHomeworks")
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__submitted__stude__7E37BEF6");
 
                     b.Navigation("Homework");
@@ -866,19 +851,16 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.Class", "Class")
                         .WithMany("WeeklyScheduleItems")
                         .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__weekly_sc__class__5BE2A6F2");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Subject", "Subject")
                         .WithMany("WeeklyScheduleItems")
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__weekly_sc__subje__59FA5E80");
 
                     b.HasOne("NemetschekDnevnik.Server.Models.Teacher", "Teacher")
                         .WithMany("WeeklyScheduleItems")
                         .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK__weekly_sc__teach__5AEE82B9");
 
                     b.Navigation("Class");

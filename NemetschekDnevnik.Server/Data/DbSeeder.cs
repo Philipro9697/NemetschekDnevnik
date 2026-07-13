@@ -12,9 +12,9 @@ namespace NemetschekDnevnik.Server.Data
         private static readonly string[] BgFirstNames = { "Иван", "Димитър", "Георги", "Николай", "Петър", "Христо", "Стефан", "Мария", "Елена", "Йорданка", "Теодора", "Радослав", "Александър" };
         private static readonly string[] BgLastNames = { "Иванов", "Димитров", "Георгиев", "Николов", "Петров", "Тодоров", "Стоянов", "Ангелов", "Василев", "Попов" };
         private static readonly string[] HomeworkTitles = { "Упражнение 3", "Домашно за проекта", "Допълнителни задачи", "Тест подготовка" };
-        private static readonly string[] HomeworkDescriptions = { 
-            "Решете задачи от 1 до 5 на страница 42.", 
-            "Довършете практическата задача в тетрадките.", 
+        private static readonly string[] HomeworkDescriptions = {
+            "Решете задачи от 1 до 5 на страница 42.",
+            "Довършете практическата задача в тетрадките.",
             "Прочетете следващия разказ и извадете главните тези.",
             "Преговор на целия раздел за утре."
         };
@@ -151,13 +151,12 @@ namespace NemetschekDnevnik.Server.Data
             foreach (var userStudent in students)
             {
                 var assignedClass = classesList[random.Next(classesList.Count)];
-            
                 var studentParent = parents[random.Next(parents.Count)];
 
                 var studentProfile = new Student
                 {
                     StudentId = userStudent.UserId,
-                    ClassId = assignedClass.ClassId, 
+                    ClassId = assignedClass.ClassId,
                     ParentId = studentParent.ParentId
                 };
                 context.Students.Add(studentProfile);
@@ -191,7 +190,7 @@ namespace NemetschekDnevnik.Server.Data
             {
                 var adminProfile = new Admin
                 {
-                    AdminId = admin.UserId 
+                    AdminId = admin.UserId
                 };
 
                 context.Admins.Add(adminProfile);
@@ -202,14 +201,12 @@ namespace NemetschekDnevnik.Server.Data
         public static void CreateParents(DnevnikContext context)
         {
             var parents = context.Users.Where(u => u.Role == "Parent").ToList();
-            
             foreach (var parent in parents)
             {
                 var parentProfile = new Parent
                 {
-                    ParentId = parent.UserId 
+                    ParentId = parent.UserId
                 };
-            
                 context.Parents.Add(parentProfile);
             }
             context.SaveChanges();
@@ -217,7 +214,6 @@ namespace NemetschekDnevnik.Server.Data
 
         public static void ConnectParentToStudents(DnevnikContext context)
         {
-            
             context.SaveChanges();
         }
 
@@ -257,7 +253,7 @@ namespace NemetschekDnevnik.Server.Data
                         TeacherId = teachers[random.Next(teachers.Count)].TeacherId,
                         Time = new TimeOnly(8 + i, 0),
                         ClassId = cls.ClassId,
-                        Location = $"Стая {random.Next(100, 400)}"                     
+                        Location = $"Стая {random.Next(100, 400)}"
                     };
                     context.WeeklyScheduleItems.Add(scheduleItem);
                 }
@@ -277,12 +273,12 @@ namespace NemetschekDnevnik.Server.Data
             {
                 var lesson = new Lesson
                 {
-                    Date = DateOnly.FromDateTime(DateTime.Now), 
+                    Date = DateOnly.FromDateTime(DateTime.Now),
                     Time = item.Time,
                     SubjectId = item.SubjectId,
                     TeacherId = item.TeacherId,
                     ClassId = item.ClassId,
-                    ScheduleItemId = item.ScheduleItemId 
+                    ScheduleItemId = item.ScheduleItemId
                 };
 
                 context.Lessons.Add(lesson);
@@ -292,8 +288,8 @@ namespace NemetschekDnevnik.Server.Data
             Console.WriteLine("--> Уроците бяха успешно сийднати!");
         }
 
-        public static void SeedHomework(DnevnikContext  context)
-        {       
+        public static void SeedHomework(DnevnikContext context)
+        {
             var lessons = context.Lessons.ToList();
             var random = new Random();
 
@@ -303,14 +299,14 @@ namespace NemetschekDnevnik.Server.Data
 
                 var homework = new HomeworkItem
                 {
-                    ClassId = lesson.ClassId,         
-                    SubjectId = lesson.SubjectId,     
-                    TeacherId = lesson.TeacherId,     
+                    ClassId = lesson.ClassId,
+                    SubjectId = lesson.SubjectId,
+                    TeacherId = lesson.TeacherId,
                     Title = HomeworkTitles[random.Next(HomeworkTitles.Length)],
                     Description = HomeworkDescriptions[random.Next(HomeworkDescriptions.Length)],
-                    DateAssigned = assignedDateTime, 
+                    DateAssigned = assignedDateTime,
                     DateDue = assignedDateTime.AddDays(3),
-                    ResourceLink = null 
+                    ResourceLink = null
                 };
                 context.HomeworkItems.Add(homework);
             }
@@ -323,9 +319,9 @@ namespace NemetschekDnevnik.Server.Data
             var types = new List<GradeType>
             {
                 new GradeType { TypeName = "Текуща" },
-                new GradeType { TypeName = "Класна" },        
-                new GradeType { TypeName = "Срочна" },      
-                new GradeType { TypeName = "Годишна" },         
+                new GradeType { TypeName = "Класна" },
+                new GradeType { TypeName = "Срочна" },
+                new GradeType { TypeName = "Годишна" },
             };
 
             context.GradeTypes.AddRange(types);
@@ -337,8 +333,7 @@ namespace NemetschekDnevnik.Server.Data
             var students = context.Students.ToList();
             var subjects = context.Subjects.ToList();
             var teachers = context.Teachers.ToList();
-            
-            var gradeTypes = context.GradeTypes.ToList(); 
+            var gradeTypes = context.GradeTypes.ToList();
             var random = new Random();
 
             foreach (var student in students)
@@ -346,11 +341,11 @@ namespace NemetschekDnevnik.Server.Data
                 for (int i = 0; i < 3; i++)
                 {
                     var subject = subjects[random.Next(subjects.Count)];
-                    int numericValue = random.Next(2, 7); 
-                    var matchedType = gradeTypes[numericValue - 2];
+                    int numericValue = random.Next(2, 7);
+                    var matchedType = gradeTypes[random.Next(gradeTypes.Count)];
 
-                    string[] topics = SubjectTopics.ContainsKey(subject.SubjectName) 
-                        ? SubjectTopics[subject.SubjectName] 
+                    string[] topics = SubjectTopics.ContainsKey(subject.SubjectName)
+                        ? SubjectTopics[subject.SubjectName]
                         : defaultTopics;
 
                     string randomTopic = topics[random.Next(topics.Length)];
@@ -366,26 +361,31 @@ namespace NemetschekDnevnik.Server.Data
 
                     var grade = new Grade
                     {
-                        StudentId = student.StudentId, 
-                        SubjectId = subject.SubjectId, 
-                        TeacherId = teachers[random.Next(teachers.Count)].TeacherId, 
-                        GradeValue = numericValue, 
-                        GradeTypeId = matchedType.GradeTypeId, 
-                        Comment = comment, 
+                        StudentId = student.StudentId,
+                        SubjectId = subject.SubjectId,
+                        TeacherId = teachers[random.Next(teachers.Count)].TeacherId,
+                        GradeValue = numericValue,
+                        GradeTypeId = matchedType.GradeTypeId,
+                        Comment = comment,
                         EntryDate = DateOnly.FromDateTime(DateTime.Now.AddDays(-random.Next(1, 14)))
                     };
                     context.Grades.Add(grade);
                 }
             }
             context.SaveChanges();
-        }   
-
+        }
         public static void SeedAllData(DnevnikContext context)
         {
+            if (context.Users.Any())
+            {
+                Console.WriteLine("--> Базата данни вече съдържа потребители — seeding се пропуска.");
+                return;
+            }
+
             Console.WriteLine("--> СИйДЪРЪТ СТАРТИРА УСПЕШНО!");
 
             Console.WriteLine("--> Започва генериране на данни...");
-                
+
             var fakerEn = new Faker("en");
 
             SeedUsers(context, fakerEn);
@@ -398,14 +398,10 @@ namespace NemetschekDnevnik.Server.Data
 
             SeedClasses(context);
 
-            CreateParents(context); 
-
-            CreateStudents(context); 
-
-            SeedWeeklyShedule(context);   
-
-            SeedLessons(context);            
-
+            CreateParents(context);
+            CreateStudents(context);
+            SeedWeeklyShedule(context);
+            SeedLessons(context);
             SeedHomework(context);
 
             SeedGradeTypes(context);

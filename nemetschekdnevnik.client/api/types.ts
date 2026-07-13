@@ -10,12 +10,14 @@ export interface AbsenceDto {
 }
 
 export interface CreateUserDto {
-	email: string;
-	password: string;
-	role: UserRole;
-	firstName: string;
-	lastName: string;
-	phoneNumber: string;
+    email: string;
+    password: string;
+    role: UserRole;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    parentId?: number;
+    classId?: number;
 }
 
 export interface GradeDto {

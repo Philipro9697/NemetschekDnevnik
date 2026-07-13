@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NemetschekDnevnik.Server.Models;
 using System;
 using System.Linq;
 using System.Threading;

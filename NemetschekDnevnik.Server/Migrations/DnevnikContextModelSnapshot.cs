@@ -762,7 +762,7 @@ namespace NemetschekDnevnik.Server.Migrations
                     b.HasOne("NemetschekDnevnik.Server.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_refresh_tokens_users");
 

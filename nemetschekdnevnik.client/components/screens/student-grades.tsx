@@ -1,76 +1,185 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { studentService } from "@/api/studentService";
+import type { GradeDto } from "@/api/types";
 import { useApp } from "@/components/app-provider";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { GradePill } from "@/components/shared/grade-pill";
 import {
 	classById,
 	formatDate,
-	subjectById,
 	subjects,
 	type Grade,
 	type GradeSection,
 	type User,
+	userById,
 } from "@/lib/data";
 import { TrendingUp, Sparkles } from "lucide-react";
-import { studentService } from "@/api/studentService";
-import { GradeDto, SubjectDto } from "@/api/types";
 
 const gradeSections: { key: GradeSection; label: string }[] = [
-	{ key: "Текущо изпитване", label: "1ви срок" },
+	{ key: "term1", label: "1ви срок" },
 	{ key: "term1Final", label: "Срочна 1ви" },
 	{ key: "term2", label: "2ри срок" },
 	{ key: "term2Final", label: "Срочна 2ри" },
 	{ key: "yearly", label: "Годишна" },
 ];
 
+type DisplayGrade = {
+	id: string;
+	studentId: string;
+	subjectId: string;
+	teacherId: string;
+	value: number;
+	date: string;
+	time?: string;
+	kind?: "oral" | "written" | "test" | "active";
+	section: GradeSection;
+	description?: string;
+	subjectName: string;
+	teacherName: string;
+};
+
+function inferGradeSection(entryDate: string): GradeSection {
+	const month = new Date(entryDate).getMonth() + 1;
+	return month <= 6 ? "term1" : "term2";
+}
+
+function toDisplayGrade(grade: Grade): DisplayGrade {
+	return {
+		id: grade.id,
+		studentId: grade.studentId,
+		subjectId: grade.subjectId,
+		teacherId: grade.teacherId,
+		value: grade.value,
+		date: grade.date,
+		time: grade.time,
+		kind: grade.kind,
+		section: grade.section,
+		description: grade.description,
+		subjectName: "Предмет",
+		teacherName: "Учител",
+	};
+}
+
+function toDisplayGradeFromDto(dto: GradeDto, studentId: string): DisplayGrade {
+	const teacherName = [dto.teacherFirstName, dto.teacherLastName]
+		.filter(Boolean)
+		.join(" ")
+		.trim();
+
+	return {
+		id: `${studentId}-${dto.subjectId}-${dto.entryDate}`,
+		studentId,
+		subjectId: `${dto.subjectId}`,
+		teacherId: `${dto.teacherId}`,
+		value: Number(dto.gradeValue),
+		date: dto.entryDate,
+		section: inferGradeSection(dto.entryDate),
+		description: dto.comment || dto.gradeTypeName,
+		subjectName: dto.subjectName || "Предмет",
+		teacherName: teacherName || "Учител",
+	};
+}
+
 export function StudentGrades({ student }: { student?: User }) {
 	const app = useApp();
 	const me =
 		student ?? (app.currentUser?.role === "student" ? app.currentUser : null);
-	const [selectedGrade, setSelectedGrade] = useState<GradeDto | null>(null);
-	if (!me) return null;
-
-	const [myGrades, setMyGrades] = useState<GradeDto[]>([]);
-	const [subjects, setSubjects] = useState<SubjectDto[]>([]);
-	const [loading, setLoading] = useState(true);
+	const [selectedGrade, setSelectedGrade] = useState<DisplayGrade | null>(null);
+	const [dbGrades, setDbGrades] = useState<DisplayGrade[]>([]);
+	const [loadingGrades, setLoadingGrades] = useState(false);
 
 	useEffect(() => {
-		Promise.all([studentService.getGrades(), studentService.getSubjects()])
-			.then(([graderes, subjectres]) => {
-				setMyGrades(graderes || []);
-				setSubjects(subjectres);
-			})
-			.catch((err) => console.error("Error fetching schedule:", err))
-			.finally(() => setLoading(false));
-	}, []);
+		let cancelled = false;
+
+		if (
+			!app.currentUser ||
+			app.currentUser.role !== "student" ||
+			Boolean(student)
+		) {
+			setDbGrades([]);
+			return () => {
+				cancelled = true;
+			};
+		}
+
+		async function loadGrades() {
+			setLoadingGrades(true);
+
+			try {
+				const data = await studentService.getGrades();
+				if (cancelled) return;
+
+				setDbGrades(
+					data.map((grade) =>
+						toDisplayGradeFromDto(grade, app.currentUser!.id),
+					),
+				);
+			} catch (error) {
+				if (!cancelled) {
+					console.error("Failed to load grades", error);
+					setDbGrades([]);
+				}
+			} finally {
+				if (!cancelled) {
+					setLoadingGrades(false);
+				}
+			}
+		}
+
+		void loadGrades();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [app.currentUser?.id, app.currentUser?.role, student]);
+
+	if (!me) return null;
+
+	const myGrades =
+		dbGrades.length > 0
+			? dbGrades
+			: app.grades
+				.filter((g) => g.studentId === me.id)
+				.map((grade) => {
+					const localGrade = toDisplayGrade(grade);
+					const subjectName =
+						subjects.find((subject) => subject.id === grade.subjectId)
+							?.name ?? "Предмет";
+					const teacherName =
+						userById(grade.teacherId, app.users)?.name ?? "Учител";
+					return {
+						...localGrade,
+						subjectName,
+						teacherName,
+					};
+				});
 
 	const avg =
 		myGrades.length > 0
-			? (
-				myGrades.reduce((a, g) => a + g.gradeValue, 0) / myGrades.length
-			).toFixed(2)
+			? (myGrades.reduce((a, g) => a + g.value, 0) / myGrades.length).toFixed(2)
 			: "—";
 
-	const gradesBySubject = subjects
-		.map((subject) => ({
-			subject,
-			grades: myGrades
-				.filter((g) => g.subjectId === subject.subjectId)
-				.sort((a, b) => (a.entryDate < b.entryDate ? 1 : -1)),
+	const gradesBySubject = Array.from(
+		myGrades
+			.reduce((map, grade) => {
+				const existing = map.get(grade.subjectName) ?? {
+					subjectName: grade.subjectName,
+					grades: [] as DisplayGrade[],
+				};
+				existing.grades.push(grade);
+				map.set(grade.subjectName, existing);
+				return map;
+			}, new Map<string, { subjectName: string; grades: DisplayGrade[] }>())
+			.values(),
+	)
+		.map((row) => ({
+			...row,
+			grades: row.grades.sort((a, b) => (a.date < b.date ? 1 : -1)),
 		}))
-		.filter((row) => row.grades.length > 0);
-
-	if (loading) {
-		return (
-			<div className="p-4 text-center text-sm text-muted-foreground">
-				Зареждане на програмата...
-			</div>
-		);
-	}
+		.sort((a, b) => a.subjectName.localeCompare(b.subjectName));
 
 	return (
 		<div className="space-y-6">
@@ -106,7 +215,11 @@ export function StudentGrades({ student }: { student?: User }) {
 					</p>
 				</CardHeader>
 				<CardBody className="p-0">
-					{gradesBySubject.length === 0 ? (
+					{loadingGrades ? (
+						<p className="py-6 text-center text-sm text-muted-foreground">
+							Зареждане на оценки…
+						</p>
+					) : gradesBySubject.length === 0 ? (
 						<p className="py-6 text-center text-sm text-muted-foreground">
 							Все още няма оценки.
 						</p>
@@ -127,22 +240,19 @@ export function StudentGrades({ student }: { student?: User }) {
 									</tr>
 								</thead>
 								<tbody>
-									{gradesBySubject.map(({ subject, grades }) => (
-										<tr
-											key={subject.subjectId}
-											className="border-t border-border/70"
-										>
+									{gradesBySubject.map(({ subjectName, grades }) => (
+										<tr key={subjectName} className="border-t border-border/70">
 											<td className="px-4 py-3 align-top">
 												<div className="font-medium text-foreground">
-													{subject.subjectName}
+													{subjectName}
 												</div>
 												<div className="mt-1 text-xs text-muted-foreground">
-													{grades.length} оценка{grades.length === 1 ? "" : "и"}
+													{grades.length} оценк{grades.length === 1 ? "а" : "и"}
 												</div>
 											</td>
 											{gradeSections.map((section) => {
 												const sectionGrades = grades.filter(
-													(g) => g.gradeTypeName == section.key,
+													(g) => g.section === section.key,
 												);
 												return (
 													<td
@@ -153,17 +263,14 @@ export function StudentGrades({ student }: { student?: User }) {
 															<div className="flex flex-wrap gap-1">
 																{sectionGrades.map((g) => (
 																	<button
-																		key={g.gradeId}
+																		key={g.id}
 																		type="button"
 																		onClick={() => setSelectedGrade(g)}
-																		className="rounded-md border border-border/70 bg-background/80 p-0.5"
+																		className="rounded-sm p-0 text-left"
 																	>
 																		<GradePill
-																			value={g.gradeValue}
-																			title={`${subjects.find((s) => {
-																				s.subjectId === g.subjectId;
-																			})?.subjectName
-																				} · ${formatDate(g.entryDate)}`}
+																			value={g.value}
+																			title={`${subjectName} · ${formatDate(g.date)}`}
 																			className="size-5 text-[0.65rem]"
 																		/>
 																	</button>
@@ -194,36 +301,29 @@ export function StudentGrades({ student }: { student?: User }) {
 				{selectedGrade && (
 					<div className="space-y-3 text-sm">
 						<div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
-							<div className="font-semibold">
-								{
-									subjects.find((s) => s.subjectId === selectedGrade.subjectId)!
-										.subjectName
-								}
-							</div>
+							<div className="font-semibold">{selectedGrade.subjectName}</div>
 							<GradePill
-								value={selectedGrade.gradeValue}
+								value={selectedGrade.value}
 								className="size-8 text-sm"
 							/>
 						</div>
 						<div className="rounded-lg border border-border bg-muted/30 p-3">
 							<div className="text-xs uppercase tracking-wide text-muted-foreground">
-								Дата
+								Дата и час
 							</div>
-							<div>{selectedGrade.entryDate}</div>
+							<div>
+								{selectedGrade.date} · {selectedGrade.time ?? "—"}
+							</div>
 						</div>
 						<div className="rounded-lg border border-border bg-muted/30 p-3">
 							<div className="text-xs uppercase tracking-wide text-muted-foreground">
 								Учител
 							</div>
-							<div>
-								{selectedGrade.teacherFirstName +
-									" " +
-									selectedGrade.teacherLastName}
-							</div>
+							<div>{selectedGrade.teacherName}</div>
 						</div>
-						{selectedGrade.comment && (
+						{selectedGrade.description && (
 							<div className="rounded-lg border border-border bg-muted/30 p-3 text-muted-foreground">
-								{selectedGrade.comment}
+								{selectedGrade.description}
 							</div>
 						)}
 					</div>
