@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace NemetschekDnevnik.Server.Models;
@@ -45,7 +47,27 @@ public partial class DnevnikContext : DbContext
 
     public virtual DbSet<WeeklyScheduleItem> WeeklyScheduleItems { get; set; }
 
-    public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<ISoftDelete>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Deleted:
+                    entry.State = EntityState.Modified; // Променяме състоянието на Редактиран
+                    entry.Entity.IsDeleted = true;     // Маркираме го като изтрит
+                    break;
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=Dnevnik; Integrated Security=True; TrustServerCertificate=True");
+        optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -298,10 +320,17 @@ public partial class DnevnikContext : DbContext
 
             entity.ToTable("subjects");
 
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
             entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+            
             entity.Property(e => e.SubjectName)
                 .HasMaxLength(100)
                 .HasColumnName("subject_name");
+
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false)
+                .HasColumnName("is_deleted");
         });
 
         modelBuilder.Entity<SubmittedHomework>(entity =>
@@ -375,13 +404,22 @@ public partial class DnevnikContext : DbContext
 
             entity.ToTable("users");
 
-            entity.HasIndex(e => e.Email, "UQ__users__AB6E61649DF4B344").IsUnique();
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
+            entity.HasIndex(e => e.Email, "UQ__users__AB6E61649DF4B344")
+                  .IsUnique()
+                  .HasFilter("[is_deleted] = 0"); 
 
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
+            
+            entity.Property(e => e.IsDeleted)
+                .HasDefaultValue(false)
+                .HasColumnName("is_deleted");
+
             entity.Property(e => e.Email)
                 .HasMaxLength(255)
                 .IsUnicode(false)

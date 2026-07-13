@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 
 namespace NemetschekDnevnik.Server.Models;
-public partial class Subject
+public partial class Subject : ISoftDelete
 {
     public int SubjectId { get; set; }
 
     public string SubjectName { get; set; } = null!;
+
+    public bool IsDeleted { get; set; } = false;
 
     public virtual ICollection<Grade> Grades { get; set; } = new List<Grade>();
 
