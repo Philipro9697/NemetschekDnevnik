@@ -47,12 +47,26 @@ public class TeacherController : ControllerBase
         return Ok(grade);
     }
 
+    [HttpGet("students/{classId}")]
+    public async Task<ActionResult<List<StudentInfoDto>>> GetStudents(int classId)
+    {
+        var teacher = await GetTeacher();
+
+        if (teacher is null)
+            return Unauthorized();
+
+        if (!teacher.Classes.Any(c => c.ClassId == classId))
+            return Forbid();
+
+        return Ok(await _teacherService.GetStudents(classId));
+    }
+
     [HttpGet("grades/{id}")]
     public async Task<ActionResult<List<GradeDto>>> GetGrades(int id)
     {
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
-        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return StatusCode(403, new { message = "This is not your class!" });
 
         return Ok(await _teacherService.GetGrades(teacher, id));
     }
@@ -94,7 +108,7 @@ public class TeacherController : ControllerBase
     {
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
-        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return StatusCode(403, new { message = "This is not your class!" });
         return Ok(await _teacherService.GetRemarks(teacher, id));
     }
 
@@ -108,7 +122,7 @@ public class TeacherController : ControllerBase
         if (student is null) return NotFound("Student not found");
 
         if (!_teacherService.TeachesStudent(teacher, student))
-            return Forbid("This is not your student!");
+            return StatusCode(403, new { message = "This is not your student!" });
 
         return Ok(await _teacherService.GetRemarksForStudent(teacher, studentId));
     }
@@ -118,7 +132,7 @@ public class TeacherController : ControllerBase
     {
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
-        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return StatusCode(403, new { message = "This is not your class!" });
         return Ok(await _teacherService.GetLessons(teacher, id));
     }
 
@@ -127,7 +141,7 @@ public class TeacherController : ControllerBase
     {
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
-        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return StatusCode(403, new { message = "This is not your class!" });
         return Ok(await _teacherService.GetAbsences(teacher, id));
     }
 
@@ -136,7 +150,7 @@ public class TeacherController : ControllerBase
     {
         Teacher? teacher = await GetTeacher();
         if (teacher is null) return NotFound("User not found");
-        if (!teacher.Classes.Any(c => c.ClassId == id)) return Forbid("This is not your class!");
+        if (!teacher.Classes.Any(c => c.ClassId == id)) return StatusCode(403, new { message = "This is not your class!" });
         return Ok(await _teacherService.GetHomeworkItems(teacher, id));
     }
 }

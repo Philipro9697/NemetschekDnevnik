@@ -6,6 +6,7 @@ namespace NemetschekDnevnik.Server.Services;
 public interface ITeacherService
 {
     Task<Teacher?> GetTeacher(int userId);
+    Task<List<StudentInfoDto>> GetStudents(int classId);
     Task<List<ClassDto>> GetClasses(Teacher teacher);
     Task<ClassDto?> GetClass(Teacher teacher);
     Task<List<ScheduleDto>> GetWeeklySchedule(Teacher teacher);

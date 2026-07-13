@@ -51,7 +51,7 @@ public class ParentController : ControllerBase
         Student? student = await _studentService.GetStudentById(id);
         if (student is null || student.ParentId != parent.ParentId)
         {
-            return Forbid("This is not your child!");
+            return StatusCode(403, new { message = "This is not your child!" });
         }
         return Ok(await _studentService.GetGrades(student));
     }
@@ -65,7 +65,7 @@ public class ParentController : ControllerBase
         Student? student = await _studentService.GetStudentById(id);
         if (student is null || student.ParentId != parent.ParentId)
         {
-            return Forbid("This is not your child!");
+            return StatusCode(403, new { message = "This is not your child!" });
         }
         return Ok(await _studentService.GetAbsences(student));
     }
@@ -79,7 +79,7 @@ public class ParentController : ControllerBase
         Student? student = await _studentService.GetStudentById(id);
         if (student is null || student.ParentId != parent.ParentId)
         {
-            return Forbid("This is not your child!");
+            return StatusCode(403, new { message = "This is not your child!" });
         }
         return Ok(await _studentService.GetRemarks(student));
     }
@@ -93,7 +93,7 @@ public class ParentController : ControllerBase
         Student? student = await _studentService.GetStudentById(id);
         if (student is null || student.ParentId != parent.ParentId)
         {
-            return Forbid("This is not your child!");
+            return StatusCode(403, new { message = "This is not your child!" });
         }
         return Ok(await _studentService.GetSubjects(student));
     }
