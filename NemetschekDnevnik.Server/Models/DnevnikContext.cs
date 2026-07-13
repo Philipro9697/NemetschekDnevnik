@@ -18,54 +18,50 @@ public partial class DnevnikContext : DbContext
     }
 
     public virtual DbSet<Admin> Admins { get; set; }
-
     public virtual DbSet<Attendance> Attendances { get; set; }
-
     public virtual DbSet<Class> Classes { get; set; }
-
     public virtual DbSet<Grade> Grades { get; set; }
-
     public virtual DbSet<GradeType> GradeTypes { get; set; }
-
     public virtual DbSet<HomeworkItem> HomeworkItems { get; set; }
-
     public virtual DbSet<Lesson> Lessons { get; set; }
-
     public virtual DbSet<Parent> Parents { get; set; }
-
     public virtual DbSet<Remark> Remarks { get; set; }
-
     public virtual DbSet<Student> Students { get; set; }
-
     public virtual DbSet<Subject> Subjects { get; set; }
-
     public virtual DbSet<SubmittedHomework> SubmittedHomeworks { get; set; }
-
     public virtual DbSet<Teacher> Teachers { get; set; }
-
     public virtual DbSet<User> Users { get; set; }
-
     public virtual DbSet<WeeklyScheduleItem> WeeklyScheduleItems { get; set; }
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+
+    // Fix: Override both SaveChanges and SaveChangesAsync to ensure soft delete always works
+    public override int SaveChanges()
+    {
+        ApplySoftDelete();
+        return base.SaveChanges();
+    }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        ApplySoftDelete();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplySoftDelete()
+    {
         foreach (var entry in ChangeTracker.Entries<ISoftDelete>())
         {
-            switch (entry.State)
+            if (entry.State == EntityState.Deleted)
             {
-                case EntityState.Deleted:
-                    entry.State = EntityState.Modified; // Променяме състоянието на Редактиран
-                    entry.Entity.IsDeleted = true;     // Маркираме го като изтрит
-                    break;
+                entry.State = EntityState.Modified;
+                entry.Entity.IsDeleted = true;
             }
         }
-
-        return base.SaveChangesAsync(cancellationToken);
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=Dnevnik; Integrated Security=True; TrustServerCertificate=True");
+        // Warning: Ignoring this can cause model mismatches. Ensure your migrations are up to date.
         optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     }
 
@@ -74,13 +70,8 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Admin>(entity =>
         {
             entity.HasKey(e => e.AdminId).HasName("PK__admin__43AA41416A23D12D");
-
             entity.ToTable("admin");
-
-            entity.Property(e => e.AdminId)
-                .ValueGeneratedNever()
-                .HasColumnName("admin_id");
-
+            entity.Property(e => e.AdminId).ValueGeneratedNever().HasColumnName("admin_id");
             entity.HasOne(d => d.AdminNavigation).WithOne(p => p.Admin)
                 .HasForeignKey<Admin>(d => d.AdminId)
                 .HasConstraintName("FK__admin__admin_id__4AB81AF0");
@@ -89,9 +80,7 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Attendance>(entity =>
         {
             entity.HasKey(e => new { e.LessonId, e.StudentId }).HasName("PK__attendan__D682C7D7E114F3DE");
-
             entity.ToTable("attendance");
-
             entity.Property(e => e.LessonId).HasColumnName("lesson_id");
             entity.Property(e => e.StudentId).HasColumnName("student_id");
             entity.Property(e => e.IsAbsent).HasColumnName("is_absent");
@@ -110,15 +99,10 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Class>(entity =>
         {
             entity.HasKey(e => e.ClassId).HasName("PK__classes__FDF4798618B5F560");
-
             entity.ToTable("classes");
-
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.ClassGrade).HasColumnName("class_grade");
-            entity.Property(e => e.ClassLetter)
-                .HasMaxLength(10)
-                .IsUnicode(false)
-                .HasColumnName("class_letter");
+            entity.Property(e => e.ClassLetter).HasMaxLength(10).IsUnicode(false).HasColumnName("class_letter");
             entity.Property(e => e.HeadTeacherId).HasColumnName("head_teacher_id");
 
             entity.HasOne(d => d.HeadTeacher).WithMany(p => p.Classes)
@@ -129,18 +113,12 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Grade>(entity =>
         {
             entity.HasKey(e => e.GradeId).HasName("PK__grades__3A8F732CFED7D652");
-
             entity.ToTable("grades");
-
             entity.Property(e => e.GradeId).HasColumnName("grade_id");
-            entity.Property(e => e.Comment)
-                .HasMaxLength(255)
-                .HasColumnName("comment");
+            entity.Property(e => e.Comment).HasMaxLength(255).HasColumnName("comment");
             entity.Property(e => e.EntryDate).HasColumnName("entry_date");
             entity.Property(e => e.GradeTypeId).HasColumnName("grade_type_id");
-            entity.Property(e => e.GradeValue)
-                .HasColumnType("decimal(3, 2)")
-                .HasColumnName("grade_value");
+            entity.Property(e => e.GradeValue).HasColumnType("decimal(3, 2)").HasColumnName("grade_value");
             entity.Property(e => e.StudentId).HasColumnName("student_id");
             entity.Property(e => e.SubjectId).HasColumnName("subject_id");
             entity.Property(e => e.TeacherId).HasColumnName("teacher_id");
@@ -165,41 +143,24 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<GradeType>(entity =>
         {
             entity.HasKey(e => e.GradeTypeId).HasName("PK__grade_ty__31F4E60D09520132");
-
             entity.ToTable("grade_types");
-
             entity.Property(e => e.GradeTypeId).HasColumnName("grade_type_id");
-            entity.Property(e => e.TypeName)
-                .HasMaxLength(50)
-                .HasColumnName("type_name");
+            entity.Property(e => e.TypeName).HasMaxLength(50).HasColumnName("type_name");
         });
 
         modelBuilder.Entity<HomeworkItem>(entity =>
         {
             entity.HasKey(e => e.HomeworkId).HasName("PK__homework__FD60442ADE5A56DA");
-
             entity.ToTable("homework_items");
-
             entity.Property(e => e.HomeworkId).HasColumnName("homework_id");
             entity.Property(e => e.ClassId).HasColumnName("class_id");
-            entity.Property(e => e.DateAssigned)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime")
-                .HasColumnName("date_assigned");
-            entity.Property(e => e.DateDue)
-                .HasColumnType("datetime")
-                .HasColumnName("date_due");
+            entity.Property(e => e.DateAssigned).HasDefaultValueSql("(getdate())").HasColumnType("datetime").HasColumnName("date_assigned");
+            entity.Property(e => e.DateDue).HasColumnType("datetime").HasColumnName("date_due");
             entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.ResourceLink)
-                .HasMaxLength(550)
-                .IsUnicode(false)
-                .HasColumnName("resource_link");
+            entity.Property(e => e.ResourceLink).HasMaxLength(550).IsUnicode(false).HasColumnName("resource_link");
             entity.Property(e => e.SubjectId).HasColumnName("subject_id");
             entity.Property(e => e.TeacherId).HasColumnName("teacher_id");
-            entity.Property(e => e.Title)
-                .HasMaxLength(150)
-                .HasDefaultValue("Домашно задание")
-                .HasColumnName("title");
+            entity.Property(e => e.Title).HasMaxLength(150).HasDefaultValue("Домашно задание").HasColumnName("title");
 
             entity.HasOne(d => d.Class).WithMany(p => p.HomeworkItems)
                 .HasForeignKey(d => d.ClassId)
@@ -217,9 +178,7 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Lesson>(entity =>
         {
             entity.HasKey(e => e.LessonId).HasName("PK__lessons__6421F7BEFFB3A617");
-
             entity.ToTable("lessons");
-
             entity.Property(e => e.LessonId).HasColumnName("lesson_id");
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.Date).HasColumnName("date");
@@ -249,13 +208,8 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Parent>(entity =>
         {
             entity.HasKey(e => e.ParentId).HasName("PK__parent__F2A60819165AFAB8");
-
             entity.ToTable("parent");
-
-            entity.Property(e => e.ParentId)
-                .ValueGeneratedNever()
-                .HasColumnName("parent_id");
-
+            entity.Property(e => e.ParentId).ValueGeneratedNever().HasColumnName("parent_id");
             entity.HasOne(d => d.ParentNavigation).WithOne(p => p.Parent)
                 .HasForeignKey<Parent>(d => d.ParentId)
                 .HasConstraintName("FK__parent__parent_i__412EB0B6");
@@ -264,20 +218,13 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Remark>(entity =>
         {
             entity.HasKey(e => e.RemarkId).HasName("PK__remarks__D46DA2D906BAA593");
-
             entity.ToTable("remarks");
-
             entity.Property(e => e.RemarkId).HasColumnName("remark_id");
-            entity.Property(e => e.DateCreated)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime")
-                .HasColumnName("date_created");
+            entity.Property(e => e.DateCreated).HasDefaultValueSql("(getdate())").HasColumnType("datetime").HasColumnName("date_created");
             entity.Property(e => e.StudentId).HasColumnName("student_id");
             entity.Property(e => e.TeacherId).HasColumnName("teacher_id");
             entity.Property(e => e.Text).HasColumnName("text");
-            entity.Property(e => e.Type)
-                .HasMaxLength(50)
-                .HasColumnName("type");
+            entity.Property(e => e.Type).HasMaxLength(50).HasColumnName("type");
 
             entity.HasOne(d => d.Student).WithMany(p => p.Remarks)
                 .HasForeignKey(d => d.StudentId)
@@ -292,12 +239,8 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Student>(entity =>
         {
             entity.HasKey(e => e.StudentId).HasName("PK__student__2A33069A22388D38");
-
             entity.ToTable("student");
-
-            entity.Property(e => e.StudentId)
-                .ValueGeneratedNever()
-                .HasColumnName("student_id");
+            entity.Property(e => e.StudentId).ValueGeneratedNever().HasColumnName("student_id");
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.ParentId).HasColumnName("parent_id");
 
@@ -317,41 +260,24 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Subject>(entity =>
         {
             entity.HasKey(e => e.SubjectId).HasName("PK__subjects__5004F6600397BCF4");
-
             entity.ToTable("subjects");
-
             entity.HasQueryFilter(e => !e.IsDeleted);
-
             entity.Property(e => e.SubjectId).HasColumnName("subject_id");
-            
-            entity.Property(e => e.SubjectName)
-                .HasMaxLength(100)
-                .HasColumnName("subject_name");
-
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
+            entity.Property(e => e.SubjectName).HasMaxLength(100).HasColumnName("subject_name");
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false).HasColumnName("is_deleted");
         });
 
         modelBuilder.Entity<SubmittedHomework>(entity =>
         {
             entity.HasKey(e => e.SubmissionId).HasName("PK__submitte__9B5355957BC8AEF5");
-
             entity.ToTable("submitted_homeworks");
-
             entity.Property(e => e.SubmissionId).HasColumnName("submission_id");
-            entity.Property(e => e.FileLink)
-                .HasMaxLength(550)
-                .IsUnicode(false)
-                .HasColumnName("file_link");
+            entity.Property(e => e.FileLink).HasMaxLength(550).IsUnicode(false).HasColumnName("file_link");
             entity.Property(e => e.HomeworkId).HasColumnName("homework_id");
             entity.Property(e => e.IsGraded).HasColumnName("is_graded");
             entity.Property(e => e.StudentId).HasColumnName("student_id");
             entity.Property(e => e.SubmissionText).HasColumnName("submission_text");
-            entity.Property(e => e.SubmittedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime")
-                .HasColumnName("submitted_at");
+            entity.Property(e => e.SubmittedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime").HasColumnName("submitted_at");
             entity.Property(e => e.TeacherFeedback).HasColumnName("teacher_feedback");
 
             entity.HasOne(d => d.Homework).WithMany(p => p.SubmittedHomeworks)
@@ -367,12 +293,8 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<Teacher>(entity =>
         {
             entity.HasKey(e => e.TeacherId).HasName("PK__teacher__03AE777ECC09F8E1");
-
             entity.ToTable("teacher");
-
-            entity.Property(e => e.TeacherId)
-                .ValueGeneratedNever()
-                .HasColumnName("teacher_id");
+            entity.Property(e => e.TeacherId).ValueGeneratedNever().HasColumnName("teacher_id");
 
             entity.HasOne(d => d.TeacherNavigation).WithOne(p => p.Teacher)
                 .HasForeignKey<Teacher>(d => d.TeacherId)
@@ -381,14 +303,8 @@ public partial class DnevnikContext : DbContext
             entity.HasMany(d => d.Subjects).WithMany(p => p.Teachers)
                 .UsingEntity<Dictionary<string, object>>(
                     "TeacherSubject",
-                    r => r.HasOne<Subject>().WithMany()
-                        .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK__teacher_s__subje__4E88ABD4"),
-                    l => l.HasOne<Teacher>().WithMany()
-                        .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK__teacher_s__teach__4D94879B"),
+                    r => r.HasOne<Subject>().WithMany().HasForeignKey("SubjectId").OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("FK__teacher_s__subje__4E88ABD4"),
+                    l => l.HasOne<Teacher>().WithMany().HasForeignKey("TeacherId").OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("FK__teacher_s__teach__4D94879B"),
                     j =>
                     {
                         j.HasKey("TeacherId", "SubjectId").HasName("PK__teacher___16AE3818951F373C");
@@ -401,61 +317,29 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.UserId).HasName("PK__users__B9BE370F8F2732C5");
-
             entity.ToTable("users");
-
             entity.HasQueryFilter(e => !e.IsDeleted);
-
-            entity.HasIndex(e => e.Email, "UQ__users__AB6E61649DF4B344")
-                  .IsUnique()
-                  .HasFilter("[is_deleted] = 0"); 
-
+            entity.HasIndex(e => e.Email, "UQ__users__AB6E61649DF4B344").IsUnique().HasFilter("[is_deleted] = 0");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime")
-                .HasColumnName("created_at");
-            
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
-
-            entity.Property(e => e.Email)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("email");
-            entity.Property(e => e.FirstName)
-                .HasMaxLength(100)
-                .HasColumnName("first_name");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime").HasColumnName("created_at");
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false).HasColumnName("is_deleted");
+            entity.Property(e => e.Email).HasMaxLength(255).IsUnicode(false).HasColumnName("email");
+            entity.Property(e => e.FirstName).HasMaxLength(100).HasColumnName("first_name");
             entity.Property(e => e.IsApproved).HasColumnName("is_approved");
-            entity.Property(e => e.LastName)
-                .HasMaxLength(100)
-                .HasColumnName("last_name");
-            entity.Property(e => e.PasswordHash)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("password_hash");
-            entity.Property(e => e.PhoneNumber)
-                .HasMaxLength(20)
-                .IsUnicode(false)
-                .HasColumnName("phone_number");
-            entity.Property(e => e.Role)
-                .HasMaxLength(50)
-                .HasColumnName("role");
+            entity.Property(e => e.LastName).HasMaxLength(100).HasColumnName("last_name");
+            entity.Property(e => e.PasswordHash).HasMaxLength(255).IsUnicode(false).HasColumnName("password_hash");
+            entity.Property(e => e.PhoneNumber).HasMaxLength(20).IsUnicode(false).HasColumnName("phone_number");
+            entity.Property(e => e.Role).HasMaxLength(50).HasColumnName("role");
         });
 
         modelBuilder.Entity<WeeklyScheduleItem>(entity =>
         {
             entity.HasKey(e => e.ScheduleItemId).HasName("PK__weekly_s__23BB45AD8B634EEF");
-
             entity.ToTable("weekly_schedule_items");
-
             entity.Property(e => e.ScheduleItemId).HasColumnName("schedule_item_id");
             entity.Property(e => e.ClassId).HasColumnName("class_id");
             entity.Property(e => e.DayOfWeek).HasColumnName("day_of_week");
-            entity.Property(e => e.Location)
-                .HasMaxLength(100)
-                .HasColumnName("location");
+            entity.Property(e => e.Location).HasMaxLength(100).HasColumnName("location");
             entity.Property(e => e.SubjectId).HasColumnName("subject_id");
             entity.Property(e => e.TeacherId).HasColumnName("teacher_id");
             entity.Property(e => e.Time).HasColumnName("time");
@@ -476,23 +360,16 @@ public partial class DnevnikContext : DbContext
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.HasKey(e => e.ID).HasName("PK_refresh_tokens");
-
             entity.ToTable("refresh_tokens");
-
             entity.Property(e => e.ID).HasColumnName("id");
-            entity.Property(e => e.Token)
-                .HasMaxLength(500)
-                .IsUnicode(false)
-                .HasColumnName("token");
-            entity.Property(e => e.ExpiresAt)
-                .HasColumnType("datetime")
-                .HasColumnName("expires_at");
+            entity.Property(e => e.Token).HasMaxLength(500).IsUnicode(false).HasColumnName("token");
+            entity.Property(e => e.ExpiresAt).HasColumnType("datetime").HasColumnName("expires_at");
             entity.Property(e => e.IsRevoked).HasColumnName("is_revoked");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.User).WithMany()
                 .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict) // Changed from Cascade to Restrict to fix SQL Server errors
                 .HasConstraintName("FK_refresh_tokens_users");
         });
 
