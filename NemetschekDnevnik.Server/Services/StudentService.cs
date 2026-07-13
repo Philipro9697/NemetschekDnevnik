@@ -58,6 +58,7 @@ public class StudentService : IStudentService
                 IsExcused = a.IsExcused,
                 Date = a.Lesson.Date,
                 Time = a.Lesson.Time,
+                StudentId = a.StudentId,
                 SubjectId = a.Lesson.SubjectId ?? -1,
                 SubjectName = a.Lesson.Subject.SubjectName,
                 LessonId = a.LessonId
@@ -122,6 +123,7 @@ public class StudentService : IStudentService
                 HomeworkId = hw.HomeworkId,
                 SubjectId = hw.SubjectId ?? -1,
                 TeacherId = hw.TeacherId ?? -1,
+                ClassId = hw.ClassId ?? -1,
                 Title = hw.Title,
                 Description = hw.Description ?? "",
                 ResourceLink = hw.ResourceLink ?? "",

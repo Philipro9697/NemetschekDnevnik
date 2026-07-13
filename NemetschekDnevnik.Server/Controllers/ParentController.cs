@@ -97,6 +97,48 @@ public class ParentController : ControllerBase
         }
         return Ok(await _studentService.GetSubjects(student));
     }
+
+    [HttpGet("schedule/{id}")]
+    [Authorize(Roles = "Parent")]
+    public async Task<ActionResult<List<ScheduleDto>>> GetStudentSchedule(int id)
+    {
+        Parent? parent = await GetParent();
+        if (parent is null) return NotFound("Parent not found");
+        Student? student = await _studentService.GetStudentById(id);
+        if (student is null || student.ParentId != parent.ParentId)
+        {
+            return StatusCode(403, new { message = "This is not your child!" });
+        }
+        return Ok(await _studentService.GetWeeklySchedule(student));
+    }
+
+    [HttpGet("lessons/{id}")]
+    [Authorize(Roles = "Parent")]
+    public async Task<ActionResult<List<LessonDto>>> GetStudentLessons(int id)
+    {
+        Parent? parent = await GetParent();
+        if (parent is null) return NotFound("Parent not found");
+        Student? student = await _studentService.GetStudentById(id);
+        if (student is null || student.ParentId != parent.ParentId)
+        {
+            return StatusCode(403, new { message = "This is not your child!" });
+        }
+        return Ok(await _studentService.GetLessons(student));
+    }
+
+    [HttpGet("homeworks/{id}")]
+    [Authorize(Roles = "Parent")]
+    public async Task<ActionResult<List<HomeworkItemDto>>> GetStudentHomeworks(int id)
+    {
+        Parent? parent = await GetParent();
+        if (parent is null) return NotFound("Parent not found");
+        Student? student = await _studentService.GetStudentById(id);
+        if (student is null || student.ParentId != parent.ParentId)
+        {
+            return StatusCode(403, new { message = "This is not your child!" });
+        }
+        return Ok(await _studentService.GetHomeworkItems(student));
+    }
 }
 
 

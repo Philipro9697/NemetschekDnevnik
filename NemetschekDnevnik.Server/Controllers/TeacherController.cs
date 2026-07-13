@@ -153,6 +153,53 @@ public class TeacherController : ControllerBase
         if (!teacher.Classes.Any(c => c.ClassId == id)) return StatusCode(403, new { message = "This is not your class!" });
         return Ok(await _teacherService.GetHomeworkItems(teacher, id));
     }
+    [HttpPost("remarks")]
+    public async Task<IActionResult> PostRemark(RemarkDto dto)
+    {
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        var student = await _studentService.GetStudentById(dto.StudentId);
+        if (student is null) return NotFound();
+
+        if (!_teacherService.TeachesStudent(teacher, student))
+            return Forbid();
+
+        bool success = await _teacherService.PostRemarkForStudent(teacher, dto);
+
+        return success ? Ok(new { message = "success" }) : BadRequest();
+    }
+
+    [HttpPost("absences")]
+    public async Task<IActionResult> PostAbsence(AbsenceDto dto)
+    {
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        var student = await _studentService.GetStudentById(dto.StudentId);
+        if (student is null) return NotFound();
+
+        if (!_teacherService.TeachesStudent(teacher, student))
+            return Forbid();
+
+        bool success = await _teacherService.PostAbsence(teacher, dto);
+
+        return success ? Ok(new { message = "success" }) : BadRequest();
+    }
+
+    [HttpPost("homework")]
+    public async Task<IActionResult> PostHomework(HomeworkItemDto dto)
+    {
+        var teacher = await GetTeacher();
+        if (teacher is null) return Unauthorized();
+
+        if (!teacher.Classes.Any(c => c.ClassId == dto.ClassId)) return Forbid();
+
+        bool success = await _teacherService.PostHomeworkItem(teacher, dto);
+
+        return success ? Ok(new { message = "success" }) : BadRequest();
+    }
+
 }
 
 

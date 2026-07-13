@@ -80,6 +80,7 @@ public class TeacherService : ITeacherService
             .Select(a => new AbsenceDto
             {
                 IsExcused = a.IsExcused,
+                StudentId = a.StudentId,
                 Date = a.Lesson.Date,
                 Time = a.Lesson.Time,
                 SubjectId = a.Lesson.SubjectId ?? -1,
@@ -180,6 +181,7 @@ public class TeacherService : ITeacherService
                 HomeworkId = hw.HomeworkId,
                 SubjectId = hw.SubjectId ?? -1,
                 TeacherId = hw.TeacherId ?? -1,
+                ClassId = hw.ClassId ?? -1,
                 Title = hw.Title,
                 Description = hw.Description ?? "",
                 ResourceLink = hw.ResourceLink ?? "",
@@ -211,12 +213,80 @@ public class TeacherService : ITeacherService
             })
             .ToListAsync();
     }
-    
+
     public bool TeachesStudent(Teacher teacher, Student student)
     {
         return teacher.Classes.Any(c => c.ClassId == student.Class.ClassId);
     }
-    
+
+    public async Task<bool> PostRemarkForStudent(Teacher teacher, RemarkDto remark)
+    {
+        Remark remarkobj = new Remark
+        {
+            StudentId = remark.StudentId,
+            TeacherId = teacher.TeacherId,
+            Type = remark.Type,
+            Text = remark.Text,
+            DateCreated = DateTime.UtcNow,
+        };
+        try
+        {
+            await _db.Remarks.AddAsync(remarkobj);
+            await _db.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> PostAbsence(Teacher teacher, AbsenceDto absence)
+    {
+        Attendance attobj = new Attendance
+        {
+            StudentId = absence.StudentId,
+            LessonId = absence.LessonId,
+            IsAbsent = true,
+            IsExcused = absence.IsExcused,
+        };
+        try
+        {
+            await _db.Attendances.AddAsync(attobj);
+            await _db.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> PostHomeworkItem(Teacher teacher, HomeworkItemDto homework)
+    {
+        HomeworkItem homeworkobj = new HomeworkItem
+        {
+            TeacherId = teacher.TeacherId,
+            SubjectId = homework.SubjectId,
+            DateAssigned = DateTime.UtcNow,
+            DateDue = homework.DateDue,
+            ResourceLink = homework.ResourceLink,
+            Title = homework.Title,
+            Description = homework.Description,
+            ClassId = homework.ClassId
+        };
+        try
+        {
+            await _db.HomeworkItems.AddAsync(homeworkobj);
+            await _db.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
 }
 
 

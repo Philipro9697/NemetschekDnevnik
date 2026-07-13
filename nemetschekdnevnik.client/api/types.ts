@@ -2,6 +2,7 @@ export type UserRole = "Teacher" | "Student" | "Parent";
 
 export interface AbsenceDto {
 	isExcused: boolean;
+	studentId: number;
 	date: string; // "YYYY-MM-DD"
 	time: string; // "HH:mm:ss"
 	subjectId: number;
@@ -55,6 +56,7 @@ export interface AddGradeDto {
 
 export interface HomeworkItemDto {
 	homeworkId: number;
+	classId: number;
 	subjectId: number;
 	teacherId: number;
 	title: string;
