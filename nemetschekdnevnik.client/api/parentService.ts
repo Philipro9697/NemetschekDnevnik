@@ -27,4 +27,8 @@ export const parentService = {
     getChildSubjects: (studentId: number) => {
         return apiClient<SubjectDto[]>(`/parent/subjects/${studentId}`);
     },
+
+    getChildHomework: (studentId: number) => {
+        return apiClient<any[]>(`/parent/homework/${studentId}`);
+    }
 };
