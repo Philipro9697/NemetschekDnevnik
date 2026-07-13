@@ -1,66 +1,87 @@
 import { apiClient } from "./apiClient";
-import{
-    GradeDto,
-    AddGradeDto,
-    ClassDto,
-    ScheduleDto,
-    AbsenceDto,
-    RemarkDto,
-    LessonDto,
-    SubjectDto,
-    HomeworkItemDto,
-    StudentInfoDto,
+import {
+	GradeDto,
+	AddGradeDto,
+	ClassDto,
+	ScheduleDto,
+	AbsenceDto,
+	RemarkDto,
+	LessonDto,
+	SubjectDto,
+	HomeworkItemDto,
+	StudentInfoDto,
 } from "./types";
 
 export const teacherService = {
-    getGrades: (classId: number) => {
-        return apiClient<GradeDto[]>(`/teacher/grades/${classId}`);
-    },
+	getGrades: (classId: number) => {
+		return apiClient<GradeDto[]>(`/teacher/grades/${classId}`);
+	},
 
-    addGrade: (dto: AddGradeDto) => {
-        return apiClient<GradeDto>("/teacher/grades", {
-            method: "POST",
-            body: JSON.stringify(dto),
-        });
-    },
+	addGrade: (dto: AddGradeDto) => {
+		return apiClient<GradeDto>("/teacher/grades", {
+			method: "POST",
+			body: JSON.stringify(dto),
+		});
+	},
 
-    getClasses: () => {
-        return apiClient<ClassDto[]>("/teacher/classes");
-    },
+	addRemark: (dto: RemarkDto) => {
+		return apiClient<RemarkDto>("/teacher/remarks", {
+			method: "POST",
+			body: JSON.stringify(dto),
+		});
+	},
 
-    getClass: () => {
-        return apiClient<ClassDto | null>("/teacher/class");
-    },
+	addAbsence: (dto: AbsenceDto) => {
+		return apiClient<AbsenceDto>("/teacher/absences", {
+			method: "POST",
+			body: JSON.stringify(dto),
+		});
+	},
 
-    getStudents: (classId: number) => {
-        return apiClient<StudentInfoDto[]>(`/teacher/students/${classId}`);
-    },
+	addHomework: (dto: HomeworkItemDto) => {
+		return apiClient<HomeworkItemDto>("/teacher/homework", {
+			method: "POST",
+			body: JSON.stringify(dto),
+		});
+	},
 
-    getSchedule: () => {
-        return apiClient<ScheduleDto[]>("/teacher/schedule");
-    },
+	getClasses: () => {
+		return apiClient<ClassDto[]>("/teacher/classes");
+	},
 
-    getAbsences: (classId: number) => {
-        return apiClient<AbsenceDto[]>(`/teacher/absences/${classId}`);
-    },
+	getClass: () => {
+		return apiClient<ClassDto | null>("/teacher/class");
+	},
 
-    getRemarks: (classId: number) => {
-        return apiClient<RemarkDto[]>(`/teacher/remarks/${classId}`);
-    },
+	getStudents: (classId: number) => {
+		return apiClient<StudentInfoDto[]>(`/teacher/students/${classId}`);
+	},
 
-    getRemarksForStudent: (studentId: number) => {
-        return apiClient<RemarkDto[]>(`/teacher/remarks/student/${studentId}`);
-    },
+	getSchedule: () => {
+		return apiClient<ScheduleDto[]>("/teacher/schedule");
+	},
 
-    getLessons: (classId: number) => {
-        return apiClient<LessonDto[]>(`/teacher/lessons/${classId}`);
-    },
+	getAbsences: (classId: number) => {
+		return apiClient<AbsenceDto[]>(`/teacher/absences/${classId}`);
+	},
 
-    getSubjects: () => {
-        return apiClient<SubjectDto[]>("/teacher/subjects");
-    },
+	getRemarks: (classId: number) => {
+		return apiClient<RemarkDto[]>(`/teacher/remarks/${classId}`);
+	},
 
-    getHomework: (classId: number) => {
-        return apiClient<HomeworkItemDto[]>(`/teacher/homework/${classId}`);
-    }
+	getRemarksForStudent: (studentId: number) => {
+		return apiClient<RemarkDto[]>(`/teacher/remarks/student/${studentId}`);
+	},
+
+	getLessons: (classId: number) => {
+		return apiClient<LessonDto[]>(`/teacher/lessons/${classId}`);
+	},
+
+	getSubjects: () => {
+		return apiClient<SubjectDto[]>("/teacher/subjects");
+	},
+
+	getHomework: (classId: number) => {
+		return apiClient<HomeworkItemDto[]>(`/teacher/homework/${classId}`);
+	},
 };

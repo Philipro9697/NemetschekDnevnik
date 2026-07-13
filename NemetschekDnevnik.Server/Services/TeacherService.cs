@@ -231,7 +231,7 @@ public class TeacherService : ITeacherService
         };
         try
         {
-            await _db.Remarks.AddAsync(remarkobj);
+            _db.Remarks.Add(remarkobj);
             await _db.SaveChangesAsync();
             return true;
         }
@@ -252,7 +252,7 @@ public class TeacherService : ITeacherService
         };
         try
         {
-            await _db.Attendances.AddAsync(attobj);
+            _db.Attendances.Add(attobj);
             await _db.SaveChangesAsync();
             return true;
         }
