@@ -36,14 +36,22 @@ public class UsersController : ControllerBase
         }
 
         return Ok(profile);
-    }   
-    
+    }
+
     [HttpGet]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<IEnumerable<UserAccountDto>>> GetAllUsers()
     {
         var users = await _adminService.GetAllUsersAsync();
         return Ok(users);
+    }
+
+    [HttpGet("students")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<StudentInfoDto>>> GetAllStudents()
+    {
+        var students = await _adminService.GetAllStudents();
+        return Ok(students);
     }
 
     [HttpPost]
@@ -96,7 +104,19 @@ public class UsersController : ControllerBase
             Ok(new { message = "User deleted successfully." }) :
             NotFound(new { message = "User not found." });
     }
+    [HttpGet("me")]
+    public async Task<ActionResult<UserAccountDto>> GetCurrentUser()
+    {
+        try
+        {
+            var requesterId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return await GetUserProfile(requesterId);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 
-  
-   
+
 }

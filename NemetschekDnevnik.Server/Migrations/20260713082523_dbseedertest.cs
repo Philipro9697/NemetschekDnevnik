@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NemetschekDnevnik.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class dbseedertest : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -30,7 +30,8 @@ namespace NemetschekDnevnik.Server.Migrations
                 {
                     subject_id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    subject_name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    subject_name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    is_deleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -50,6 +51,7 @@ namespace NemetschekDnevnik.Server.Migrations
                     last_name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     phone_number = table.Column<string>(type: "varchar(20)", unicode: false, maxLength: 20, nullable: true),
                     is_approved = table.Column<bool>(type: "bit", nullable: false),
+                    is_deleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     created_at = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "(getdate())")
                 },
                 constraints: table =>
@@ -86,6 +88,28 @@ namespace NemetschekDnevnik.Server.Migrations
                     table.ForeignKey(
                         name: "FK__parent__parent_i__412EB0B6",
                         column: x => x.parent_id,
+                        principalTable: "users",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "refresh_tokens",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    token = table.Column<string>(type: "varchar(500)", unicode: false, maxLength: 500, nullable: false),
+                    expires_at = table.Column<DateTime>(type: "datetime", nullable: false),
+                    is_revoked = table.Column<bool>(type: "bit", nullable: false),
+                    user_id = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_refresh_tokens", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_refresh_tokens_users",
+                        column: x => x.user_id,
                         principalTable: "users",
                         principalColumn: "user_id",
                         onDelete: ReferentialAction.Cascade);
@@ -474,6 +498,11 @@ namespace NemetschekDnevnik.Server.Migrations
                 column: "teacher_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_refresh_tokens_user_id",
+                table: "refresh_tokens",
+                column: "user_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_remarks_student_id",
                 table: "remarks",
                 column: "student_id");
@@ -512,7 +541,8 @@ namespace NemetschekDnevnik.Server.Migrations
                 name: "UQ__users__AB6E61649DF4B344",
                 table: "users",
                 column: "email",
-                unique: true);
+                unique: true,
+                filter: "[is_deleted] = 0");
 
             migrationBuilder.CreateIndex(
                 name: "IX_weekly_schedule_items_class_id",
@@ -541,6 +571,9 @@ namespace NemetschekDnevnik.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "grades");
+
+            migrationBuilder.DropTable(
+                name: "refresh_tokens");
 
             migrationBuilder.DropTable(
                 name: "remarks");

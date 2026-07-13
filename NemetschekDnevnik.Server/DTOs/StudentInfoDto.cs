@@ -13,6 +13,10 @@ public class StudentInfoDto
     [Required]
     public int ClassId { get; set; }
 
+    public int ClassGrade { get; set; }
+
+    public string ClassLetter { get; set; } = string.Empty;
+
     [Required]
     public string FirstName { get; set; }
 

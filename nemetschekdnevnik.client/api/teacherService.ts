@@ -9,6 +9,7 @@ import{
     LessonDto,
     SubjectDto,
     HomeworkItemDto,
+    StudentInfoDto,
 } from "./types";
 
 export const teacherService = {
@@ -29,6 +30,10 @@ export const teacherService = {
 
     getClass: () => {
         return apiClient<ClassDto | null>("/teacher/class");
+    },
+
+    getStudents: (classId: number) => {
+        return apiClient<StudentInfoDto[]>(`/teacher/students/${classId}`);
     },
 
     getSchedule: () => {

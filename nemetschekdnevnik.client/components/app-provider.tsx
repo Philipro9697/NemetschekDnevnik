@@ -3,11 +3,16 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import { authService } from '@/api/authService'
+import { userService } from '@/api/userService'
+import { studentService } from '@/api/studentService'
+import { parentService } from '@/api/parentService'
+import type { UserAccountDto, GradeDto, AbsenceDto, RemarkDto, ScheduleDto, SubjectDto, StudentInfoDto } from '@/api/types'
 import {
   users as seedUsers,
   seedGrades,
@@ -35,11 +40,19 @@ interface Notification {
 }
 
 interface AppState {
-  currentUser: User | null
+  currentUser: (User & { apiData?: UserAccountDto }) | null
   users: User[]
   grades: Grade[]
   absences: Absence[]
   notes: Note[]
+  // API data for students
+  apiGrades: GradeDto[]
+  apiAbsences: AbsenceDto[]
+  apiRemarks: RemarkDto[]
+  apiSchedule: ScheduleDto[]
+  apiSubjects: SubjectDto[]
+  // API data for parents
+  apiChildren: StudentInfoDto[]
   homework: Homework[]
   events: CalendarEvent[]
   threads: Thread[]
@@ -47,7 +60,7 @@ interface AppState {
   view: string
   selectedClassId: string | null
   selectedChildId: string | null
-  login: (userId: string, role?: string) => void
+  login: (userData: UserAccountDto) => Promise<void>
   logout: () => void
   setView: (v: string) => void
   setSelectedClass: (classId: string | null) => void
@@ -110,7 +123,7 @@ function getDefaultView(role: Role) {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [currentUser, setCurrentUser] = useState<(User & { apiData?: UserAccountDto }) | null>(null)
   const [users, setUsers] = useState<User[]>(seedUsers)
   const [grades, setGrades] = useState<Grade[]>(seedGrades)
   const [absences, setAbsences] = useState<Absence[]>(seedAbsences)
@@ -119,6 +132,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<CalendarEvent[]>(seedEvents)
   const [threads, setThreads] = useState<Thread[]>(seedThreads)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  // API data for students
+  const [apiGrades, setApiGrades] = useState<GradeDto[]>([])
+  const [apiAbsences, setApiAbsences] = useState<AbsenceDto[]>([])
+  const [apiRemarks, setApiRemarks] = useState<RemarkDto[]>([])
+  const [apiSchedule, setApiSchedule] = useState<ScheduleDto[]>([])
+  const [apiSubjects, setApiSubjects] = useState<SubjectDto[]>([])
+  const [apiChildren, setApiChildren] = useState<StudentInfoDto[]>([])
   const [view, setView] = useState('')
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
@@ -129,6 +149,77 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...prev,
     ])
   }
+
+  // Shared by both real login and the page-load session restore below, so the
+  // "build a User from a UserAccountDto + fetch student data" logic lives in one place.
+  async function applyUserProfile(userData: UserAccountDto) {
+    const user: User & { apiData?: UserAccountDto } = {
+      id: String(userData.userId),
+      name: `${userData.firstName} ${userData.lastName}`,
+      username: userData.email,
+      email: userData.email,
+      role: normalizeRole(userData.role),
+      status: userData.isApproved ? 'active' : 'blocked',
+      classId: '1',
+      childrenIds: [],
+      phone: userData.phoneNumber,
+      apiData: userData,
+    }
+    setCurrentUser(user)
+    setSelectedChildId(user.role === 'parent' ? user.childrenIds?.[0] ?? null : null)
+    setView(getDefaultView(user.role))
+    localStorage.setItem('userId', String(userData.userId))
+
+    if (user.role === 'student') {
+      try {
+        const [gradesRes, absencesRes, remarksRes, scheduleRes, subjectsRes, infoRes] = await Promise.all([
+          studentService.getGrades(),
+          studentService.getAbsences(),
+          studentService.getRemarks(),
+          studentService.getSchedule(),
+          studentService.getSubjects(),
+          studentService.getStudentInfo(),
+        ])
+        setApiGrades(gradesRes)
+        setApiAbsences(absencesRes)
+        setApiRemarks(remarksRes)
+        setApiSchedule(scheduleRes)
+        setApiSubjects(subjectsRes)
+        setCurrentUser({
+          ...user,
+          className: infoRes.classGrade ? `${infoRes.classGrade}${infoRes.classLetter}` : undefined,
+        })
+      } catch (error) {
+        console.error('Failed to fetch student data:', error)
+      }
+    } else if (user.role === 'parent') {
+      try {
+        const childrenRes = await parentService.getChildren()
+        setApiChildren(childrenRes)
+        const childrenIds = childrenRes.map((c) => String(c.studentId))
+        setCurrentUser({ ...user, childrenIds })
+        setSelectedChildId(childrenIds[0] ?? null)
+      } catch (error) {
+        console.error('Failed to fetch parent children:', error)
+      }
+    }
+  }
+
+  // Restore a real session on page load/refresh, using the userId saved by login() below.
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken')
+    const storedUserId = localStorage.getItem('userId')
+    if (token && storedUserId && !currentUser) {
+      userService.getUserProfile(Number(storedUserId))
+        .then(applyUserProfile)
+        .catch((error) => {
+          console.error('Failed to sync user from API:', error)
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('userId')
+        })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const value = useMemo<AppState>(
     () => ({
@@ -141,28 +232,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       events,
       threads,
       notifications,
+      apiGrades,
+      apiAbsences,
+      apiRemarks,
+      apiSchedule,
+      apiSubjects,
+      apiChildren,
       view,
       selectedClassId,
       selectedChildId,
-      login: (userId, role) => {
-        const normalizedRole = normalizeRole(role)
-        const existingUser =
-          users.find((x) => x.id === userId) ??
-          users.find((x) => x.username === userId || x.email === userId) ??
-          null
-
-        const nextUser = existingUser ?? ({
-          id: userId,
-          name: userId,
-          username: userId,
-          email: userId,
-          role: normalizedRole,
-          status: 'active' as const,
-        } satisfies User)
-
-        setCurrentUser(nextUser)
-        setSelectedChildId(nextUser.role === 'parent' ? nextUser.childrenIds?.[0] ?? null : null)
-        setView(getDefaultView(nextUser.role))
+      login: async (userData: UserAccountDto) => {
+        await applyUserProfile(userData)
       },
       logout: () => {
         void authService.logout().catch(() => undefined)
@@ -170,6 +250,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setView('')
         setSelectedClassId(null)
         setSelectedChildId(null)
+        setGrades([])
+        setAbsences([])
+        setNotes([])
+        setApiGrades([])
+        setApiAbsences([])
+        setApiRemarks([])
+        setApiSchedule([])
+        setApiSubjects([])
+        setApiChildren([])
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('userId')
       },
       setView,
       setSelectedClass: (classId) => setSelectedClassId(classId),
@@ -289,7 +380,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
         })
       },
     }),
-    [currentUser, users, grades, absences, notes, homework, events, threads, notifications, view, selectedClassId, selectedChildId],
+    [
+      currentUser,
+      users,
+      grades,
+      absences,
+      notes,
+      homework,
+      events,
+      threads,
+      notifications,
+      view,
+      selectedClassId,
+      selectedChildId,
+      apiGrades,
+      apiAbsences,
+      apiRemarks,
+      apiSchedule,
+      apiSubjects,
+      apiChildren,
+    ],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

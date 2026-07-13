@@ -11,4 +11,5 @@ public interface IAdminService
     Task<IEnumerable<UserAccountDto>> GetAllUsersAsync();
     Task<List<TeacherDto>> GetAllTeachers();
     Task<List<ParentDto>> GetAllParents();
+    Task<List<StudentInfoDto>> GetAllStudents();
 }

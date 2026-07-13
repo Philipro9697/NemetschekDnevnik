@@ -398,6 +398,12 @@ namespace NemetschekDnevnik.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubjectId"));
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
                     b.Property<string>("SubjectName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -505,6 +511,12 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("is_approved");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -534,7 +546,8 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasName("PK__users__B9BE370F8F2732C5");
 
                     b.HasIndex(new[] { "Email" }, "UQ__users__AB6E61649DF4B344")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[is_deleted] = 0");
 
                     b.ToTable("users", (string)null);
                 });

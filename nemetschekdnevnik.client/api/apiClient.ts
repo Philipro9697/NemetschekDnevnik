@@ -47,5 +47,11 @@ export async function apiClient<T>(endpoint: string, options: RequestInit = {}):
         return null as unknown as T;
     }
 
-    return response.json() as Promise<T>;
+    // Some endpoints (e.g. DELETE actions that just return Ok()) send a 200 with an
+    // empty body, which would make response.json() throw. Treat that the same as 204.
+    const text = await response.text();
+    if (!text) {
+        return null as unknown as T;
+    }
+    return JSON.parse(text) as T;
 }
