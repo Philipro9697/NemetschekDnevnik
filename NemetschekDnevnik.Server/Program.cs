@@ -62,21 +62,24 @@ builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthorization();
 
-builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
+builder.Services.AddDbContext<DnevnikContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary;Integrated Security=True;TrustServerCertificate=True"));
+        ?? "Server=localhost\\SQLEXPRESS;Database=Dnevnik;Integrated Security=True;TrustServerCertificate=True"));
 
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+builder.Services.AddHostedService<DatabaseMaintenanceService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<NemetschekSchoolDiaryContext>();
+    var context = services.GetRequiredService<DnevnikContext>();
+
     context.Database.Migrate();
 
     NemetschekDnevnik.Server.Data.DbSeeder.SeedAllData(context);
