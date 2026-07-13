@@ -103,18 +103,6 @@ export function SettingsScreen() {
             checked={notifAbsences}
             onChange={setNotifAbsences}
           />
-          <ToggleRow
-            label="Съобщения"
-            description="Известие при ново съобщение в чата"
-            checked={notifMessages}
-            onChange={setNotifMessages}
-          />
-          <ToggleRow
-            label="Седмичен имейл обзор"
-            description="Обобщение на активността по имейл всеки петък"
-            checked={emailDigest}
-            onChange={setEmailDigest}
-          />
         </CardBody>
       </Card>
 
