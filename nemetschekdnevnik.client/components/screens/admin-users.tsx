@@ -1,7 +1,7 @@
 "use client";
 import { userService } from "@/api/userService";
 import { adminService } from "@/api/adminService";
-import type { UserRole, UserAccountDto, GradeDto } from "@/api/types";
+import type { UserRole, UserAccountDto, GradeDto, StudentInfoDto } from "@/api/types";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { Card } from "@/components/ui/card";
@@ -98,13 +98,41 @@ export function AdminUsers() {
 		"all" | "active" | "blocked"
 	>("all");
 	const [deleteCandidate, setDeleteCandidate] = useState<User | null>(null);
+	const [realStudents, setRealStudents] = useState<StudentInfoDto[]>([]);
+
+	useEffect(() => {
+		adminService
+			.getStudents()
+			.then(setRealStudents)
+			.catch((error) => console.error("Failed to fetch real students:", error));
+	}, []);
+
+	// Real backend-backed accounts (apiUserId set) get their real class letter from
+	// the server; purely mock/demo student rows keep the mock lib/data lookup.
+	const realClassByStudentId = useMemo(() => {
+		const map = new Map<number, string>();
+		for (const s of realStudents) {
+			if (s.classGrade) map.set(s.studentId, `${s.classGrade}${s.classLetter}`);
+		}
+		return map;
+	}, [realStudents]);
+
+	function classLabelFor(u: User) {
+		if (u.role === "student" && u.apiUserId) {
+			return realClassByStudentId.get(u.apiUserId) ?? classById(u.classId)?.name ?? "—";
+		}
+		return classById(u.classId)?.name ?? "—";
+	}
 
 	const filtered = useMemo(() => {
 		const queryText = query.toLowerCase().trim();
 		return app.users.filter((u) => {
 			const className =
-				classById(u.classId)?.name ??
-				(u.classTeacherOf ? classById(u.classTeacherOf)?.name + " (кл.)" : "");
+				classLabelFor(u) !== "—"
+					? classLabelFor(u)
+					: u.classTeacherOf
+						? classById(u.classTeacherOf)?.name + " (кл.)"
+						: "";
 			const statusLabel = u.status === "active" ? "активен" : "блокиран";
 			const searchText = [
 				u.name,
@@ -126,7 +154,7 @@ export function AdminUsers() {
 			const matchesStatus = statusFilter === "all" || u.status === statusFilter;
 			return matchesQuery && matchesRole && matchesClass && matchesStatus;
 		});
-	}, [app.users, query, roleFilter, classFilter, statusFilter]);
+	}, [app.users, query, roleFilter, classFilter, statusFilter, realClassByStudentId]);
 
 	const counts = {
 		all: app.users.length,
@@ -264,7 +292,7 @@ export function AdminUsers() {
 									</td>
 									<td className="px-4 py-3 text-muted-foreground">
 										{u.role === "student"
-											? (classById(u.classId)?.name ?? "—")
+											? classLabelFor(u)
 											: u.role === "teacher"
 												? `${u.classTeacherOf ? classById(u.classTeacherOf)?.name + " (кл.)" : "—"}${u.subjectIds?.length
 													? ` • ${u.subjectIds
@@ -502,14 +530,12 @@ function RegisterDialog({
 		setLoading(false);
 	}
 
-	// 2. Make handleSubmit async to handle the server database entry
 	async function handleSubmit() {
 		if (!name.trim()) return;
 
 		setLoading(true);
 		setError(null);
 
-		// Split "Три имена" into FirstName and LastName for the backend DTO
 		const nameParts = name.trim().split(/\s+/);
 		const firstName = nameParts[0] || "";
 		const lastName =
@@ -522,13 +548,11 @@ function RegisterDialog({
 				? parentNameParts.slice(1).join(" ")
 				: "Петрова";
 
-		// Generate a safe temporary password since the UI form doesn't request one
 		const generatedPassword =
 			"Nms" + Math.floor(100000 + Math.random() * 899000) + "!";
 		const parentPassword =
 			"Nms" + Math.floor(100000 + Math.random() * 899000) + "!";
 
-		// Map lowercase UI roles to capitalized backend system strings
 		const backendRole: UserRole =
 			role === "teacher"
 				? "Teacher"
@@ -554,7 +578,6 @@ function RegisterDialog({
 
 			const studentClassId = backendClassIdByClientId[classId] ?? 1;
 
-			// Send HTTP POST request to api/users
 			const serverUser = await userService.createUser({
 				email: targetEmail,
 				password: generatedPassword,
@@ -569,8 +592,6 @@ function RegisterDialog({
 				classId: role === "student" ? studentClassId : undefined,
 			});
 
-			// Update local state context if your application syncs client arrays
-			// 1. Add the main user (Student/Teacher)
 			if (app.addUser) {
 				app.addUser({
 					name: `${serverUser.firstName} ${serverUser.lastName}`,
@@ -583,7 +604,6 @@ function RegisterDialog({
 				});
 			}
 
-			// 2. Add the secondary user (Parent) - Only if a student is being registered
 			if (role === "student" && app.addUser && secondaryUser) {
 				const parentUsername = parentName.trim()
 					? transliterate(parentName).replace(/\s+/g, ".")
@@ -591,14 +611,13 @@ function RegisterDialog({
 
 				app.addUser({
 					name: `${secondaryUser.firstName} ${secondaryUser.lastName}`,
-					username: parentUsername, // Use a username derived from the parent's name
+					username: parentUsername,
 					email: secondaryUser.email,
-					role: "parent", // Hardcoded client-side role for parent
+					role: "parent",
 					status: secondaryUser.isApproved ? "active" : "blocked",
 				});
 			}
 
-			// Display username(s) and the generated password(s) to the Administrator
 			setCreated({
 				username,
 				password: generatedPassword,

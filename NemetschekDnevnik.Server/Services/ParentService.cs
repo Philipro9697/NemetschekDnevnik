@@ -13,7 +13,11 @@ public class ParentService : IParentService
     }
     public async Task<List<Student>> GetChildren(Parent parent)
     {
-        return await _db.Students.Where(s => s.Parent == parent).ToListAsync();
+        return await _db.Students
+            .Include(s => s.StudentNavigation)
+            .Include(s => s.Class)
+            .Where(s => s.Parent == parent)
+            .ToListAsync();
     }
     public async Task<Parent?> GetParentById(int parentId)
     {

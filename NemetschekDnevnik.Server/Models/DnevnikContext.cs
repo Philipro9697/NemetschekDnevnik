@@ -122,7 +122,6 @@ public partial class DnevnikContext : DbContext
             entity.Property(e => e.ClassGrade).HasColumnName("class_grade");
             entity.Property(e => e.ClassLetter)
                 .HasMaxLength(10)
-                .IsUnicode(false)
                 .HasColumnName("class_letter");
             entity.Property(e => e.HeadTeacherId).HasColumnName("head_teacher_id");
 

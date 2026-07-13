@@ -11,7 +11,8 @@ import {
 import { authService } from '@/api/authService'
 import { userService } from '@/api/userService'
 import { studentService } from '@/api/studentService'
-import type { UserAccountDto, GradeDto, AbsenceDto, RemarkDto, ScheduleDto, SubjectDto } from '@/api/types'
+import { parentService } from '@/api/parentService'
+import type { UserAccountDto, GradeDto, AbsenceDto, RemarkDto, ScheduleDto, SubjectDto, StudentInfoDto } from '@/api/types'
 import {
   users as seedUsers,
   seedGrades,
@@ -50,6 +51,8 @@ interface AppState {
   apiRemarks: RemarkDto[]
   apiSchedule: ScheduleDto[]
   apiSubjects: SubjectDto[]
+  // API data for parents
+  apiChildren: StudentInfoDto[]
   homework: Homework[]
   events: CalendarEvent[]
   threads: Thread[]
@@ -135,6 +138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [apiRemarks, setApiRemarks] = useState<RemarkDto[]>([])
   const [apiSchedule, setApiSchedule] = useState<ScheduleDto[]>([])
   const [apiSubjects, setApiSubjects] = useState<SubjectDto[]>([])
+  const [apiChildren, setApiChildren] = useState<StudentInfoDto[]>([])
   const [view, setView] = useState('')
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
@@ -168,20 +172,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (user.role === 'student') {
       try {
-        const [gradesRes, absencesRes, remarksRes, scheduleRes, subjectsRes] = await Promise.all([
+        const [gradesRes, absencesRes, remarksRes, scheduleRes, subjectsRes, infoRes] = await Promise.all([
           studentService.getGrades(),
           studentService.getAbsences(),
           studentService.getRemarks(),
           studentService.getSchedule(),
           studentService.getSubjects(),
+          studentService.getStudentInfo(),
         ])
         setApiGrades(gradesRes)
         setApiAbsences(absencesRes)
         setApiRemarks(remarksRes)
         setApiSchedule(scheduleRes)
         setApiSubjects(subjectsRes)
+        setCurrentUser({
+          ...user,
+          className: infoRes.classGrade ? `${infoRes.classGrade}${infoRes.classLetter}` : undefined,
+        })
       } catch (error) {
         console.error('Failed to fetch student data:', error)
+      }
+    } else if (user.role === 'parent') {
+      try {
+        const childrenRes = await parentService.getChildren()
+        setApiChildren(childrenRes)
+        const childrenIds = childrenRes.map((c) => String(c.studentId))
+        setCurrentUser({ ...user, childrenIds })
+        setSelectedChildId(childrenIds[0] ?? null)
+      } catch (error) {
+        console.error('Failed to fetch parent children:', error)
       }
     }
   }
@@ -218,6 +237,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       apiRemarks,
       apiSchedule,
       apiSubjects,
+      apiChildren,
       view,
       selectedClassId,
       selectedChildId,
@@ -238,6 +258,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setApiRemarks([])
         setApiSchedule([])
         setApiSubjects([])
+        setApiChildren([])
         localStorage.removeItem('accessToken')
         localStorage.removeItem('userId')
       },
@@ -377,6 +398,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       apiRemarks,
       apiSchedule,
       apiSubjects,
+      apiChildren,
     ],
   )
 
