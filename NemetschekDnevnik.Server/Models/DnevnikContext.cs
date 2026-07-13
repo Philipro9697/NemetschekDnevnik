@@ -473,6 +473,29 @@ public partial class DnevnikContext : DbContext
                 .HasConstraintName("FK__weekly_sc__teach__5AEE82B9");
         });
 
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.ID).HasName("PK_refresh_tokens");
+
+            entity.ToTable("refresh_tokens");
+
+            entity.Property(e => e.ID).HasColumnName("id");
+            entity.Property(e => e.Token)
+                .HasMaxLength(500)
+                .IsUnicode(false)
+                .HasColumnName("token");
+            entity.Property(e => e.ExpiresAt)
+                .HasColumnType("datetime")
+                .HasColumnName("expires_at");
+            entity.Property(e => e.IsRevoked).HasColumnName("is_revoked");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_refresh_tokens_users");
+        });
+
         OnModelCreatingPartial(modelBuilder);
     }
 

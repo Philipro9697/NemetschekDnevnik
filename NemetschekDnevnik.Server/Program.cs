@@ -23,6 +23,17 @@ builder.Services.AddDbContext<DnevnikContext>(options =>
     options.UseSqlServer(connectionString));
 
 
+const string FrontendCorsPolicy = "FrontendClient";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddCookie(IdentityConstants.ApplicationScheme);
@@ -51,9 +62,9 @@ builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthorization();
 
-builder.Services.AddDbContext<DnevnikContext>(options =>
+builder.Services.AddDbContext<NemetschekSchoolDiaryContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? "Server=localhost\\SQLEXPRESS;Database=Dnevnik;Integrated Security=True;TrustServerCertificate=True"));
+        ?? "Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary;Integrated Security=True;TrustServerCertificate=True"));
 
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 
@@ -65,8 +76,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<DnevnikContext>();
-
+    var context = services.GetRequiredService<NemetschekSchoolDiaryContext>();
     context.Database.Migrate();
 
     NemetschekDnevnik.Server.Data.DbSeeder.SeedAllData(context);
@@ -77,10 +87,12 @@ app.MapStaticAssets();
 
 // Configure the HTTP request pipeline.
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
+
+app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthentication();
-//app.UseMiddleware<EnsureApprovedUserMiddleware>();
+app.UseMiddleware<EnsureApprovedUserMiddleware>();
 
 app.UseAuthorization();
 

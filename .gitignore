@@ -8,6 +8,10 @@ NemetschekDnevnik.Server/appsettings.json
 NemetschekDnevnik.Server/appsettings.Development.json
 appsettings.json
 
+# dotenv secrets (keep .env.example tracked)
+.env
+!.env.example
+
 # User-specific files
 *.rsuser
 *.suo
@@ -366,3 +370,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/NemetschekDnevnik.Server/.env
+/NemetschekDnevnik.Server/.env

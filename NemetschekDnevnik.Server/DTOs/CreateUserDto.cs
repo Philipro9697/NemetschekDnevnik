@@ -1,8 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace NemetschekDnevnik.Server.DTOs;
 
-public class RegisterDto : IValidatableObject
+public class CreateUserDto : IValidatableObject
 {
     private static readonly string[] AllowedRoles = new[] { "Teacher", "Student", "Parent" };
 
@@ -27,14 +27,8 @@ public class RegisterDto : IValidatableObject
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (!AllowedRoles.Contains(Role))
-        {
-            yield return new ValidationResult($"Role must be one of the following: {string.Join(", ", AllowedRoles)}", new[] { nameof(Role) });
-            yield break;
-        }
-
-        if (string.IsNullOrEmpty(PhoneNumber))
-        {
-            yield return new ValidationResult("Phone number is required.", new[] { nameof(PhoneNumber) });
-        }
+            yield return new ValidationResult(
+                $"Role must be one of the following: {string.Join(", ", AllowedRoles)}",
+                new[] { nameof(Role) });
     }
 }
