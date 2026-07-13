@@ -19,6 +19,10 @@ builder.Configuration.AddEnvironmentVariables();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+builder.Services.AddDbContext<DnevnikContext>(options =>
+    options.UseSqlServer(connectionString));
+
+
 const string FrontendCorsPolicy = "FrontendClient";
 
 builder.Services.AddCors(options =>
@@ -59,15 +63,15 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<DnevnikContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Server=localhost\\SQLEXPRESS;Database=Dnevnik;Integrated Security=True;TrustServerCertificate=True"));
 
-builder.Services.AddScoped<IAdminService, AdminService>();
-builder.Services.AddScoped<IStudentService, StudentService>();
-builder.Services.AddScoped<ITeacherService, TeacherService>();
-builder.Services.AddScoped<IParentService, ParentService>();
-builder.Services.AddScoped<IGradeService, GradeService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddHostedService<DatabaseMaintenanceService>();
 
 var app = builder.Build();
 
@@ -75,7 +79,10 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<DnevnikContext>();
+
     context.Database.Migrate();
+
+    NemetschekDnevnik.Server.Data.DbSeeder.SeedAllData(context);
 }
 
 app.UseDefaultFiles();
