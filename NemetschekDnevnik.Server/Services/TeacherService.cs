@@ -14,7 +14,7 @@ public class TeacherService : ITeacherService
 
     public async Task<Teacher?> GetTeacher(int userId)
     {
-        return await _db.Teachers.FirstOrDefaultAsync(u => u.TeacherId == userId);
+        return await _db.Teachers.Include(t => t.Classes).FirstOrDefaultAsync(u => u.TeacherId == userId);
     }
 
     public async Task<ClassDto?> GetClass(Teacher teacher)
@@ -47,6 +47,29 @@ public class TeacherService : ITeacherService
                 TeacherLastName = ws.Teacher.TeacherNavigation.LastName,
                 SubjectName = ws.Subject.SubjectName,
                 Location = ws.Location
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<StudentInfoDto>> GetStudents(int classId)
+    {
+        return await _db.Students
+            .Where(s => s.ClassId == classId)
+            .Select(s => new StudentInfoDto
+            {
+                StudentId = s.StudentId,
+                ParentId = s.ParentId ?? -1,
+                ClassId = s.ClassId ?? -1,
+
+                // Pull class context safely
+                ClassGrade = s.Class != null ? s.Class.ClassGrade : 0,
+                ClassLetter = s.Class != null ? s.Class.ClassLetter : "",
+
+                // Pull profile data via StudentNavigation object 
+                FirstName = s.StudentNavigation.FirstName,
+                LastName = s.StudentNavigation.LastName,
+                Email = s.StudentNavigation.Email,
+                PhoneNumber = s.StudentNavigation.PhoneNumber
             })
             .ToListAsync();
     }

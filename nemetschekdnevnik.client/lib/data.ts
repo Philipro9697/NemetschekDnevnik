@@ -31,7 +31,7 @@ export interface User {
 }
 
 export type GradeSection =
-	| "Текущо изпитване"
+	| "term1"
 	| "term1Final"
 	| "term2"
 	| "term2Final"

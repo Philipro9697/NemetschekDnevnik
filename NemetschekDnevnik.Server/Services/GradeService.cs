@@ -58,6 +58,9 @@ public class GradeService : IGradeService
             {
                 GradeId = g.GradeId,
                 GradeValue = g.GradeValue,
+                StudentId = g.StudentId ?? -1,
+                StudentFirstName = g.Student!.StudentNavigation.FirstName,
+                StudentLastName = g.Student!.StudentNavigation.LastName,
                 SubjectId = g.SubjectId ?? -1,
                 TeacherId = g.TeacherId ?? -1,
                 SubjectName = g.Subject!.SubjectName,
