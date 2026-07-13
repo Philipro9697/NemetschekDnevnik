@@ -237,6 +237,30 @@ export function ClassTeacherPanel() {
         )}
       </Dialog>
       
+      <Dialog open={Boolean(selectedGrade)} onClose={() => setSelectedGrade(null)} title="Детайли за оценка">
+        {selectedGrade && (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <div className="font-semibold">{userById(selectedGrade.studentId, users)?.name}</div>
+              <GradePill value={selectedGrade.value} className="size-8 text-sm" classId={userById(selectedGrade.studentId, users)?.classId} />
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Дата и час</div>
+              <div>{selectedGrade.date} · {selectedGrade.time ?? '—'}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Учител</div>
+              <div>{userById(selectedGrade.teacherId, users)?.name}</div>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Предмет</div>
+              <div>{subjectById(selectedGrade.subjectId).name}</div>
+            </div>
+            {selectedGrade.description && <div className="rounded-lg border border-border bg-muted/30 p-3 text-muted-foreground">{selectedGrade.description}</div>}
+          </div>
+        )}
+      </Dialog>
+
       <Dialog open={Boolean(absencesPopupTarget)} onClose={() => setAbsencesPopupTarget(null)} title="Отсъствия">
         {absencesPopupTarget && (
           <div className="space-y-2 text-sm">
