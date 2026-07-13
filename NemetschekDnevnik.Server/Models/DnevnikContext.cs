@@ -67,7 +67,14 @@ public partial class DnevnikContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=Dnevnik; Integrated Security=True; TrustServerCertificate=True");
+        // Only fall back to this hardcoded connection when nothing else configured one
+        // (e.g. running `dotnet ef` design-time tooling directly). At normal runtime,
+        // Program.cs already configures this via AddDbContext from the real connection
+        // string (.env / appsettings), and that must win — don't override it here.
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary; Integrated Security=True; TrustServerCertificate=True");
+        }
         optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     }
 
