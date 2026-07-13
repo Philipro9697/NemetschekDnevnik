@@ -66,8 +66,6 @@ builder.Services.AddDbContext<DnevnikContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
         ?? "Server=localhost\\SQLEXPRESS;Database=Dnevnik;Integrated Security=True;TrustServerCertificate=True"));
 
-builder.Services.AddScoped<IUserProfileService, UserProfileService>();
-
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
