@@ -9,6 +9,9 @@ public class HomeworkItemDto
     public int HomeworkId { get; set; }
 
     [Required]
+    public int ClassId { get; set; }
+
+    [Required]
     public int SubjectId { get; set; }
 
     [Required]

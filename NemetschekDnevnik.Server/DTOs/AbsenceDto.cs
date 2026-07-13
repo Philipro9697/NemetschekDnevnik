@@ -15,6 +15,9 @@ public class AbsenceDto
     public TimeOnly Time { get; set; }
 
     [Required]
+    public int StudentId { get; set; }
+
+    [Required]
     public int SubjectId { get; set; }
 
     [Required]
