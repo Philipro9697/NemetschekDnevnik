@@ -179,9 +179,6 @@ export function StudentGrades({ student }: { student?: User }) {
                                                 <div className="font-medium text-foreground">
                                                     {subject.subjectName}
                                                 </div>
-                                                <div className="mt-1 text-xs text-muted-foreground">
-                                                    {grades.length} оценка{grades.length === 1 ? "" : "и"}
-                                                </div>
                                             </td>
                                             {gradeSections.map((section) => {
                                                 const sectionGrades = grades.filter(
@@ -199,7 +196,7 @@ export function StudentGrades({ student }: { student?: User }) {
                                                                         key={g.gradeId}
                                                                         type="button"
                                                                         onClick={() => setSelectedGrade(g)}
-                                                                        className="rounded-md border border-border/70 bg-background/80 p-0.5 transition hover:scale-105"
+                                                                        className="rounded-full border border-border/100 bg-background/80 p-0.5 transition hover:scale-105"
                                                                     >
                                                                         <GradePill
                                                                             value={g.gradeValue}
