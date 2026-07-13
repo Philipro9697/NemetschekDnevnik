@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { studentService } from '@/api/studentService'
-import type { AbsenceDto, GradeDto, RemarkDto } from '@/api/types'
+import { userService } from '@/api/userService'
+import type { AbsenceDto, GradeDto, RemarkDto, UserAccountDto} from '@/api/types'
 import { useApp } from '@/components/app-provider'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
@@ -64,6 +65,12 @@ type DisplayRemark = {
   teacherName: string
 }
 
+type DisplayStudentUserData = {
+  id: string
+  firstName: string
+  lastName: string
+}
+
 function toDisplayAbsenceFromDto(dto: AbsenceDto, studentId: string): DisplayAbsence {
   return {
     id: `${studentId}-${dto.lessonId}-${dto.date}`,
@@ -76,11 +83,19 @@ function toDisplayAbsenceFromDto(dto: AbsenceDto, studentId: string): DisplayAbs
   }
 }
 
+function toDisplayUserFromDto(dto: UserAccountDto): DisplayStudentUserData {
+  return {
+    id: `${dto.userId}`,
+    firstName: dto.firstName,
+    lastName: dto.lastName,
+  }
+}
+
 function toDisplayGradeFromDto(dto: GradeDto, studentId: string): DisplayGrade {
   const teacherName = [dto.teacherFirstName, dto.teacherLastName].filter(Boolean).join(' ').trim() || 'Учител'
 
   return {
-    id: `${studentId}-${dto.subjectId}-${dto.entryDate}-${dto.gradeValue}`,
+    id: `${studentId}-${dto.gradeId}`,
     studentId,
     subjectId: `${dto.subjectId}`,
     teacherId: `${dto.teacherId}`,
@@ -121,6 +136,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
   const [dbGrades, setDbGrades] = useState<DisplayGrade[]>([])
   const [dbAbsences, setDbAbsences] = useState<DisplayAbsence[]>([])
   const [dbRemarks, setDbRemarks] = useState<DisplayRemark[]>([])
+  const [dbUser, setDbUser] = useState<DisplayStudentUserData | null>(null)
   const [loadingGrades, setLoadingGrades] = useState(false)
   const [loadingAbsences, setLoadingAbsences] = useState(false)
   const [loadingRemarks, setLoadingRemarks] = useState(false)
@@ -132,6 +148,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
       setDbGrades([])
       setDbAbsences([])
       setDbRemarks([])
+      setDbUser(null)
       return () => {
         cancelled = true
       }
@@ -143,10 +160,13 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
       setLoadingRemarks(true)
 
       try {
-        const [gradeData, absenceData, remarkData] = await Promise.all([
+        const [gradeData, absenceData, remarkData, userData] = await Promise.all([
           studentService.getGrades(),
           studentService.getAbsences(),
           studentService.getRemarks(),
+          // studentId and userId refer to the same row for a student, so we can
+          // look up their profile (first/last name) via the user endpoint.
+          userService.getUserProfile(Number(app.currentUser!.id)),
         ])
 
         if (cancelled) return
@@ -154,12 +174,14 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
         setDbGrades(gradeData.map((grade) => toDisplayGradeFromDto(grade, app.currentUser!.id)))
         setDbAbsences(absenceData.map((absence) => toDisplayAbsenceFromDto(absence, app.currentUser!.id)))
         setDbRemarks(remarkData.map(toDisplayRemark))
+        setDbUser(toDisplayUserFromDto(userData))
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to load dashboard data', error)
           setDbGrades([])
           setDbAbsences([])
           setDbRemarks([])
+          setDbUser(null)
         }
       } finally {
         if (!cancelled) {
@@ -178,6 +200,10 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
   }, [app.currentUser?.id, app.currentUser?.role, student])
 
   if (!me) return null
+
+  const displayName = dbUser
+    ? [dbUser.firstName, dbUser.lastName].filter(Boolean).join(' ').trim() || me.name
+    : me.name
 
   const myGrades = dbGrades.length > 0
     ? dbGrades
@@ -242,7 +268,7 @@ export function StudentDashboard({ student, hideHero }: { student?: User; hideHe
                 Учебно табло
               </div>
               <h2 className="font-heading text-2xl font-bold text-foreground">
-                Здравей, {me.name}!
+                Здравей, {displayName}!
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {classById(me.classId)?.name ?? 'Без клас'} · последни оценки, отсъствия и бележки на едно място.

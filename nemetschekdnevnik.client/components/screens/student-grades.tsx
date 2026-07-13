@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { studentService } from '@/api/studentService'
-import type { GradeDto } from '@/api/types'
+import { userService } from '@/api/userService'
+import type { GradeDto, UserAccountDto } from '@/api/types'
 import { useApp } from '@/components/app-provider'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
@@ -33,6 +34,20 @@ type DisplayGrade = {
   teacherName: string
 }
 
+type DisplayStudentUserData = {
+  id: string
+  firstName: string
+  lastName: string
+}
+
+function toDisplayUserFromDto(dto: UserAccountDto): DisplayStudentUserData {
+  return {
+    id: `${dto.userId}`,
+    firstName: dto.firstName,
+    lastName: dto.lastName,
+  }
+}
+
 function inferGradeSection(entryDate: string): GradeSection {
   const month = new Date(entryDate).getMonth() + 1
   return month <= 6 ? 'term1' : 'term2'
@@ -59,7 +74,7 @@ function toDisplayGradeFromDto(dto: GradeDto, studentId: string): DisplayGrade {
   const teacherName = [dto.teacherFirstName, dto.teacherLastName].filter(Boolean).join(' ').trim()
 
   return {
-    id: `${studentId}-${dto.subjectId}-${dto.entryDate}`,
+    id: `${studentId}-${dto.gradeId}`,
     studentId,
     subjectId: `${dto.subjectId}`,
     teacherId: `${dto.teacherId}`,
@@ -77,6 +92,7 @@ export function StudentGrades({ student }: { student?: User }) {
   const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   const [selectedGrade, setSelectedGrade] = useState<DisplayGrade | null>(null)
   const [dbGrades, setDbGrades] = useState<DisplayGrade[]>([])
+  const [dbUser, setDbUser] = useState<DisplayStudentUserData | null>(null)
   const [loadingGrades, setLoadingGrades] = useState(false)
 
   useEffect(() => {
@@ -84,6 +100,7 @@ export function StudentGrades({ student }: { student?: User }) {
 
     if (!app.currentUser || app.currentUser.role !== 'student' || Boolean(student)) {
       setDbGrades([])
+      setDbUser(null)
       return () => {
         cancelled = true
       }
@@ -93,14 +110,21 @@ export function StudentGrades({ student }: { student?: User }) {
       setLoadingGrades(true)
 
       try {
-        const data = await studentService.getGrades()
+        const [gradeData, userData] = await Promise.all([
+          studentService.getGrades(),
+          // studentId and userId refer to the same row for a student, so we can
+          // look up their profile (first/last name) via the user endpoint.
+          userService.getUserProfile(Number(app.currentUser!.id)),
+        ])
         if (cancelled) return
 
-        setDbGrades(data.map((grade) => toDisplayGradeFromDto(grade, app.currentUser!.id)))
+        setDbGrades(gradeData.map((grade) => toDisplayGradeFromDto(grade, app.currentUser!.id)))
+        setDbUser(toDisplayUserFromDto(userData))
       } catch (error) {
         if (!cancelled) {
           console.error('Failed to load grades', error)
           setDbGrades([])
+          setDbUser(null)
         }
       } finally {
         if (!cancelled) {
@@ -117,6 +141,10 @@ export function StudentGrades({ student }: { student?: User }) {
   }, [app.currentUser?.id, app.currentUser?.role, student])
 
   if (!me) return null
+
+  const displayName = dbUser
+    ? [dbUser.firstName, dbUser.lastName].filter(Boolean).join(' ').trim() || me.name
+    : me.name
 
   const myGrades = dbGrades.length > 0
     ? dbGrades
@@ -160,7 +188,7 @@ export function StudentGrades({ student }: { student?: User }) {
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
               <Sparkles className="size-3.5" /> Оценки
             </div>
-            <h2 className="font-heading text-2xl font-bold">Оценките на {me.name}</h2>
+            <h2 className="font-heading text-2xl font-bold">Оценките на {displayName}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {classById(me.classId)?.name ?? 'Без клас'} · среден успех {avg}
             </p>
