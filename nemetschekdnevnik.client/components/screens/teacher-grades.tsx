@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Search, GraduationCap, Sparkles, Plus, ChevronDown, CircleAlert, MessageSquareText, BookOpenCheck, CalendarRange, Star, Heart, ThumbsUp, Frown } from 'lucide-react'
+import { Search, GraduationCap, Sparkles, Plus, ChevronDown, CircleAlert, MessageSquareText, BookOpenCheck, CalendarRange, Star, Heart, ThumbsUp, Frown, X } from 'lucide-react'
 import { useApp } from '@/components/app-provider'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -292,12 +292,13 @@ export function TeacherGrades() {
           <div>
             <label className="mb-1.5 block text-sm font-medium">Оценка</label>
             {['c1a', 'c2a', 'c2b'].includes(classId) ? (
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {[
                   { value: 6, icon: Star, label: 'Отлично' },
-                  { value: 5, icon: Heart, label: 'Добре' },
-                  { value: 4, icon: ThumbsUp, label: 'Средно' },
-                  { value: 3, icon: Frown, label: 'зле' },
+                  { value: 5, icon: Heart, label: ' Много добър' },
+                  { value: 4, icon: ThumbsUp, label: 'Добър' },
+                  { value: 3, icon: Frown, label: 'Среден' },
+                  { value: 2, icon: X, label: 'Слаб' },
                 ].map(({ value, icon: Icon, label }) => (
                   <button
                     key={value}
