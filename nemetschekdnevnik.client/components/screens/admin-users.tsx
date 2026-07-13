@@ -1,7 +1,7 @@
 "use client";
 import { userService } from "@/api/userService";
 import { adminService } from "@/api/adminService";
-import type { UserRole, UserAccountDto, GradeDto, StudentInfoDto } from "@/api/types";
+import type { UserRole, UserAccountDto, GradeDto, StudentInfoDto, ClassDto} from "@/api/types";
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { Card } from "@/components/ui/card";
@@ -44,6 +44,12 @@ const ROLE_TONE: Record<Role, "primary" | "accent" | "success" | "warning"> = {
 	teacher: "primary",
 	student: "accent",
 	parent: "success",
+};
+
+const BACKEND_CLASS_MAP: Record<string, number> = {
+	c5a: 1,
+	c5b: 2,
+	c6b: 3,
 };
 
 function transliterate(name: string) {
@@ -146,6 +152,20 @@ export function AdminUsers() {
 	const [dbUsers, setDbUsers] = useState<User[]>([]);
 	const [loadingUsers, setLoadingUsers] = useState(false);
 	const [usersError, setUsersError] = useState<string | null>(null);
+	const [realClasses, setRealClasses] = useState<ClassDto[]>([]);
+
+	useEffect(() => {
+    // Note: Change 'adminService' to 'userService' if your getClasses method lives there
+    adminService
+        .getClasses() 
+        .then((data) => {
+            console.log("Classes loaded successfully:", data);
+            setRealClasses(data);
+        })
+        .catch((error) => {
+            console.error("Failed to fetch real classes from the server:", error);
+        });
+	}, []);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -197,11 +217,13 @@ export function AdminUsers() {
 		return map;
 	}, [realStudents]);
 
+	// Replace your old classLabelFor function with this database-driven one
 	function classLabelFor(u: User) {
-		if (u.role === "student" && u.apiUserId) {
-			return realClassByStudentId.get(u.apiUserId) ?? classById(u.classId)?.name ?? "—";
-		}
-		return classById(u.classId)?.name ?? "—";
+	    if (u.role === "student" && u.apiUserId) {
+	        return realClassByStudentId.get(u.apiUserId) ?? "—";
+	    }
+	    const foundClass = realClasses.find(c => c.classId.toString() == u.classId);
+	    return foundClass ? `${foundClass.classGrade}${foundClass.classLetter}` : "—";
 	}
 
 	const filtered = useMemo(() => {
@@ -287,16 +309,16 @@ export function AdminUsers() {
 				</div>
 				<div className="flex flex-wrap gap-2">
 					<select
-						value={classFilter}
-						onChange={(e) => setClassFilter(e.target.value)}
-						className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition hover:border-primary"
+					    value={classFilter}
+					    onChange={(e) => setClassFilter(e.target.value)}
+					    className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition hover:border-primary"
 					>
-						<option value="all">Всички класове</option>
-						{classes.map((klass) => (
-							<option key={klass.id} value={klass.id}>
-								{klass.name}
-							</option>
-						))}
+					    <option value="all">Всички класове</option>
+					    {realClasses.map((klass) => (
+					        <option key={klass.classId} value={klass.classId.toString()}>
+					            {klass.classGrade}{klass.classLetter}
+					        </option>
+					    ))}
 					</select>
 					<select
 						value={statusFilter}
@@ -483,10 +505,12 @@ export function AdminUsers() {
 				</div>
 			</Card>
 
-			<RegisterDialog open={open} onClose={() => setOpen(false)} />
+			<RegisterDialog open={open} onClose={() => setOpen(false)} realClasses={realClasses} />
 			<EditUserDialog
 				open={Boolean(editCandidate)}
 				user={editCandidate}
+				realClasses={realClasses}
+				realStudents={realStudents}
 				onClose={() => setEditCandidate(null)}
 				onSave={(updates) => {
 					if (editCandidate) {
@@ -580,16 +604,18 @@ function IconBtn({
 function RegisterDialog({
 	open,
 	onClose,
+	realClasses,
 }: {
 	open: boolean;
 	onClose: () => void;
+	realClasses: ClassDto[];
 }) {
 	const app = useApp();
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [role, setRole] = useState<Role>("student");
-	const [classId, setClassId] = useState<string>("c5a");
+	const [classId, setClassId] = useState<string>("");
 	const [teacherSubjectId, setTeacherSubjectId] = useState<string>(
 		subjects[0]?.id ?? "",
 	);
@@ -615,6 +641,12 @@ function RegisterDialog({
 		c6b: 3,
 	};
 
+	useEffect(() => {
+        if (realClasses.length > 0 && !classId) {
+            setClassId(realClasses[0].classId.toString());
+        }
+    }, [realClasses]);
+
 	const username = name.trim() ? transliterate(name).replace(/\s+/g, ".") : "";
 	const parentUsername = parentName.trim()
 		? transliterate(parentName).replace(/\s+/g, ".")
@@ -624,7 +656,7 @@ function RegisterDialog({
 		setName("");
 		setEmail("");
 		setRole("student");
-		setClassId("c5a");
+		setClassId(realClasses[0]?.classId.toString() ?? "");
 		setCreated(null);
 		setError(null);
 		setLoading(false);
@@ -676,7 +708,7 @@ function RegisterDialog({
 					})
 					: undefined;
 
-			const studentClassId = backendClassIdByClientId[classId] ?? 1;
+			const studentClassId = classId ? Number(classId) : undefined;
 
 			const serverUser = await userService.createUser({
 				email: targetEmail,
@@ -827,11 +859,11 @@ function RegisterDialog({
 											onChange={(e) => setClassId(e.target.value)}
 											className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
 										>
-											{classes.map((c) => (
-												<option key={c.id} value={c.id}>
-													{c.name}
-												</option>
-											))}
+											{realClasses.map((c) => (
+    										    <option key={c.classId} value={c.classId}>
+    										        {c.classGrade}{c.classLetter}
+    										    </option>
+    										))}
 										</select>
 									</div>
 								)}
@@ -935,104 +967,132 @@ function RegisterDialog({
 function EditUserDialog({
     open,
     user,
+    realClasses,
+    realStudents, // <-- Accept it here
     onClose,
     onSave,
 }: {
     open: boolean;
     user: User | null;
+    realClasses: ClassDto[];
+    realStudents: StudentInfoDto[]; // <-- Define type here
     onClose: () => void;
     onSave: (updates: Partial<Omit<User, "id">>) => void;
 }) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [role, setRole] = useState<Role>("student");
-    const [classId, setClassId] = useState<string>("c5a");
+    const [classId, setClassId] = useState<string>("");
     const [classTeacherOf, setClassTeacherOf] = useState<string>("");
     const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? "");
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     
-    // Add request orchestration states
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) return;
-        setName(user.name);
-        setEmail(user.email);
-        setRole(user.role);
-        setClassId(user.classId ?? "c5a");
-        setClassTeacherOf(user.classTeacherOf ?? "");
+    	setName(user.name);
+    	setEmail(user.email);
+    	setRole(user.role);
+    	setClassId(user.classId?.toString() ?? realClasses[0]?.classId.toString() ?? "");
+    	setClassTeacherOf(user.classTeacherOf ?? "");
         setSubjectId(user.subjectIds?.[0] ?? subjects[0]?.id ?? "");
-        // Bugfix: check both fields because toDisplayUserFromDto uses phoneNumber
         setPhone(user.phone ?? ""); 
         setPassword("");
         setError(null);
         setLoading(false);
-    }, [user]);
+		// 1. If it's a student, find their matching real backend class ID record
+    	if (user.role === "student" && user.apiUserId) {
+    	    const matchingStudent = realStudents.find(s => s.studentId === user.apiUserId);
+    	    if (matchingStudent) {
+    	        // Find the class entity that matches the student's grade and letter strings
+    	        const matchedClass = realClasses.find(
+    	            c => c.classGrade === matchingStudent.classGrade && c.classLetter === matchingStudent.classLetter
+    	        );
+    	        setClassId(matchedClass?.classId.toString() ?? realClasses[0]?.classId.toString() ?? "");
+    	    } else {
+    	        setClassId(realClasses[0]?.classId.toString() ?? "");
+    	    }
+    	} else {
+    	    setClassId(realClasses[0]?.classId.toString() ?? "");
+    	}
+
+    	// 2. Fallback configuration for teachers
+    	setClassTeacherOf(user.classTeacherOf ?? "");
+    	setSubjectId(user.subjectIds?.[0] ?? subjects[0]?.id ?? "");
+    }, [user, realClasses, realStudents]);
 
     async function handleSave() {
-        if (!name.trim() || !email.trim()) return;
+    if (!name.trim() || !email.trim()) return;
 
-        setLoading(true);
-        setError(null);
+    setLoading(true);
+    setError(null);
 
-        // Parse full name string into separate backend fields
-        const nameParts = name.trim().split(/\s+/);
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+    const nameParts = name.trim().split(/\s+/);
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
-        // Normalize roles back to Capitalized backend variants
-        const backendRole = 
-            role === "teacher" ? "Teacher" : 
-            role === "student" ? "Student" : 
-            role === "parent" ? "Parent" : "Admin";
+    // 1. Properly map UI role strings to backend-friendly pascal case strings
+    const backendRole: UserRole = 
+        role === "teacher" ? "Teacher" : 
+        role === "student" ? "Student" : "Parent";
+      
 
-        try {
-            // Persist data if this is a real user backed by an API ID
-            if (user?.apiUserId) {
-                await userService.updateUser(user.apiUserId, {
-                    firstName,
-                    lastName,
-                    email: email.trim(),
-                    phoneNumber: phone.trim(),
-                    role: backendRole,
-                    ...(password.trim() ? { password: password.trim() } : {})
-                });
-            }
+    const studentClassId = role === "student" && classId ? Number(classId) : undefined;
+    const teacherClassId = role === "teacher" && classTeacherOf ? Number(classTeacherOf) : undefined;
+    const backendSubjectId = role === "teacher" && subjectId ? Number(subjectId) : undefined;
 
-            // Sync structural changes down to local context wrappers
-            const updates: Partial<Omit<User, "id">> = {
-    			name: name.trim(),
-    			email: email.trim(),
-   		  		role,
-    			phone: phone.trim(), // <-- Change 'phoneNumber' to 'phone' here
-			};
-
-            if (role === "student") {
-                updates.classId = classId;
-                updates.classTeacherOf = undefined;
-                updates.subjectIds = undefined;
-            } else if (role === "teacher") {
-                updates.classTeacherOf = classTeacherOf || undefined;
-                updates.subjectIds = subjectId ? [subjectId] : [];
-                updates.classId = undefined;
-            } else {
-                updates.classId = undefined;
-                updates.classTeacherOf = undefined;
-                updates.subjectIds = undefined;
-            }
-
-            onSave(updates);
-            onClose();
-        } catch (err: any) {
-            console.error("Failed to update user:", err);
-            setError(err.message || "Възникна грешка при запазване на промените.");
-        } finally {
-            setLoading(false);
+    try {
+        if (user?.apiUserId) {
+            // 2. Fire the API update call to save to SQL Database
+            await userService.updateUser(user.apiUserId, {
+                firstName,
+                lastName,
+                email: email.trim(),
+                phoneNumber: phone.trim(),
+                isApproved: true,
+                role: backendRole,
+                password: password.trim() ? password.trim() : undefined,
+                classId: studentClassId,
+                classTeacherOfId: teacherClassId,
+                subjectIds: backendSubjectId ? [backendSubjectId] : []
+            });
         }
-    }
 
+        // 3. Build updates dictionary using strict, matching local Role types
+        const updates: Partial<Omit<User, "id">> = {
+            name: name.trim(),
+            email: email.trim(),
+            role: role as Role, // Explicitly cast to the local UI Role type
+            phone: phone.trim(),
+        };
+
+        if (role === "student") {
+            updates.classId = classId;
+            updates.classTeacherOf = undefined;
+            updates.subjectIds = undefined;
+        } else if (role === "teacher") {
+            updates.classTeacherOf = classTeacherOf || undefined;
+            updates.subjectIds = subjectId ? [subjectId] : [];
+            updates.classId = undefined;
+        } else {
+            updates.classId = undefined;
+            updates.classTeacherOf = undefined;
+            updates.subjectIds = undefined;
+        }
+
+        // 4. Force synchronization back to your global useApp context so the table changes instantly
+        onSave(updates);
+        onClose();
+    } catch (err: any) {
+        console.error("Failed to update user:", err);
+        setError(err.message || "Възникна грешка при запазване на промените.");
+    } finally {
+        setLoading(false);
+    }
+}
     return (
         <Dialog open={open} onClose={onClose}>
             <DialogContent className="max-w-lg">
@@ -1058,7 +1118,6 @@ function EditUserDialog({
                             <option value="student">Ученик</option>
                             <option value="teacher">Учител</option>
                             <option value="parent">Родител</option>
-                            <option value="admin">Администратор</option>
                         </select>
                     </div>
                     
@@ -1100,72 +1159,36 @@ function EditUserDialog({
                     </div>
                     
                     {role === "student" && (
-                        <div className="space-y-1.5">
-                            <Label>Клас</Label>
-                            <select
-                                value={classId}
-                                onChange={(e) => setClassId(e.target.value)}
-                                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                disabled={loading}
-                            >
-                                {classes.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-                    
-                    {role === "teacher" && (
-                        <>
-                            <div className="space-y-1.5">
-                                <Label>Преподава в клас</Label>
-                                <select
-                                    value={classTeacherOf}
-                                    onChange={(e) => setClassTeacherOf(e.target.value)}
-                                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                    disabled={loading}
-                                >
-                                    <option value="">Няма клас</option>
-                                    {classes.map((c) => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Предмет</Label>
-                                <select
-                                    value={subjectId}
-                                    onChange={(e) => setSubjectId(e.target.value)}
-                                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                    disabled={loading}
-                                >
-                                    {subjects.map((subject) => (
-                                        <option key={subject.id} value={subject.id}>
-                                            {subject.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </>
-                    )}
-                </div>
-                
-                <DialogFooter className="flex flex-wrap gap-2">
-                    <Button variant="outline" onClick={onClose} disabled={loading}>
-                        Отказ
-                    </Button>
-                    <Button onClick={handleSave} disabled={loading || !name.trim()}>
-                        {loading ? "Запазване..." : "Запази промени"}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
+				    	<div className="space-y-1.5">
+				    	    <Label>Клас</Label>
+				    	    <select
+				    	        value={classId}
+				    	        onChange={(e) => setClassId(e.target.value)}
+				    	        className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				    	        disabled={loading}
+				    	    >
+				    	        {realClasses.map((c) => (
+				    	            <option key={c.classId} value={c.classId}>
+				    	                {c.classGrade}{c.classLetter}
+				    	            </option>
+				    	        ))}
+				    	    </select>
+				    	</div>
+					)}
+					                </div>
+					
+					                <DialogFooter className="flex flex-wrap gap-2">
+					                    <Button variant="outline" onClick={onClose} disabled={loading}>
+					                        Отказ
+					                    </Button>
+					                    <Button onClick={handleSave} disabled={loading || !name.trim()}>
+					                        {loading ? "Запазване..." : "Запази промени"}
+					                    </Button>
+					                </DialogFooter>
+					            </DialogContent>
+					        </Dialog>
+					    );
+					}
 
 function StudentDetailDialog({
 	open,

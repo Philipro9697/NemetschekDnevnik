@@ -181,4 +181,123 @@ public class AdminService : IAdminService
         return true;
     }
 
+    public async Task<UserAccountDto?> UpdateAsync(int id, UpdateUserDto dto)
+{
+    // 1. Locate the base user entity
+    var user = await _db.Users.FindAsync(id);
+    if (user == null)
+        return null;
+
+    // 2. Prevent duplicate emails across accounts if the email is being changed
+    if (user.Email != dto.Email && await _db.Users.AnyAsync(u => u.Email == dto.Email))
+        return null;
+
+    using var transaction = await _db.Database.BeginTransactionAsync();
+
+    // 3. Update the core identity fields
+    user.Email = dto.Email;
+    user.FirstName = dto.FirstName;
+    user.LastName = dto.LastName;
+    user.PhoneNumber = dto.PhoneNumber;
+    user.IsApproved = dto.IsApproved;
+
+    // Optional: Synchronize role changes if the admin modified the account type
+    if (user.Role != dto.Role && CreatableRoles.Contains(dto.Role))
+    {
+        user.Role = dto.Role;
+    }
+
+    // 4. Update the password only if a new one was provided in the dialog
+    if (!string.IsNullOrWhiteSpace(dto.Password))
+    {
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+    }
+
+    await _db.SaveChangesAsync();
+
+    // 5. Synchronize sub-table structural assignments based on the user's role
+    switch (user.Role)
+    {
+        case "Student":
+        {
+            var student = await _db.Students.FindAsync(id);
+            if (student == null)
+            {
+                student = new Student { StudentId = id };
+                _db.Students.Add(student);
+            }
+
+            if (dto.ClassId.HasValue)
+            {
+                var schoolClass = await _db.Classes.FindAsync(dto.ClassId.Value);
+                if (schoolClass != null)
+                {
+                    student.ClassId = schoolClass.ClassId;
+                }
+            }
+            else
+            {
+                student.ClassId = null;
+            }
+            break;
+        }
+
+        case "Teacher":
+        {
+            // Include the subjects collection to support updating many-to-many mappings
+            var teacher = await _db.Teachers
+                .Include(t => t.Subjects)
+                .FirstOrDefaultAsync(t => t.TeacherId == id);
+
+            if (teacher == null)
+            {
+                teacher = new Teacher { TeacherId = id };
+                _db.Teachers.Add(teacher);
+                await _db.SaveChangesAsync();
+            }
+
+            // Sync the chosen subjects if the DTO array was provided
+            if (dto.SubjectIds != null)
+            {
+                teacher.Subjects.Clear();
+                var selectedSubjects = await _db.Subjects
+                    .Where(s => dto.SubjectIds.Contains(s.SubjectId)) 
+                    .ToListAsync();
+
+                foreach (var subject in selectedSubjects)
+                {
+                    teacher.Subjects.Add(subject);
+                }
+            }
+
+            // Optional: If your schema maps the Class Teacher relationship 
+            // directly onto the Teacher entity, assign it here:
+            // teacher.ClassTeacherOfId = dto.ClassTeacherOfId;
+            
+            break;
+        }
+    }
+
+    // 6. Persist sub-table alterations and commit the transaction safely
+    await _db.SaveChangesAsync();
+    await transaction.CommitAsync();
+
+    return ToUserAccountDto(user);
+}
+
+    public async Task<List<ClassDto>> GetAllClassesAsync()
+{
+    return await _db.Classes
+        .Select(c => new ClassDto
+        {
+            ClassId = c.ClassId,
+            ClassGrade = c.ClassGrade,
+            ClassLetter = c.ClassLetter,
+            // If your Class entity has a navigation property for the Head Teacher, map it here:
+            HeadTeacherId = c.HeadTeacherId, 
+            HeadTeacherFirstName = c.HeadTeacher != null ? c.HeadTeacher.TeacherNavigation.FirstName : string.Empty,
+            HeadTeacherLastName = c.HeadTeacher != null ? c.HeadTeacher.TeacherNavigation.LastName : string.Empty
+        })
+        .ToListAsync();
+}
 }

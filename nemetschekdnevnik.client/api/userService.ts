@@ -43,9 +43,14 @@ export const userService = {
         firstName: string; 
         lastName: string; 
         email: string; 
-        phoneNumber: string; 
+        phoneNumber: string;
+        isApproved: boolean;
         role: string;
         password?: string;
+
+        classId?: number;
+        classTeacherOfId?: number;
+        subjectIds?: number[];
     }) => {
         return apiClient<UserAccountDto>(`/users/${id}`, {
             method: 'PUT',

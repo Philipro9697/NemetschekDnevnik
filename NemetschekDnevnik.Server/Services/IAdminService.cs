@@ -12,4 +12,6 @@ public interface IAdminService
     Task<List<TeacherDto>> GetAllTeachers();
     Task<List<ParentDto>> GetAllParents();
     Task<List<StudentInfoDto>> GetAllStudents();
+    Task<UserAccountDto?> UpdateAsync(int id, UpdateUserDto dto);
+    Task<List<ClassDto>> GetAllClassesAsync();
 }
