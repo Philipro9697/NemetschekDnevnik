@@ -29,6 +29,10 @@ export function StudentGrades({ student }: { student?: User }) {
       ? (myGrades.reduce((a, g) => a + g.value, 0) / myGrades.length).toFixed(2)
       : '—'
 
+  function getGradeColumnWidth(sectionKey: GradeSection) {
+    return sectionKey === 'term1Final' || sectionKey === 'term2Final' || sectionKey === 'yearly' ? '20px' : '220px'
+  }
+
   const gradesBySubject = subjects
     .map((subject) => ({
       subject,
@@ -75,7 +79,7 @@ export function StudentGrades({ student }: { student?: User }) {
                   <tr>
                     <th className="w-[240px] px-4 py-3">Предмет</th>
                     {gradeSections.map((section) => (
-                      <th key={section.key} className="border-l border-border/70 px-4 py-3 text-center">
+                      <th key={section.key} className="border-l border-border/70 px-4 py-3 text-center" style={{ width: getGradeColumnWidth(section.key), minWidth: getGradeColumnWidth(section.key) }}>
                         {section.label}
                       </th>
                     ))}
