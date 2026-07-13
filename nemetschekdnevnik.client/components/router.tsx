@@ -24,17 +24,26 @@ import { SettingsScreen } from "@/components/screens/settings-screen"
 import type { User } from "@/lib/data"
 
 export function Router() {
-  const { currentUser, view, selectedChildId, users } = useApp()
+  const { currentUser, view, selectedChildId, users, apiChildren } = useApp()
 
   if (!currentUser) {
     return <LoginScreen />
   }
 
-  const selectedChild =
-    users.find((user) => user.id === selectedChildId) ??
-    (currentUser?.role === 'parent'
-      ? users.find((user) => currentUser.childrenIds?.includes(user.id)) ?? null
-      : null)
+  const apiChild = apiChildren?.find((c) => String(c.studentId) === String(selectedChildId))
+
+  const selectedChild = apiChild 
+    ? {
+        id: String(apiChild.studentId),
+        name: `${apiChild.firstName} ${apiChild.lastName}`,
+        username: '',
+        email: '',
+        role: 'student' as const,
+        status: 'active' as const,
+        phone: '',
+        className: apiChild.classGrade ? `${apiChild.classGrade}${apiChild.classLetter}` : undefined
+      }
+    : null
 
   return <AppShell>{renderScreen(currentUser.role, view, selectedChild)}</AppShell>
 }
