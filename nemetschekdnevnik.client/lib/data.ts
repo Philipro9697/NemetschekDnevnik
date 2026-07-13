@@ -128,12 +128,12 @@ export interface Lesson {
 /* ---------------- Seed data ---------------- */
 
 export const classes: SchoolClass[] = [
-  { id: 'c1a', name: '1.А' },
-  { id: 'c2b', name: '2.В' },
-  { id: 'c5a', name: '5.А' },
-  { id: 'c5b', name: '5.Б' },
-  { id: 'c6b', name: '6.Б' },
-]
+	{ id: "c1a", name: "1.А" },
+	{ id: "c2b", name: "2.В" },
+	{ id: "c5a", name: "5.А" },
+	{ id: "c5b", name: "5.Б" },
+	{ id: "c6b", name: "6.Б" },
+];
 
 export const subjects: Subject[] = [
 	{ id: "mat", name: "Математика", abbr: "МАТ" },
@@ -161,114 +161,138 @@ const studentNames5A = [
 ];
 
 const studentNames2B = [
-  'Ава Козлова',
-  'Би Нцоло',
-  'Виктория Новакова',
-  'Георгина Маринова',
-  'Дора Левова',
-]
+	"Ава Козлова",
+	"Би Нцоло",
+	"Виктория Новакова",
+	"Георгина Маринова",
+	"Дора Левова",
+];
 
 export const users: User[] = [
-  // Admin
-  {
-    id: 'admin1',
-    name: 'Елена Секретова',
-    username: 'e.sekretova',
-    email: 'sekretariat@ou-vazrazhdane.bg',
-    role: 'admin',
-    status: 'active',
-  },
-  // Teachers
-  {
-    id: 't1',
-    name: 'Ирина Георгиева',
-    username: 'i.georgieva',
-    email: 'i.georgieva@ou-vazrazhdane.bg',
-    role: 'teacher',
-    status: 'active',
-    subjectIds: ['mat'],
-    classTeacherOf: 'c5a',
-  },
-  {
-    id: 't2',
-    name: 'Петър Иванов',
-    username: 'p.ivanov',
-    email: 'p.ivanov@ou-vazrazhdane.bg',
-    role: 'teacher',
-    status: 'active',
-    subjectIds: ['bel'],
-  },
-  {
-    id: 't3',
-    name: 'Мария Стефанова',
-    username: 'm.stefanova',
-    email: 'm.stefanova@ou-vazrazhdane.bg',
-    role: 'teacher',
-    status: 'active',
-    subjectIds: ['ae'],
-  },
-  {
-    id: 't4',
-    name: 'Светлана Петрова',
-    username: 's.petrova',
-    email: 's.petrova@ou-vazrazhdane.bg',
-    role: 'teacher',
-    status: 'active',
-    subjectIds: ['mat', 'chp'],
-    classTeacherOf: 'c2b',
-  },
-  // Students (5.А)
-  ...studentNames5A.map<User>((name, i) => ({
-    id: `s${i + 1}`,
-    name,
-    username: name
-      .toLowerCase()
-      .replace(/[^a-zа-я ]/gi, '')
-      .split(' ')
-      .map((p) => p[0])
-      .join('') + (i + 1),
-    email: `student${i + 1}@ou-vazrazhdane.bg`,
-    role: 'student',
-    status: 'active',
-    classId: 'c5a',
-    number: i + 1,
-    accessCode: `AC-5A-${1000 + i}`,
-  })),
-  // Students (2.В)
-  ...studentNames2B.map<User>((name, i) => ({
-    id: `s2b${i + 1}`,
-    name,
-    username: name
-      .toLowerCase()
-      .replace(/[^a-zа-я ]/gi, '')
-      .split(' ')
-      .map((p) => p[0])
-      .join('') + (i + 1),
-    email: `student2b${i + 1}@ou-vazrazhdane.bg`,
-    role: 'student',
-    status: 'active',
-    classId: 'c2b',
-    number: i + 1,
-    accessCode: `AC-2B-${2000 + i}`,
-  })),
-  // Parent linked to two children (Борис Иванов s2 and Мария Ангелова s9)
-  {
-    id: 'p1',
-    name: 'Иван Иванов',
-    username: 'iv.ivanov',
-    email: 'iv.ivanov@gmail.com',
-    role: 'parent',
-    status: 'active',
-    childrenIds: ['s2', 's9'],
-  },
-]
+	// Admin
+	{
+		id: "admin1",
+		name: "Елена Секретова",
+		username: "e.sekretova",
+		email: "sekretariat@ou-vazrazhdane.bg",
+		role: "admin",
+		status: "active",
+	},
+	// Teachers
+	{
+		id: "t1",
+		name: "Ирина Георгиева",
+		username: "i.georgieva",
+		email: "i.georgieva@ou-vazrazhdane.bg",
+		role: "teacher",
+		status: "active",
+		subjectIds: ["mat"],
+		classTeacherOf: "c5a",
+	},
+	{
+		id: "t2",
+		name: "Петър Иванов",
+		username: "p.ivanov",
+		email: "p.ivanov@ou-vazrazhdane.bg",
+		role: "teacher",
+		status: "active",
+		subjectIds: ["bel"],
+	},
+	{
+		id: "t3",
+		name: "Мария Стефанова",
+		username: "m.stefanova",
+		email: "m.stefanova@ou-vazrazhdane.bg",
+		role: "teacher",
+		status: "active",
+		subjectIds: ["ae"],
+	},
+	{
+		id: "t4",
+		name: "Светлана Петрова",
+		username: "s.petrova",
+		email: "s.petrova@ou-vazrazhdane.bg",
+		role: "teacher",
+		status: "active",
+		subjectIds: ["mat", "chp"],
+		classTeacherOf: "c2b",
+	},
+	// Students (5.А)
+	...studentNames5A.map<User>((name, i) => ({
+		id: `s${i + 1}`,
+		name,
+		username:
+			name
+				.toLowerCase()
+				.replace(/[^a-zа-я ]/gi, "")
+				.split(" ")
+				.map((p) => p[0])
+				.join("") +
+			(i + 1),
+		email: `student${i + 1}@ou-vazrazhdane.bg`,
+		role: "student",
+		status: "active",
+		classId: "c5a",
+		number: i + 1,
+		accessCode: `AC-5A-${1000 + i}`,
+	})),
+	// Students (2.В)
+	...studentNames2B.map<User>((name, i) => ({
+		id: `s2b${i + 1}`,
+		name,
+		username:
+			name
+				.toLowerCase()
+				.replace(/[^a-zа-я ]/gi, "")
+				.split(" ")
+				.map((p) => p[0])
+				.join("") +
+			(i + 1),
+		email: `student2b${i + 1}@ou-vazrazhdane.bg`,
+		role: "student",
+		status: "active",
+		classId: "c2b",
+		number: i + 1,
+		accessCode: `AC-2B-${2000 + i}`,
+	})),
+	// Parent linked to two children (Борис Иванов s2 and Мария Ангелова s9)
+	{
+		id: "p1",
+		name: "Иван Иванов",
+		username: "iv.ivanov",
+		email: "iv.ivanov@gmail.com",
+		role: "parent",
+		status: "active",
+		childrenIds: ["s2", "s9"],
+	},
+];
 
-export const demoAccounts: { username: string; role: Role; label: string; userId: string }[] = [
-  { username: 'e.sekretova', role: 'admin', label: 'Администратор (Секретар)', userId: 'admin1' },
-  { username: 'i.georgieva', role: 'teacher', label: 'Учител / Класен ръководител', userId: 't1' },
-  { username: studentUsername(), role: 'student', label: 'Ученик (5.А клас)', userId: 's2' },
-  { username: 'iv.ivanov', role: 'parent', label: 'Родител', userId: 'p1' },
-]
+export const demoAccounts: {
+	username: string;
+	role: Role;
+	label: string;
+	userId: string;
+}[] = [
+		{
+			username: "e.sekretova",
+			role: "admin",
+			label: "Администратор (Секретар)",
+			userId: "admin1",
+		},
+		{
+			username: "i.georgieva",
+			role: "teacher",
+			label: "Учител / Класен ръководител",
+			userId: "t1",
+		},
+		{
+			username: studentUsername(),
+			role: "student",
+			label: "Ученик (5.А клас)",
+			userId: "s2",
+		},
+		{ username: "iv.ivanov", role: "parent", label: "Родител", userId: "p1" },
+	];
 
 function studentUsername() {
 	return users.find((u) => u.id === "s2")?.username ?? "student2";
