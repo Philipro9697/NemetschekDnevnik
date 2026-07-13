@@ -1,18 +1,82 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { studentService } from '@/api/studentService'
+import type { RemarkDto } from '@/api/types'
 import { useApp } from '@/components/app-provider'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { classById, formatDate, subjectById, type User } from '@/lib/data'
+import { classById, formatDate, type User } from '@/lib/data'
 import { MessageSquareText, Sparkles } from 'lucide-react'
+
+type DisplayRemark = {
+  id: string
+  text: string
+  date: string
+  kind: 'praise' | 'remark'
+  teacherName: string
+}
+
+function toDisplayRemark(dto: RemarkDto): DisplayRemark {
+  const teacherName = [dto.teacherFirstName, dto.teacherLastName].filter(Boolean).join(' ').trim() || 'Учител'
+  const kind = dto.type?.toLowerCase() === 'praise' ? 'praise' : 'remark'
+
+  return {
+    id: `${dto.remarkId}`,
+    text: dto.text,
+    date: dto.dateCreated,
+    kind,
+    teacherName,
+  }
+}
 
 export function StudentNotes({ student }: { student?: User }) {
   const app = useApp()
   const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
+  const [dbRemarks, setDbRemarks] = useState<DisplayRemark[]>([])
+  const [loadingRemarks, setLoadingRemarks] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!app.currentUser || app.currentUser.role !== 'student' || Boolean(student)) {
+      setDbRemarks([])
+      return () => {
+        cancelled = true
+      }
+    }
+
+    async function loadRemarks() {
+      setLoadingRemarks(true)
+
+      try {
+        const data = await studentService.getRemarks()
+        if (cancelled) return
+
+        setDbRemarks(data.map(toDisplayRemark))
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load remarks', error)
+          setDbRemarks([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingRemarks(false)
+        }
+      }
+    }
+
+    void loadRemarks()
+
+    return () => {
+      cancelled = true
+    }
+  }, [app.currentUser?.id, app.currentUser?.role, student])
+
   if (!me) return null
 
-  const myNotes = app.notes.filter((n) => n.studentId === me.id)
-  const orderedNotes = [...myNotes].sort((a, b) => (a.date < b.date ? 1 : -1))
+  const orderedNotes = [...dbRemarks]
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
 
   return (
     <div className="space-y-6">
@@ -42,7 +106,9 @@ export function StudentNotes({ student }: { student?: User }) {
           <p className="text-sm text-muted-foreground">Всички бележки и похвали са видими в реално време.</p>
         </CardHeader>
         <CardBody className="space-y-3">
-          {orderedNotes.length === 0 ? (
+          {loadingRemarks ? (
+            <p className="py-4 text-center text-sm text-muted-foreground">Зареждане на бележки…</p>
+          ) : orderedNotes.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">Няма записани бележки.</p>
           ) : (
             orderedNotes.map((n) => (
@@ -51,10 +117,10 @@ export function StudentNotes({ student }: { student?: User }) {
                   <div className="min-w-0">
                     <p className="text-sm leading-relaxed text-foreground">{n.text}</p>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {subjectById(n.subjectId).name} · {formatDate(n.date)} · {n.time ?? '—'}
+                      {formatDate(n.date)}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Учител: {app.users.find((u) => u.id === n.teacherId)?.name ?? '—'}
+                      Учител: {n.teacherName}
                     </p>
                   </div>
                   <Badge tone={n.kind === 'praise' ? 'success' : 'danger'}>
