@@ -1,22 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { studentService } from "@/api/studentService";
-import type { GradeDto } from "@/api/types";
-import { useApp } from "@/components/app-provider";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
-import { GradePill } from "@/components/shared/grade-pill";
-import {
-	classById,
-	formatDate,
-	subjects,
-	type Grade,
-	type GradeSection,
-	type User,
-	userById,
-} from "@/lib/data";
-import { TrendingUp, Sparkles } from "lucide-react";
+import { useEffect, useState } from 'react'
+import { studentService } from '@/api/studentService'
+import { userService } from '@/api/userService'
+import type { GradeDto, UserAccountDto } from '@/api/types'
+import { useApp } from '@/components/app-provider'
+import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog } from '@/components/ui/dialog'
+import { GradePill } from '@/components/shared/grade-pill'
+import { classById, formatDate, subjects, type Grade, type GradeSection, type User, userById } from '@/lib/data'
+import { TrendingUp, Sparkles } from 'lucide-react'
 
 const gradeSections: { key: GradeSection; label: string }[] = [
 	{ key: "term1", label: "1ви срок" },
@@ -40,6 +33,20 @@ type DisplayGrade = {
 	subjectName: string;
 	teacherName: string;
 };
+
+type DisplayStudentUserData = {
+  id: string
+  firstName: string
+  lastName: string
+}
+
+function toDisplayUserFromDto(dto: UserAccountDto): DisplayStudentUserData {
+  return {
+    id: `${dto.userId}`,
+    firstName: dto.firstName,
+    lastName: dto.lastName,
+  }
+}
 
 function inferGradeSection(entryDate: string): GradeSection {
 	const month = new Date(entryDate).getMonth() + 1;
@@ -69,65 +76,65 @@ function toDisplayGradeFromDto(dto: GradeDto, studentId: string): DisplayGrade {
 		.join(" ")
 		.trim();
 
-	return {
-		id: `${studentId}-${dto.subjectId}-${dto.entryDate}`,
-		studentId,
-		subjectId: `${dto.subjectId}`,
-		teacherId: `${dto.teacherId}`,
-		value: Number(dto.gradeValue),
-		date: dto.entryDate,
-		section: inferGradeSection(dto.entryDate),
-		description: dto.comment || dto.gradeTypeName,
-		subjectName: dto.subjectName || "Предмет",
-		teacherName: teacherName || "Учител",
-	};
+  return {
+    id: `${studentId}-${dto.gradeId}`,
+    studentId,
+    subjectId: `${dto.subjectId}`,
+    teacherId: `${dto.teacherId}`,
+    value: Number(dto.gradeValue),
+    date: dto.entryDate,
+    section: inferGradeSection(dto.entryDate),
+    description: dto.comment || dto.gradeTypeName,
+    subjectName: dto.subjectName || 'Предмет',
+    teacherName: teacherName || 'Учител',
+  }
 }
 
 export function StudentGrades({ student }: { student?: User }) {
-	const app = useApp();
-	const me =
-		student ?? (app.currentUser?.role === "student" ? app.currentUser : null);
-	const [selectedGrade, setSelectedGrade] = useState<DisplayGrade | null>(null);
-	const [dbGrades, setDbGrades] = useState<DisplayGrade[]>([]);
-	const [loadingGrades, setLoadingGrades] = useState(false);
+  const app = useApp()
+  const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
+  const [selectedGrade, setSelectedGrade] = useState<DisplayGrade | null>(null)
+  const [dbGrades, setDbGrades] = useState<DisplayGrade[]>([])
+  const [dbUser, setDbUser] = useState<DisplayStudentUserData | null>(null)
+  const [loadingGrades, setLoadingGrades] = useState(false)
 
 	useEffect(() => {
 		let cancelled = false;
 
-		if (
-			!app.currentUser ||
-			app.currentUser.role !== "student" ||
-			Boolean(student)
-		) {
-			setDbGrades([]);
-			return () => {
-				cancelled = true;
-			};
-		}
+    if (!app.currentUser || app.currentUser.role !== 'student' || Boolean(student)) {
+      setDbGrades([])
+      setDbUser(null)
+      return () => {
+        cancelled = true
+      }
+    }
 
 		async function loadGrades() {
 			setLoadingGrades(true);
 
-			try {
-				const data = await studentService.getGrades();
-				if (cancelled) return;
+      try {
+        const [gradeData, userData] = await Promise.all([
+          studentService.getGrades(),
+          // studentId and userId refer to the same row for a student, so we can
+          // look up their profile (first/last name) via the user endpoint.
+          userService.getUserProfile(Number(app.currentUser!.id)),
+        ])
+        if (cancelled) return
 
-				setDbGrades(
-					data.map((grade) =>
-						toDisplayGradeFromDto(grade, app.currentUser!.id),
-					),
-				);
-			} catch (error) {
-				if (!cancelled) {
-					console.error("Failed to load grades", error);
-					setDbGrades([]);
-				}
-			} finally {
-				if (!cancelled) {
-					setLoadingGrades(false);
-				}
-			}
-		}
+        setDbGrades(gradeData.map((grade) => toDisplayGradeFromDto(grade, app.currentUser!.id)))
+        setDbUser(toDisplayUserFromDto(userData))
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load grades', error)
+          setDbGrades([])
+          setDbUser(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingGrades(false)
+        }
+      }
+    }
 
 		void loadGrades();
 
@@ -138,24 +145,24 @@ export function StudentGrades({ student }: { student?: User }) {
 
 	if (!me) return null;
 
-	const myGrades =
-		dbGrades.length > 0
-			? dbGrades
-			: app.grades
-				.filter((g) => g.studentId === me.id)
-				.map((grade) => {
-					const localGrade = toDisplayGrade(grade);
-					const subjectName =
-						subjects.find((subject) => subject.id === grade.subjectId)
-							?.name ?? "Предмет";
-					const teacherName =
-						userById(grade.teacherId, app.users)?.name ?? "Учител";
-					return {
-						...localGrade,
-						subjectName,
-						teacherName,
-					};
-				});
+  const displayName = dbUser
+    ? [dbUser.firstName, dbUser.lastName].filter(Boolean).join(' ').trim() || me.name
+    : me.name
+
+  const myGrades = dbGrades.length > 0
+    ? dbGrades
+    : app.grades
+        .filter((g) => g.studentId === me.id)
+        .map((grade) => {
+          const localGrade = toDisplayGrade(grade)
+          const subjectName = subjects.find((subject) => subject.id === grade.subjectId)?.name ?? 'Предмет'
+          const teacherName = userById(grade.teacherId, app.users)?.name ?? 'Учител'
+          return {
+            ...localGrade,
+            subjectName,
+            teacherName,
+          }
+        })
 
 	const avg =
 		myGrades.length > 0
@@ -181,31 +188,27 @@ export function StudentGrades({ student }: { student?: User }) {
 		}))
 		.sort((a, b) => a.subjectName.localeCompare(b.subjectName));
 
-	return (
-		<div className="space-y-6">
-			<div className="rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-brand-blue/10 p-4 shadow-sm sm:p-6">
-				<div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-					<div>
-						<div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-							<Sparkles className="size-3.5" /> Оценки
-						</div>
-						<h2 className="font-heading text-2xl font-bold">
-							Оценките на {me.name}
-						</h2>
-						<p className="mt-1 text-sm text-muted-foreground">
-							{classById(me.classId)?.name ?? "Без клас"} · среден успех {avg}
-						</p>
-					</div>
-					<div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3 text-sm text-muted-foreground">
-						<p className="flex items-center gap-2 font-medium text-foreground">
-							<TrendingUp className="size-4 text-primary" /> Среден успех
-						</p>
-						<p className="mt-1 font-heading text-xl font-semibold text-primary">
-							{avg}
-						</p>
-					</div>
-				</div>
-			</div>
+  return (
+    <div className="space-y-6">
+      <div className="rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-brand-blue/10 p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+              <Sparkles className="size-3.5" /> Оценки
+            </div>
+            <h2 className="font-heading text-2xl font-bold">Оценките на {displayName}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {classById(me.classId)?.name ?? 'Без клас'} · среден успех {avg}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2 font-medium text-foreground">
+              <TrendingUp className="size-4 text-primary" /> Среден успех
+            </p>
+            <p className="mt-1 font-heading text-xl font-semibold text-primary">{avg}</p>
+          </div>
+        </div>
+      </div>
 
 			<Card className="overflow-hidden border-primary/10">
 				<CardHeader>
