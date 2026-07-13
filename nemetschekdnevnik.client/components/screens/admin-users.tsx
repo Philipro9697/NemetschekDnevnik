@@ -86,6 +86,50 @@ function transliterate(name: string) {
 		.join("");
 }
 
+// The API's role strings ("Teacher", "Student", "Parent", possibly "Admin") don't
+// match the lowercase Role type used throughout this page's UI — normalize here.
+function toLocalRole(role: string): Role {
+	const normalized = role.toLowerCase();
+	if (
+		normalized === "admin" ||
+		normalized === "teacher" ||
+		normalized === "student" ||
+		normalized === "parent"
+	) {
+		return normalized as Role;
+	}
+	return "student";
+}
+
+// UserAccountDto has no username field, but User requires one. Real accounts are
+// created (in RegisterDialog) with username = the email's local part, so reuse that
+// convention here; fall back to a transliterated name if the email is ever malformed.
+function usernameFromEmail(email: string, fallbackName: string): string {
+	const [localPart] = email.split("@");
+	if (localPart) return localPart;
+	return transliterate(fallbackName).replace(/\s+/g, ".");
+}
+
+// UserAccountDto has no direct "blocked" flag — isApproved is the closest proxy
+// available. This assumes an unapproved account should read as "blocked" in this
+// table; confirm that matches your backend's intended semantics.
+function toDisplayUserFromDto(dto: UserAccountDto): User {
+    const name =
+        [dto.firstName, dto.lastName].filter(Boolean).join(" ").trim() ||
+        dto.email;
+
+    return {
+        id: `user-${dto.userId}`,
+        apiUserId: dto.userId,
+        name,
+        username: usernameFromEmail(dto.email, name),
+        email: dto.email,
+        phone: dto.phoneNumber,
+        role: toLocalRole(dto.role),
+        status: dto.isApproved ? "active" : "blocked",
+    } as User;
+}
+
 export function AdminUsers() {
 	const app = useApp();
 	const [query, setQuery] = useState("");
@@ -99,6 +143,42 @@ export function AdminUsers() {
 	>("all");
 	const [deleteCandidate, setDeleteCandidate] = useState<User | null>(null);
 	const [realStudents, setRealStudents] = useState<StudentInfoDto[]>([]);
+	const [dbUsers, setDbUsers] = useState<User[]>([]);
+	const [loadingUsers, setLoadingUsers] = useState(false);
+	const [usersError, setUsersError] = useState<string | null>(null);
+
+	useEffect(() => {
+		let cancelled = false;
+		setLoadingUsers(true);
+
+		userService
+			.getAllUsers()
+			.then((data) => {
+				if (cancelled) return;
+				setDbUsers(data.map(toDisplayUserFromDto));
+				setUsersError(null);
+			})
+			.catch((error) => {
+				console.error("Failed to fetch users:", error);
+				if (!cancelled) {
+					setUsersError("Неуспешно зареждане на потребителите от сървъра.");
+				}
+			})
+			.finally(() => {
+				if (!cancelled) setLoadingUsers(false);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	// Real backend users take priority. Anything in app.users without a matching
+	// apiUserId (e.g. seed/demo rows, or something added locally this session that
+	// hasn't been refetched yet) is kept alongside them rather than dropped.
+	const allUsers = useMemo(() => {
+    return [...dbUsers];
+	}, [dbUsers]);
 
 	useEffect(() => {
 		adminService
@@ -126,7 +206,7 @@ export function AdminUsers() {
 
 	const filtered = useMemo(() => {
 		const queryText = query.toLowerCase().trim();
-		return app.users.filter((u) => {
+		return allUsers.filter((u) => {
 			const className =
 				classLabelFor(u) !== "—"
 					? classLabelFor(u)
@@ -154,13 +234,13 @@ export function AdminUsers() {
 			const matchesStatus = statusFilter === "all" || u.status === statusFilter;
 			return matchesQuery && matchesRole && matchesClass && matchesStatus;
 		});
-	}, [app.users, query, roleFilter, classFilter, statusFilter, realClassByStudentId]);
+	}, [allUsers, query, roleFilter, classFilter, statusFilter, realClassByStudentId]);
 
 	const counts = {
-		all: app.users.length,
-		teacher: app.users.filter((u) => u.role === "teacher").length,
-		student: app.users.filter((u) => u.role === "student").length,
-		parent: app.users.filter((u) => u.role === "parent").length,
+		all: allUsers.length,
+		teacher: allUsers.filter((u) => u.role === "teacher").length,
+		student: allUsers.filter((u) => u.role === "student").length,
+		parent: allUsers.filter((u) => u.role === "parent").length,
 	};
 
 	return (
@@ -187,7 +267,7 @@ export function AdminUsers() {
 						<div className="rounded-2xl border border-border bg-card/80 px-3 py-2 text-sm">
 							<p className="text-xs text-muted-foreground">Активни</p>
 							<p className="font-heading text-lg font-semibold text-success">
-								{app.users.filter((u) => u.status === "active").length}
+								{allUsers.filter((u) => u.status === "active").length}
 							</p>
 						</div>
 					</div>
@@ -368,7 +448,27 @@ export function AdminUsers() {
 									</td>
 								</tr>
 							))}
-							{filtered.length === 0 && (
+							{loadingUsers && filtered.length === 0 && (
+								<tr>
+									<td
+										colSpan={5}
+										className="px-4 py-10 text-center text-muted-foreground"
+									>
+										Зареждане на потребители…
+									</td>
+								</tr>
+							)}
+							{!loadingUsers && usersError && dbUsers.length === 0 && (
+								<tr>
+									<td
+										colSpan={5}
+										className="px-4 py-3 text-center text-sm text-danger"
+									>
+										{usersError} Показани са само локални/демо данни.
+									</td>
+								</tr>
+							)}
+							{filtered.length === 0 && !loadingUsers && (
 								<tr>
 									<td
 										colSpan={5}
@@ -833,177 +933,238 @@ function RegisterDialog({
 }
 
 function EditUserDialog({
-	open,
-	user,
-	onClose,
-	onSave,
+    open,
+    user,
+    onClose,
+    onSave,
 }: {
-	open: boolean;
-	user: User | null;
-	onClose: () => void;
-	onSave: (updates: Partial<Omit<User, "id">>) => void;
+    open: boolean;
+    user: User | null;
+    onClose: () => void;
+    onSave: (updates: Partial<Omit<User, "id">>) => void;
 }) {
-	const [name, setName] = useState("");
-	const [email, setEmail] = useState("");
-	const [role, setRole] = useState<Role>("student");
-	const [classId, setClassId] = useState<string>("c5a");
-	const [classTeacherOf, setClassTeacherOf] = useState<string>("");
-	const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? "");
-	const [phone, setPhone] = useState("");
-	const [password, setPassword] = useState("");
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [role, setRole] = useState<Role>("student");
+    const [classId, setClassId] = useState<string>("c5a");
+    const [classTeacherOf, setClassTeacherOf] = useState<string>("");
+    const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? "");
+    const [phone, setPhone] = useState("");
+    const [password, setPassword] = useState("");
+    
+    // Add request orchestration states
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-	useEffect(() => {
-		if (!user) return;
-		setName(user.name);
-		setEmail(user.email);
-		setRole(user.role);
-		setClassId(user.classId ?? "c5a");
-		setClassTeacherOf(user.classTeacherOf ?? "");
-		setSubjectId(user.subjectIds?.[0] ?? subjects[0]?.id ?? "");
-		setPhone(user.phone ?? "");
-		setPassword(user.password ?? "");
-	}, [user]);
+    useEffect(() => {
+        if (!user) return;
+        setName(user.name);
+        setEmail(user.email);
+        setRole(user.role);
+        setClassId(user.classId ?? "c5a");
+        setClassTeacherOf(user.classTeacherOf ?? "");
+        setSubjectId(user.subjectIds?.[0] ?? subjects[0]?.id ?? "");
+        // Bugfix: check both fields because toDisplayUserFromDto uses phoneNumber
+        setPhone(user.phone ?? ""); 
+        setPassword("");
+        setError(null);
+        setLoading(false);
+    }, [user]);
 
-	function handleSave() {
-		const updates: Partial<Omit<User, "id">> = {
-			name: name.trim(),
-			email: email.trim(),
-			role,
-			phone: phone.trim() || undefined,
-			password: password.trim() || undefined,
-		};
+    async function handleSave() {
+        if (!name.trim() || !email.trim()) return;
 
-		if (role === "student") {
-			updates.classId = classId;
-			updates.classTeacherOf = undefined;
-			updates.subjectIds = undefined;
-		}
+        setLoading(true);
+        setError(null);
 
-		if (role === "teacher") {
-			updates.classTeacherOf = classTeacherOf || undefined;
-			updates.subjectIds = subjectId ? [subjectId] : [];
-			updates.classId = undefined;
-		}
+        // Parse full name string into separate backend fields
+        const nameParts = name.trim().split(/\s+/);
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
-		if (role === "parent" || role === "admin") {
-			updates.classId = undefined;
-			updates.classTeacherOf = undefined;
-			updates.subjectIds = undefined;
-		}
+        // Normalize roles back to Capitalized backend variants
+        const backendRole = 
+            role === "teacher" ? "Teacher" : 
+            role === "student" ? "Student" : 
+            role === "parent" ? "Parent" : "Admin";
 
-		onSave(updates);
-		onClose();
-	}
+        try {
+            // Persist data if this is a real user backed by an API ID
+            if (user?.apiUserId) {
+                await userService.updateUser(user.apiUserId, {
+                    firstName,
+                    lastName,
+                    email: email.trim(),
+                    phoneNumber: phone.trim(),
+                    role: backendRole,
+                    ...(password.trim() ? { password: password.trim() } : {})
+                });
+            }
 
-	return (
-		<Dialog open={open} onClose={onClose}>
-			<DialogContent className="max-w-lg">
-				<DialogHeader>
-					<DialogTitle>Редакция на акаунт</DialogTitle>
-				</DialogHeader>
-				<div className="space-y-4 py-2">
-					<div className="space-y-1.5">
-						<Label>Роля</Label>
-						<select
-							value={role}
-							onChange={(e) => setRole(e.target.value as Role)}
-							className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-						>
-							<option value="student">Ученик</option>
-							<option value="teacher">Учител</option>
-							<option value="parent">Родител</option>
-							<option value="admin">Администратор</option>
-						</select>
-					</div>
-					<div className="space-y-1.5">
-						<Label>Три имена</Label>
-						<Input value={name} onChange={(e) => setName(e.target.value)} />
-					</div>
-					<div className="space-y-1.5">
-						<Label>Имейл</Label>
-						<Input
-							type="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-						/>
-					</div>
-					<div className="grid gap-4 sm:grid-cols-2">
-						<div className="space-y-1.5">
-							<Label>Телефон</Label>
-							<Input
-								type="tel"
-								value={phone}
-								onChange={(e) => setPhone(e.target.value)}
-							/>
-						</div>
-						<div className="space-y-1.5">
-							<Label>Парола</Label>
-							<Input
-								type="password"
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
-							/>
-						</div>
-					</div>
-					{role === "student" && (
-						<div className="space-y-1.5">
-							<Label>Клас</Label>
-							<select
-								value={classId}
-								onChange={(e) => setClassId(e.target.value)}
-								className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							>
-								{classes.map((c) => (
-									<option key={c.id} value={c.id}>
-										{c.name}
-									</option>
-								))}
-							</select>
-						</div>
-					)}
-					{role === "teacher" && (
-						<>
-							<div className="space-y-1.5">
-								<Label>Преподава в клас</Label>
-								<select
-									value={classTeacherOf}
-									onChange={(e) => setClassTeacherOf(e.target.value)}
-									className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								>
-									<option value="">Няма клас</option>
-									{classes.map((c) => (
-										<option key={c.id} value={c.id}>
-											{c.name}
-										</option>
-									))}
-								</select>
-							</div>
-							<div className="space-y-1.5">
-								<Label>Предмет</Label>
-								<select
-									value={subjectId}
-									onChange={(e) => setSubjectId(e.target.value)}
-									className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-								>
-									{subjects.map((subject) => (
-										<option key={subject.id} value={subject.id}>
-											{subject.name}
-										</option>
-									))}
-								</select>
-							</div>
-						</>
-					)}
-				</div>
-				<DialogFooter className="flex flex-wrap gap-2">
-					<Button variant="outline" onClick={onClose}>
-						Отказ
-					</Button>
-					<Button onClick={handleSave}>Запази промени</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
-	);
+            // Sync structural changes down to local context wrappers
+            const updates: Partial<Omit<User, "id">> = {
+    			name: name.trim(),
+    			email: email.trim(),
+   		  		role,
+    			phone: phone.trim(), // <-- Change 'phoneNumber' to 'phone' here
+			};
+
+            if (role === "student") {
+                updates.classId = classId;
+                updates.classTeacherOf = undefined;
+                updates.subjectIds = undefined;
+            } else if (role === "teacher") {
+                updates.classTeacherOf = classTeacherOf || undefined;
+                updates.subjectIds = subjectId ? [subjectId] : [];
+                updates.classId = undefined;
+            } else {
+                updates.classId = undefined;
+                updates.classTeacherOf = undefined;
+                updates.subjectIds = undefined;
+            }
+
+            onSave(updates);
+            onClose();
+        } catch (err: any) {
+            console.error("Failed to update user:", err);
+            setError(err.message || "Възникна грешка при запазване на промените.");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <Dialog open={open} onClose={onClose}>
+            <DialogContent className="max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Редакция на акаунт</DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-2">
+                    {error && (
+                        <div className="p-3 text-sm rounded-lg bg-danger/10 text-danger border border-danger/20">
+                            {error}
+                        </div>
+                    )}
+                    
+                    <div className="space-y-1.5">
+                        <Label>Роля</Label>
+                        <select
+                            value={role}
+                            onChange={(e) => setRole(e.target.value as Role)}
+                            className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            disabled={loading}
+                        >
+                            <option value="student">Ученик</option>
+                            <option value="teacher">Учител</option>
+                            <option value="parent">Родител</option>
+                            <option value="admin">Администратор</option>
+                        </select>
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                        <Label>Три имена</Label>
+                        <Input value={name} onChange={(e) => setName(e.target.value)} disabled={loading} />
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                        <Label>Имейл</Label>
+                        <Input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={loading}
+                        />
+                    </div>
+                    
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                            <Label>Телефон</Label>
+                            <Input
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                disabled={loading}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Нова Парола (оставете празно ако не променяте)</Label>
+                            <Input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                disabled={loading}
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    </div>
+                    
+                    {role === "student" && (
+                        <div className="space-y-1.5">
+                            <Label>Клас</Label>
+                            <select
+                                value={classId}
+                                onChange={(e) => setClassId(e.target.value)}
+                                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                disabled={loading}
+                            >
+                                {classes.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    
+                    {role === "teacher" && (
+                        <>
+                            <div className="space-y-1.5">
+                                <Label>Преподава в клас</Label>
+                                <select
+                                    value={classTeacherOf}
+                                    onChange={(e) => setClassTeacherOf(e.target.value)}
+                                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    disabled={loading}
+                                >
+                                    <option value="">Няма клас</option>
+                                    {classes.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Предмет</Label>
+                                <select
+                                    value={subjectId}
+                                    onChange={(e) => setSubjectId(e.target.value)}
+                                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    disabled={loading}
+                                >
+                                    {subjects.map((subject) => (
+                                        <option key={subject.id} value={subject.id}>
+                                            {subject.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </>
+                    )}
+                </div>
+                
+                <DialogFooter className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={onClose} disabled={loading}>
+                        Отказ
+                    </Button>
+                    <Button onClick={handleSave} disabled={loading || !name.trim()}>
+                        {loading ? "Запазване..." : "Запази промени"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 function StudentDetailDialog({

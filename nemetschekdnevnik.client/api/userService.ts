@@ -37,5 +37,19 @@ export const userService = {
         return apiClient<{ message: string }>(`/users/${id}`, {
             method: 'DELETE',
         });
+    },
+
+    updateUser: (id: number, dto: { 
+        firstName: string; 
+        lastName: string; 
+        email: string; 
+        phoneNumber: string; 
+        role: string;
+        password?: string;
+    }) => {
+        return apiClient<UserAccountDto>(`/users/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(dto),
+        });
     }
 };
