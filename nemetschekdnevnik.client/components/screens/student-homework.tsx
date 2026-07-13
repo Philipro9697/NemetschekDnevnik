@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from 'react'
 import type { User } from '@/lib/data'
 import { useApp } from '@/components/app-provider'
 import { studentService } from '@/api/studentService'
+import { parentService } from '@/api/parentService'
 import type { HomeworkItemDto } from '@/api/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { subjectById, userById, formatDate } from '@/lib/data'
 import { cn } from '@/lib/utils'
 import {
@@ -21,8 +21,6 @@ import {
   Filter,
 } from 'lucide-react'
 
-// subjectById only knows about the local/mock subjects list, so a real subjectId
-// coming back from the API may not resolve to anything — fall back gracefully.
 function safeSubject(subjectId: string): { name: string; abbr: string } {
   return subjectById(subjectId) ?? { name: 'Предмет', abbr: '—' }
 }
@@ -39,8 +37,6 @@ type DisplayHomework = {
   dueDate: string
 }
 
-// The homework endpoint doesn't return the teacher's name (only teacherId), so we
-// resolve it the same way the rest of the app does: look it up in app.users.
 function toDisplayHomeworkFromDto(dto: HomeworkItemDto, teacherName: string): DisplayHomework {
   return {
     id: `${dto.homeworkId}`,
@@ -55,14 +51,13 @@ function toDisplayHomeworkFromDto(dto: HomeworkItemDto, teacherName: string): Di
   }
 }
 
-// Local submission state. There's no backend endpoint (yet) for submitting/tracking
-// homework uploads, so "submitting" a file here only updates this component's state
-// for the current session rather than persisting anything to the server.
 type LocalSubmission = { fileName: string; feedback?: string }
 
 export function StudentHomework({ student }: { student?: User }) {
   const app = useApp()
   const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
+  const isParent = Boolean(student) || app.currentUser?.role === 'parent' // Разпознаване дали е родител
+
   const [filterSubject, setFilterSubject] = useState('all')
   const [sortBy, setSortBy] = useState<'date' | 'subject'>('date')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -73,22 +68,23 @@ export function StudentHomework({ student }: { student?: User }) {
   useEffect(() => {
     let cancelled = false
 
-    if (!app.currentUser || app.currentUser.role !== 'student' || Boolean(student)) {
+    if (!me) {
       setDbHomework([])
-      return () => {
-        cancelled = true
-      }
+      return
     }
 
     async function loadHomework() {
       setLoadingHomework(true)
 
       try {
-        const data = await studentService.getHomework()
+        const data = student && student.id
+          ? await parentService.getChildHomework(Number(student.id))
+          : await studentService.getHomework()
+
         if (cancelled) return
 
         setDbHomework(
-          data.map((dto) =>
+          (data || []).map((dto) =>
             toDisplayHomeworkFromDto(dto, userById(`${dto.teacherId}`, app.users)?.name ?? 'Учител'),
           ),
         )
@@ -109,13 +105,13 @@ export function StudentHomework({ student }: { student?: User }) {
     return () => {
       cancelled = true
     }
-  }, [app.currentUser?.id, app.currentUser?.role, student, app.users])
+  }, [app.currentUser?.id, student?.id, me?.id, app.users])
 
   if (!me) return null
 
   const myClass = me.classId
 
-  const localHomework: DisplayHomework[] = app.homework
+  const localHomework: DisplayHomework[] = (app.homework || [])
     .filter((h) => h.classIds.includes(myClass ?? '') && h.type === 'homework')
     .map((h) => ({
       id: h.id,
@@ -170,6 +166,7 @@ export function StudentHomework({ student }: { student?: User }) {
             onSelect={() => setSelectedId(selectedId === hw.id ? null : hw.id)}
             submission={localSubmissions[hw.id]}
             onSubmit={(fileName) => handleSubmit(hw.id, fileName)}
+            isParent={isParent} // Подаваме флага към картата
           />
         ))}
       </Section>
@@ -210,12 +207,14 @@ function HomeworkCard({
   onSelect,
   submission,
   onSubmit,
+  isParent,
 }: {
   hw: DisplayHomework
   selected: boolean
   onSelect: () => void
   submission?: LocalSubmission
   onSubmit: (fileName: string) => void
+  isParent: boolean
 }) {
   const subject = safeSubject(hw.subjectId)
   const overdue = new Date(hw.dueDate) < new Date() && !submission
@@ -266,7 +265,9 @@ function HomeworkCard({
               <p className="mt-1 text-muted-foreground">Краен срок: {formatDate(hw.dueDate)}</p>
             </div>
           </div>
-          <SubmitBox submission={submission} onSubmit={onSubmit} />
+          
+          {/* Показваме кутията за предаване само ако ПОТРЕБИТЕЛЯТ НЕ Е РОДИТЕЛ */}
+          {!isParent && <SubmitBox submission={submission} onSubmit={onSubmit} />}
         </div>
       )}
     </Card>
