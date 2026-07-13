@@ -60,7 +60,9 @@ export function StudentSchedule({ student }: { student?: User } = {}) {
 							<Sparkles className="size-3.5" /> Програма за седмицата
 						</div>
 						<h2 className="font-heading text-2xl font-bold">
-							{student ? `Седмична програма на ${student.name}` : 'Седмична програма'}
+							{student
+								? `Седмична програма на ${student.name}`
+								: "Седмична програма"}
 						</h2>
 						<p className="mt-1 text-sm text-muted-foreground">
 							Изберете ден за подробен преглед
