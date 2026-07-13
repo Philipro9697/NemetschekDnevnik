@@ -89,7 +89,7 @@ export function LoginScreen() {
                                     disabled={loading}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="e-mail"
+                                    placeholder="Имейл"
                                     autoComplete="username"
                                     className="pl-9"
                                 />
@@ -149,10 +149,6 @@ export function LoginScreen() {
 
                     <DemoHint onDemoLogin={handleDemoLogin} />
                 </div>
-
-                <p className="mt-6 text-center text-xs text-white/40">
-                    Достъпът до системата се предоставя от администрацията на училището.
-                </p>
             </div>
         </main>
     )
