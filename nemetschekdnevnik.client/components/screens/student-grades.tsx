@@ -90,9 +90,6 @@ export function StudentGrades({ student }: { student?: User }) {
                     <tr key={subject.id} className="border-t border-border/70">
                       <td className="px-4 py-3 align-top">
                         <div className="font-medium text-foreground">{subject.name}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {grades.length} оценка{grades.length === 1 ? '' : 'и'}
-                        </div>
                       </td>
                       {gradeSections.map((section) => {
                         const sectionGrades = grades.filter((g) => g.section === section.key)
