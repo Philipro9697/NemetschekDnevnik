@@ -382,10 +382,16 @@ namespace NemetschekDnevnik.Server.Data
 
         public static void SeedAllData(DnevnikContext context)
         {
+            if (context.Users.Any())
+            {
+                Console.WriteLine("--> Базата данни вече съдържа потребители — seeding се пропуска.");
+                return;
+            }
+
             Console.WriteLine("--> СИйДЪРЪТ СТАРТИРА УСПЕШНО!");
 
             Console.WriteLine("--> Започва генериране на данни...");
-                
+
             var fakerEn = new Faker("en");
 
             SeedUsers(context, fakerEn);
