@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Check, Star, Smile, Meh, Frown, Sparkles, CalendarDays } from 'lucide-react'
+import { FileText, Check, Star, Heart, ThumbsUp, Frown, Sparkles, CalendarDays, X } from 'lucide-react'
 import { useApp } from '@/components/app-provider'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/input'
 import { Dialog } from '@/components/ui/dialog'
-import { GradePill } from '@/components/shared/grade-pill'
+import { GradePill, getGradeIcon } from '@/components/shared/grade-pill'
 import {
   studentsOfClass,
   subjectById,
@@ -27,15 +27,15 @@ export function ClassDiary({ lesson }: { lesson: Lesson }) {
   const [gradeFor, setGradeFor] = useState<User | null>(null)
   const [noteFor, setNoteFor] = useState<User | null>(null)
   const today = new Date().toISOString().slice(0, 10)
-  const isPrimaryClass = lesson.classId === 'c5a' || lesson.classId === 'c5b' || lesson.classId === 'c6b'
+  const isPrimaryClass = lesson.classId === 'c1a' || lesson.classId === 'c2a' || lesson.classId === 'c2b'
 
-  function dayAbsence(studentId: string, type: 'absent' | 'late') {
+  function dayAbsence(studentId: string) {
     return absences.find(
       (a) =>
         a.studentId === studentId &&
         a.subjectId === lesson.subjectId &&
         a.date === today &&
-        a.type === type,
+        a.type === 'absent',
     )
   }
 
@@ -74,8 +74,7 @@ export function ClassDiary({ lesson }: { lesson: Lesson }) {
         </div>
         <ul className="divide-y divide-border">
           {students.map((s) => {
-            const absent = dayAbsence(s.id, 'absent')
-            const late = dayAbsence(s.id, 'late')
+            const absent = dayAbsence(s.id)
             const studentGrades = grades.filter(
               (g) => g.studentId === s.id && g.subjectId === lesson.subjectId,
             )
@@ -117,32 +116,12 @@ export function ClassDiary({ lesson }: { lesson: Lesson }) {
                   >
                     О
                   </button>
-                  <button
-                    onClick={() =>
-                      !late &&
-                      addAbsence({
-                        studentId: s.id,
-                        subjectId: lesson.subjectId,
-                        type: 'late',
-                        excused: false,
-                      })
-                    }
-                    aria-label="Закъснение"
-                    className={cn(
-                      'flex size-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors',
-                      late
-                        ? 'border-warning bg-warning text-warning-foreground'
-                        : 'border-warning/50 text-warning-foreground hover:bg-warning/15',
-                    )}
-                  >
-                    З
-                  </button>
                 </div>
 
                 {/* Grades */}
                 <div className="flex items-center gap-1.5 sm:justify-center">
                   {studentGrades.slice(-2).map((g) => (
-                    <GradePill key={g.id} value={g.value} className="size-7 text-xs" />
+                    <GradePill key={g.id} value={g.value} className="size-7 text-xs" classId={s.classId} />
                   ))}
                   <button
                     onClick={() => setGradeFor(s)}
@@ -185,6 +164,7 @@ export function ClassDiary({ lesson }: { lesson: Lesson }) {
               teacherId: currentUser!.id,
               value,
               kind: 'oral',
+              section: 'Текущо изпитване',
             })
             setGradeFor(null)
           }}
@@ -225,9 +205,9 @@ function GradeDialog({
 }) {
   const primaryOptions = [
     { value: 6, icon: Star, label: 'Отлично' },
-    { value: 5, icon: Smile, label: 'Добре' },
-    { value: 4, icon: Meh, label: 'Средно' },
-    { value: 3, icon: Frown, label: 'Нужно е' },
+    { value: 5, icon: Heart, label: 'Добре' },
+    { value: 4, icon: ThumbsUp, label: 'Средно' },
+    { value: 3, icon: Frown, label: 'зле' },
   ]
 
   return (

@@ -53,7 +53,7 @@ namespace NemetschekDnevnik.Server.Data
                     LastName = lName,
                     PhoneNumber = fakerEn.Phone.PhoneNumber("08########"),
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!"),
-                    Role = "ученик",
+                    Role = "Student",
                     IsApproved = true,
                     CreatedAt = DateTime.Now.AddMonths(-2)
                 };
@@ -75,7 +75,7 @@ namespace NemetschekDnevnik.Server.Data
                     LastName = lName,
                     PhoneNumber = fakerEn.Phone.PhoneNumber("08########"),
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!"),
-                    Role = "учител",
+                    Role = "Teacher",
                     IsApproved = true,
                     CreatedAt = DateTime.Now.AddMonths(-2)
                 };
@@ -95,7 +95,7 @@ namespace NemetschekDnevnik.Server.Data
                 LastName = lName,
                 PhoneNumber = fakerEn.Phone.PhoneNumber("08########"),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!"),
-                Role = "администратор",
+                Role = "Admin",
                 IsApproved = true,
                 CreatedAt = DateTime.Now.AddMonths(-2)
             };
@@ -116,7 +116,7 @@ namespace NemetschekDnevnik.Server.Data
                     LastName = lName,
                     PhoneNumber = fakerEn.Phone.PhoneNumber("08########"),
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!"),
-                    Role = "родител",
+                    Role = "Parent",
                     IsApproved = true,
                     CreatedAt = DateTime.Now.AddMonths(-2)
                 };
@@ -144,7 +144,7 @@ namespace NemetschekDnevnik.Server.Data
         public static void CreateStudents(DnevnikContext context)
         {
             var classesList = context.Classes.ToList();
-            var students = context.Users.Where(u => u.Role == "ученик").ToList();
+            var students = context.Users.Where(u => u.Role == "Student").ToList();
             var parents = context.Parents.ToList();
 
             var random = new Random();
@@ -152,7 +152,7 @@ namespace NemetschekDnevnik.Server.Data
             {
                 var assignedClass = classesList[random.Next(classesList.Count)];
             
-                var studentParent = parents[random.Next(parents.Count+1)];
+                var studentParent = parents[random.Next(parents.Count)];
 
                 var studentProfile = new Student
                 {
@@ -168,7 +168,7 @@ namespace NemetschekDnevnik.Server.Data
         public static void CreateTeachers(DnevnikContext context)
         {
             Console.WriteLine("--> Започва assignment на данни for Teacher table...");
-            var teachers = context.Users.Where(u => u.Role == "учител").ToList();
+            var teachers = context.Users.Where(u => u.Role == "Teacher").ToList();
 
             foreach (var teacher in teachers)
             {
@@ -185,7 +185,7 @@ namespace NemetschekDnevnik.Server.Data
         public static void CreateAdmins(DnevnikContext context)
         {
             Console.WriteLine("--> Започва assignment на данни for Admin table...");
-            var admins = context.Users.Where(u => u.Role == "администратор").ToList();
+            var admins = context.Users.Where(u => u.Role == "Admin").ToList();
 
             foreach (var admin in admins)
             {
@@ -201,7 +201,7 @@ namespace NemetschekDnevnik.Server.Data
 
         public static void CreateParents(DnevnikContext context)
         {
-            var parents = context.Users.Where(u => u.Role == "родител").ToList();
+            var parents = context.Users.Where(u => u.Role == "Parent").ToList();
             
             foreach (var parent in parents)
             {
@@ -212,6 +212,12 @@ namespace NemetschekDnevnik.Server.Data
             
                 context.Parents.Add(parentProfile);
             }
+            context.SaveChanges();
+        }
+
+        public static void ConnectParentToStudents(DnevnikContext context)
+        {
+            
             context.SaveChanges();
         }
 

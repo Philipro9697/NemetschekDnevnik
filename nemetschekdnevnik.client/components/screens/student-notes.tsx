@@ -8,7 +8,7 @@ import { MessageSquareText, Sparkles } from 'lucide-react'
 
 export function StudentNotes({ student }: { student?: User }) {
   const app = useApp()
-  const me = student ?? app.currentUser
+  const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   if (!me) return null
 
   const myNotes = app.notes.filter((n) => n.studentId === me.id)
@@ -51,7 +51,10 @@ export function StudentNotes({ student }: { student?: User }) {
                   <div className="min-w-0">
                     <p className="text-sm leading-relaxed text-foreground">{n.text}</p>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {subjectById(n.subjectId).name} · {formatDate(n.date)}
+                      {subjectById(n.subjectId).name} · {formatDate(n.date)} · {n.time ?? '—'}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Учител: {app.users.find((u) => u.id === n.teacherId)?.name ?? '—'}
                     </p>
                   </div>
                   <Badge tone={n.kind === 'praise' ? 'success' : 'danger'}>

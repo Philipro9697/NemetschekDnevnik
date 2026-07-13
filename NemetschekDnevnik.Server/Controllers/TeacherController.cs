@@ -98,6 +98,21 @@ public class TeacherController : ControllerBase
         return Ok(await _teacherService.GetRemarks(teacher, id));
     }
 
+    [HttpGet("remarks/student/{studentId}")]
+    public async Task<ActionResult<List<RemarkDto>>> GetRemarksForStudent(int studentId)
+    {
+        var teacher = await GetTeacher();
+        if (teacher is null) return NotFound("User not found");
+
+        var student = await _studentService.GetStudentById(studentId);
+        if (student is null) return NotFound("Student not found");
+
+        if (!_teacherService.TeachesStudent(teacher, student))
+            return Forbid("This is not your student!");
+
+        return Ok(await _teacherService.GetRemarksForStudent(teacher, studentId));
+    }
+
     [HttpGet("lessons/{id}")]
     public async Task<ActionResult<List<LessonDto>>> GetLessons(int id)
     {

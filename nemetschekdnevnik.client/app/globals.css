@@ -119,8 +119,14 @@
     @apply bg-background text-foreground;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     overflow-x: hidden;
+    background-image: radial-gradient(circle at top left, rgba(98, 189, 160, 0.12), transparent 28%),
+      linear-gradient(135deg, rgba(31, 79, 139, 0.03), rgba(47, 125, 109, 0.06));
     scrollbar-color: oklch(0.53 0.14 248) oklch(0.96 0.008 220);
     scrollbar-width: thin;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
   }
 
   ::-webkit-scrollbar {
@@ -138,5 +144,19 @@
   }
   h1, h2, h3, h4, h5 {
     font-family: var(--font-heading);
+  }
+}
+
+@layer components {
+  .glass-surface {
+    @apply rounded-[30px] border border-white/20 bg-card/90 shadow-[0_24px_80px_rgba(12,27,43,0.16)] backdrop-blur-xl;
+  }
+
+  .soft-card {
+    @apply rounded-[24px] border border-border/70 bg-card/85 shadow-sm;
+  }
+
+  .page-shell {
+    @apply mx-auto w-full max-w-7xl;
   }
 }

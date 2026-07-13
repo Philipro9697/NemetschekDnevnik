@@ -1,5 +1,5 @@
 'use client'
-
+import { userService } from '@/api/userService'
 import { useState } from 'react'
 import {
   LayoutDashboard,
@@ -11,7 +11,6 @@ import {
   ClipboardList,
   GraduationCap,
   UsersRound,
-  Bell,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -22,6 +21,7 @@ import {
   CircleAlert,
   MessageSquareText,
   CalendarRange,
+  Megaphone,
 } from 'lucide-react'
 import { Logo } from '@/components/logo'
 import { Avatar } from '@/components/ui/avatar'
@@ -40,16 +40,14 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'users', label: 'Потребители', icon: Users },
     { view: 'reports', label: 'Справки и архив', icon: FileBarChart },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
-    { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
     { view: 'settings', label: 'Настройки', icon: Settings },
   ],
   teacher: [
-    { view: 'diary', label: 'Електронен дневник', icon: BookOpenCheck },
-    { view: 'grades', label: 'Оценки', icon: TrendingUp },
+    { view: 'diary', label: 'Програма', icon: BookOpenCheck },
+    { view: 'grades', label: 'Дневник', icon: TrendingUp },
     { view: 'classteacher', label: 'Класен ръководител', icon: UsersRound },
-    { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
+    { view: 'homework', label: 'Домашни', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
-    { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
   ],
   student: [
     { view: 'dashboard', label: 'Моето табло', icon: LayoutDashboard },
@@ -57,14 +55,18 @@ const NAV: Record<Role, NavItem[]> = {
     { view: 'absences', label: 'Отсъствия', icon: CircleAlert },
     { view: 'notes', label: 'Бележки', icon: MessageSquareText },
     { view: 'schedule', label: 'Програма', icon: CalendarRange },
-    { view: 'homework', label: 'Домашни и материали', icon: ClipboardList },
+    { view: 'homework', label: 'Домашни', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
-    { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
   ],
   parent: [
     { view: 'children', label: 'Моите деца', icon: GraduationCap },
+    { view: 'grades', label: 'Оценки', icon: TrendingUp },
+    { view: 'absences', label: 'Отсъствия', icon: CircleAlert },
+    { view: 'notes', label: 'Бележки', icon: MessageSquareText },
+    { view: 'schedule', label: 'Програма', icon: CalendarRange },
+    { view: 'homework', label: 'Домашни', icon: ClipboardList },
     { view: 'calendar', label: 'Календар', icon: CalendarDays },
-    { view: 'messages', label: 'Съобщения', icon: MessagesSquare },
+
   ],
 }
 
@@ -89,14 +91,14 @@ function profileSvgDataUrl(name: string) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { currentUser, view, setView, logout, notifications, markNotificationsRead } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [bellOpen, setBellOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [announcementsOpen, setAnnouncementsOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   if (!currentUser) return null
 
   const items = NAV[currentUser.role]
-  const showBell = currentUser.role === 'student' || currentUser.role === 'parent'
+  const showAnnouncements = currentUser.role === 'student' || currentUser.role === 'parent' || currentUser.role === 'teacher'
   const targets =
-    currentUser.role === 'student'
+    currentUser.role === 'student' || currentUser.role === 'teacher'
       ? [currentUser.id]
       : currentUser.childrenIds ?? []
   const myNotifs = notifications.filter((n) => targets.includes(n.target))
@@ -104,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const NavContent = (
     <>
-      <div className={cn('px-5 py-6', sidebarCollapsed && 'px-3')}>
+      <div className="px-5 py-6">
         <Logo variant="light" />
       </div>
       <nav className="flex-1 space-y-1 px-3">
@@ -120,14 +122,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }}
               className={cn(
                 'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                sidebarCollapsed && 'justify-center px-2',
                 active
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               )}
             >
               <Icon className="size-4.5 shrink-0" />
-              {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+              <span className="truncate">{item.label}</span>
             </button>
           )
         })}
@@ -139,18 +140,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             setView('settings')
             setMobileOpen(false)
           }}
-          className={cn(
-            'flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-sidebar-accent',
-            sidebarCollapsed && 'justify-center px-1',
-          )}
+          className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-sidebar-accent"
         >
           <Avatar name={currentUser.name} src={profileSvgDataUrl(currentUser.name)} className="size-9" />
-          {!sidebarCollapsed && (
-            <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate text-sm font-semibold text-white">{currentUser.name}</p>
-              <p className="text-xs text-sidebar-foreground/60">{ROLE_LABEL[currentUser.role]}</p>
-            </div>
-          )}
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate text-sm font-semibold text-white">{currentUser.name}</p>
+            <p className="text-xs text-sidebar-foreground/60">{ROLE_LABEL[currentUser.role]}</p>
+          </div>
         </button>
       </div>
     </>
@@ -161,8 +157,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar transition-all lg:flex',
-          sidebarCollapsed && 'w-20',
+          'fixed inset-y-0 left-0 z-30 w-64 flex-col bg-sidebar transition-all',
+          sidebarOpen ? 'lg:flex' : 'hidden',
         )}
       >
         {NavContent}
@@ -186,41 +182,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main area */}
-      <div className={cn('flex min-w-0 flex-1 flex-col transition-all', sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64')}>
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur-md sm:px-6">
+      <div className={cn('flex min-w-0 flex-1 flex-col transition-all', sidebarOpen ? 'lg:pl-64' : 'lg:pl-0')}>
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/70 bg-card/85 px-4 backdrop-blur-xl sm:px-6">
           <button
             onClick={() => {
               if (window.innerWidth < 1024) {
                 setMobileOpen((value) => !value)
               } else {
-                setSidebarCollapsed((value) => !value)
+                setSidebarOpen((value) => !value)
               }
             }}
             className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
-            aria-label={sidebarCollapsed ? 'Покажи менюто' : 'Скрий менюто'}
+            aria-label={sidebarOpen ? 'Скрий менюто' : 'Покажи менюто'}
           >
             {window.innerWidth >= 1024 ? (
-              sidebarCollapsed ? <PanelLeftOpen className="size-5" /> : <PanelLeftClose className="size-5" />
+              sidebarOpen ? <PanelLeftClose className="size-5" /> : <PanelLeftOpen className="size-5" />
             ) : (
               <Menu className="size-5" />
             )}
           </button>
-          <h1 className="font-heading text-lg font-bold tracking-tight">
-            {items.find((i) => i.view === view)?.label ?? 'Табло'}
-          </h1>
+          <div className="flex min-w-0 flex-col">
+            <h1 className="font-heading text-lg font-bold tracking-tight">
+              {items.find((i) => i.view === view)?.label ?? 'Табло'}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {ROLE_LABEL[currentUser.role]} · {currentUser.name}
+            </p>
+          </div>
 
           <div className="ml-auto flex items-center gap-1">
-            {showBell && (
+            {showAnnouncements && (
               <div className="relative">
                 <button
                   onClick={() => {
-                    setBellOpen((o) => !o)
-                    if (!bellOpen) targets.forEach((t) => markNotificationsRead(t))
+                    setAnnouncementsOpen((o) => !o)
+                    if (!announcementsOpen) targets.forEach((t) => markNotificationsRead(t))
                   }}
                   className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label="Известия"
+                  aria-label="Глобални съобщения"
                 >
-                  <Bell className="size-5" />
+                  <Megaphone className="size-5" />
                   {unread > 0 && (
                     <span className="absolute right-1.5 top-1.5 flex size-2.5 items-center justify-center">
                       <span className="absolute size-2.5 animate-ping rounded-full bg-danger/70" />
@@ -228,14 +229,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </span>
                   )}
                 </button>
-                {bellOpen && (
+                {announcementsOpen && (
                   <div className="absolute right-0 top-12 z-40 w-80 rounded-xl border border-border bg-card p-2 shadow-xl">
                     <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Известия
+                      Глобални съобщения
                     </p>
                     {myNotifs.length === 0 ? (
                       <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-                        Няма нови известия.
+                        Няма глобални съобщения.
                       </p>
                     ) : (
                       <ul className="max-h-80 space-y-0.5 overflow-y-auto">
@@ -274,7 +275,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 p-3 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-3 sm:p-6 lg:p-8">
+          <div className="page-shell">{children}</div>
+        </main>
       </div>
     </div>
   )
