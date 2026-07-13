@@ -198,7 +198,7 @@ export function StudentGrades({ student }: { student?: User }) {
             </div>
             <h2 className="font-heading text-2xl font-bold">Оценките на {displayName}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {classById(me.classId)?.name ?? 'Без клас'} · среден успех {avg}
+              {me.className ?? 'Без клас'} · среден успех {avg}
             </p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3 text-sm text-muted-foreground">
