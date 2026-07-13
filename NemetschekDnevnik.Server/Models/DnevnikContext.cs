@@ -33,6 +33,8 @@ public partial class DnevnikContext : DbContext
 
     public virtual DbSet<Parent> Parents { get; set; }
 
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+
     public virtual DbSet<Remark> Remarks { get; set; }
 
     public virtual DbSet<Student> Students { get; set; }
