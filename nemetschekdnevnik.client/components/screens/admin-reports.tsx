@@ -68,12 +68,6 @@ export function AdminReports() {
           <CardTitle>Филтри за справка</CardTitle>
         </CardHeader>
         <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Учебна година">
-            <Select value={year} onChange={setYear} options={[['2025/2026', '2025/2026'], ['2024/2025', '2024/2025']]} />
-          </Field>
-          <Field label="Срок">
-            <Select value={term} onChange={setTerm} options={TERMS.map((t) => [t.value, t.label])} />
-          </Field>
           <Field label="Клас">
             <Select
               value={classId}
@@ -91,23 +85,7 @@ export function AdminReports() {
         </CardBody>
       </Card>
 
-      {/* Global message action */}
-      <div className="grid gap-4 sm:grid-cols-1">
-        <button
-          onClick={() => setMsgOpen(true)}
-          className="flex items-center gap-4 rounded-2xl border border-success/30 bg-success/5 p-5 text-left transition-colors hover:bg-success/10"
-        >
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-success text-success-foreground">
-            <Megaphone className="size-6" />
-          </span>
-          <div>
-            <p className="font-heading font-bold">Изпрати глобално съобщение</p>
-            <p className="text-sm text-muted-foreground">
-              Известие до всички ученици, родители и учители.
-            </p>
-          </div>
-        </button>
-      </div>
+      
 
       {/* Report preview */}
       <Card className="overflow-hidden p-0">
@@ -163,6 +141,24 @@ export function AdminReports() {
           </table>
         </div>
       </Card>
+
+{/* Global message action */}
+      <div className="grid gap-4 sm:grid-cols-1">
+        <button
+          onClick={() => setMsgOpen(true)}
+          className="flex items-center gap-4 rounded-2xl border border-success/30 bg-success/5 p-5 text-left transition-colors hover:bg-success/10"
+        >
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-success text-success-foreground">
+            <Megaphone className="size-6" />
+          </span>
+          <div>
+            <p className="font-heading font-bold">Изпрати глобално съобщение</p>
+            <p className="text-sm text-muted-foreground">
+              Известие до всички ученици, родители и учители.
+            </p>
+          </div>
+        </button>
+      </div>
 
       {/* System maintenance */}
       <Card>
