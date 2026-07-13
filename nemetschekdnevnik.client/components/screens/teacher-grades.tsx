@@ -73,7 +73,7 @@ export function TeacherGrades() {
   }, [collapsedGroups])
 
   function getGradeColumnWidth(sectionKey: GradeSection) {
-    return sectionKey === 'term1Final' || sectionKey === 'term2Final' || sectionKey === 'yearly' ? '84px' : '96px'
+    return sectionKey === 'term1Final' || sectionKey === 'term2Final' || sectionKey === 'yearly' ? '40px' : '160px'
   }
 
   function openGradeDialog(studentId: string, section: GradeSection) {
@@ -218,8 +218,8 @@ export function TeacherGrades() {
                     <div className="text-[9px] font-semibold uppercase tracking-wide">{section.label}</div>
                   </th>
                 ))}
-                <th className="w-[130px] border-l border-border/70 px-2 py-2">Бележки</th>
-                <th className="w-[130px] border-l border-border/70 px-2 py-2">Отсъствия</th>
+                <th className="w-[70px] border-l border-border/70 px-2 py-2">Бележки</th>
+                <th className="w-[70px] border-l border-border/70 px-2 py-2">Отсъствия</th>
               </tr>
             </thead>
             <tbody>
@@ -237,7 +237,7 @@ export function TeacherGrades() {
                       const sectionGrades = studentGrades.filter((g) => g.section === section.key)
                       return (
                         <td key={section.key} className="border-l border-border/70 px-1.5 py-1.5 align-top" style={{ width: getGradeColumnWidth(section.key), minWidth: getGradeColumnWidth(section.key) }}>
-                          <div className="rounded-md border border-border/70 bg-muted/20 p-1.5">
+
                             <div className="mb-1 flex items-center justify-end text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                               <button type="button" onClick={() => openGradeDialog(student.id, section.key)} className="rounded-md p-0.5 text-primary hover:bg-background">
                                 <Plus className="size-3" />
@@ -251,7 +251,7 @@ export function TeacherGrades() {
                               ))}
                               {sectionGrades.length === 0 && <span className="text-[11px] text-muted-foreground">—</span>}
                             </div>
-                          </div>
+
                         </td>
                       )
                     })}
