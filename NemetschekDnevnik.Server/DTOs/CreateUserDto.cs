@@ -24,6 +24,10 @@ public class CreateUserDto : IValidatableObject
     [MaxLength(100)]
     public string PhoneNumber { get; set; } = string.Empty;
 
+    public int? ParentId { get; set; }
+
+    public int? ClassId { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (!AllowedRoles.Contains(Role))

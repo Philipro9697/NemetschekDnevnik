@@ -69,8 +69,6 @@ builder.Services.AddScoped<IParentService, ParentService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<ITeacherService, TeacherService>();
 
-builder.Services.AddHostedService<DatabaseMaintenanceService>();
-
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

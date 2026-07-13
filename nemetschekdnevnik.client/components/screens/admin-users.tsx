@@ -1,1280 +1,1489 @@
-'use client'
-import { userService } from '@/api/userService'
-import { adminService } from '@/api/adminService'
-import type { UserRole, UserAccountDto, GradeDto, StudentInfoDto } from '@/api/types'
-import { useEffect, useMemo, useState } from 'react'
-import { useApp } from '@/components/app-provider'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Avatar } from '@/components/ui/avatar'
+"use client";
+import { userService } from "@/api/userService";
+import { adminService } from "@/api/adminService";
+import type { UserRole, UserAccountDto, GradeDto, StudentInfoDto } from "@/api/types";
+import { useEffect, useMemo, useState } from "react";
+import { useApp } from "@/components/app-provider";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Avatar } from "@/components/ui/avatar";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Tabs } from '@/components/ui/tabs'
-import { classes, classById, subjects, type Role, type User } from '@/lib/data'
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs } from "@/components/ui/tabs";
+import { classes, classById, subjects, type Role, type User } from "@/lib/data";
 import {
-  UserPlus,
-  Pencil,
-  Ban,
-  Trash2,
-  Search,
-  CheckCircle2,
-  ShieldCheck,
-  Sparkles,
-  UsersRound,
-  BookOpen,
-} from 'lucide-react'
+	UserPlus,
+	Pencil,
+	Ban,
+	Trash2,
+	Search,
+	CheckCircle2,
+	ShieldCheck,
+	Sparkles,
+	UsersRound,
+	BookOpen,
+} from "lucide-react";
 
 const ROLE_LABEL: Record<Role, string> = {
-  admin: 'Администратор',
-  teacher: 'Учител',
-  student: 'Ученик',
-  parent: 'Родител',
-}
+	admin: "Администратор",
+	teacher: "Учител",
+	student: "Ученик",
+	parent: "Родител",
+};
 
-const ROLE_TONE: Record<Role, 'primary' | 'accent' | 'success' | 'warning'> = {
-  admin: 'warning',
-  teacher: 'primary',
-  student: 'accent',
-  parent: 'success',
-}
+const ROLE_TONE: Record<Role, "primary" | "accent" | "success" | "warning"> = {
+	admin: "warning",
+	teacher: "primary",
+	student: "accent",
+	parent: "success",
+};
 
 function transliterate(name: string) {
-  const map: Record<string, string> = {
-    а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ж: 'zh', з: 'z', и: 'i',
-    й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's',
-    т: 't', у: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh', щ: 'sht',
-    ъ: 'a', ь: 'y', ю: 'yu', я: 'ya',
-  }
-  return name
-    .toLowerCase()
-    .split('')
-    .map((c) => map[c] ?? c)
-    .join('')
+	const map: Record<string, string> = {
+		а: "a",
+		б: "b",
+		в: "v",
+		г: "g",
+		д: "d",
+		е: "e",
+		ж: "zh",
+		з: "z",
+		и: "i",
+		й: "y",
+		к: "k",
+		л: "l",
+		м: "m",
+		н: "n",
+		о: "o",
+		п: "p",
+		р: "r",
+		с: "s",
+		т: "t",
+		у: "u",
+		ф: "f",
+		х: "h",
+		ц: "ts",
+		ч: "ch",
+		ш: "sh",
+		щ: "sht",
+		ъ: "a",
+		ь: "y",
+		ю: "yu",
+		я: "ya",
+	};
+	return name
+		.toLowerCase()
+		.split("")
+		.map((c) => map[c] ?? c)
+		.join("");
 }
 
 export function AdminUsers() {
-  const app = useApp()
-  const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
-  const [editCandidate, setEditCandidate] = useState<User | null>(null)
-  const [detailCandidate, setDetailCandidate] = useState<User | null>(null)
-  const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
-  const [classFilter, setClassFilter] = useState<'all' | string>('all')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all')
-  const [deleteCandidate, setDeleteCandidate] = useState<User | null>(null)
-  const [realStudents, setRealStudents] = useState<StudentInfoDto[]>([])
+	const app = useApp();
+	const [query, setQuery] = useState("");
+	const [open, setOpen] = useState(false);
+	const [editCandidate, setEditCandidate] = useState<User | null>(null);
+	const [detailCandidate, setDetailCandidate] = useState<User | null>(null);
+	const [roleFilter, setRoleFilter] = useState<Role | "all">("all");
+	const [classFilter, setClassFilter] = useState<"all" | string>("all");
+	const [statusFilter, setStatusFilter] = useState<
+		"all" | "active" | "blocked"
+	>("all");
+	const [deleteCandidate, setDeleteCandidate] = useState<User | null>(null);
+	const [realStudents, setRealStudents] = useState<StudentInfoDto[]>([]);
 
-  useEffect(() => {
-    adminService
-      .getStudents()
-      .then(setRealStudents)
-      .catch((error) => console.error('Failed to fetch real students:', error))
-  }, [])
+	useEffect(() => {
+		adminService
+			.getStudents()
+			.then(setRealStudents)
+			.catch((error) => console.error("Failed to fetch real students:", error));
+	}, []);
 
-  // Real backend-backed accounts (apiUserId set) get their real class letter from
-  // the server; purely mock/demo student rows keep the mock lib/data lookup.
-  const realClassByStudentId = useMemo(() => {
-    const map = new Map<number, string>()
-    for (const s of realStudents) {
-      if (s.classGrade) map.set(s.studentId, `${s.classGrade}${s.classLetter}`)
-    }
-    return map
-  }, [realStudents])
+	// Real backend-backed accounts (apiUserId set) get their real class letter from
+	// the server; purely mock/demo student rows keep the mock lib/data lookup.
+	const realClassByStudentId = useMemo(() => {
+		const map = new Map<number, string>();
+		for (const s of realStudents) {
+			if (s.classGrade) map.set(s.studentId, `${s.classGrade}${s.classLetter}`);
+		}
+		return map;
+	}, [realStudents]);
 
-  function classLabelFor(u: User) {
-    if (u.role === 'student' && u.apiUserId) {
-      return realClassByStudentId.get(u.apiUserId) ?? classById(u.classId)?.name ?? '—'
-    }
-    return classById(u.classId)?.name ?? '—'
-  }
+	function classLabelFor(u: User) {
+		if (u.role === "student" && u.apiUserId) {
+			return realClassByStudentId.get(u.apiUserId) ?? classById(u.classId)?.name ?? "—";
+		}
+		return classById(u.classId)?.name ?? "—";
+	}
 
-  const filtered = useMemo(() => {
-    const queryText = query.toLowerCase().trim()
-    return app.users.filter((u) => {
-      const className =
-        classLabelFor(u) !== '—' ? classLabelFor(u) : (u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '')
-      const statusLabel = u.status === 'active' ? 'активен' : 'блокиран'
-      const searchText = [u.name, u.email, className, statusLabel, ROLE_LABEL[u.role]]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
+	const filtered = useMemo(() => {
+		const queryText = query.toLowerCase().trim();
+		return app.users.filter((u) => {
+			const className =
+				classLabelFor(u) !== "—"
+					? classLabelFor(u)
+					: u.classTeacherOf
+						? classById(u.classTeacherOf)?.name + " (кл.)"
+						: "";
+			const statusLabel = u.status === "active" ? "активен" : "блокиран";
+			const searchText = [
+				u.name,
+				u.email,
+				className,
+				statusLabel,
+				ROLE_LABEL[u.role],
+			]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
 
-      const matchesQuery = !queryText || searchText.includes(queryText)
-      const matchesRole = roleFilter === 'all' || u.role === roleFilter
-      const matchesClass =
-        classFilter === 'all' || u.classId === classFilter || u.classTeacherOf === classFilter
-      const matchesStatus = statusFilter === 'all' || u.status === statusFilter
-      return matchesQuery && matchesRole && matchesClass && matchesStatus
-    })
-  }, [app.users, query, roleFilter, classFilter, statusFilter, realClassByStudentId])
+			const matchesQuery = !queryText || searchText.includes(queryText);
+			const matchesRole = roleFilter === "all" || u.role === roleFilter;
+			const matchesClass =
+				classFilter === "all" ||
+				u.classId === classFilter ||
+				u.classTeacherOf === classFilter;
+			const matchesStatus = statusFilter === "all" || u.status === statusFilter;
+			return matchesQuery && matchesRole && matchesClass && matchesStatus;
+		});
+	}, [app.users, query, roleFilter, classFilter, statusFilter, realClassByStudentId]);
 
-  const counts = {
-    all: app.users.length,
-    teacher: app.users.filter((u) => u.role === 'teacher').length,
-    student: app.users.filter((u) => u.role === 'student').length,
-    parent: app.users.filter((u) => u.role === 'parent').length,
-  }
+	const counts = {
+		all: app.users.length,
+		teacher: app.users.filter((u) => u.role === "teacher").length,
+		student: app.users.filter((u) => u.role === "student").length,
+		parent: app.users.filter((u) => u.role === "parent").length,
+	};
 
-  return (
-    <div className="space-y-5">
-      <div className="rounded-[24px] border border-primary/15 bg-gradient-to-br from-primary/10 via-card to-brand-blue/10 p-4 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-              <Sparkles className="size-3.5" /> Администрация
-            </div>
-            <h2 className="font-heading text-xl font-bold">Управление на потребители</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Създавайте профили, следите активността и управлявайте ролите в училището.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="rounded-2xl border border-border bg-card/80 px-3 py-2 text-sm">
-              <p className="text-xs text-muted-foreground">Общо потребители</p>
-              <p className="font-heading text-lg font-semibold">{counts.all}</p>
-            </div>
-            <div className="rounded-2xl border border-border bg-card/80 px-3 py-2 text-sm">
-              <p className="text-xs text-muted-foreground">Активни</p>
-              <p className="font-heading text-lg font-semibold text-success">{app.users.filter((u) => u.status === 'active').length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+	return (
+		<div className="space-y-5">
+			<div className="rounded-[24px] border border-primary/15 bg-gradient-to-br from-primary/10 via-card to-brand-blue/10 p-4 shadow-sm">
+				<div className="flex flex-wrap items-start justify-between gap-3">
+					<div>
+						<div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+							<Sparkles className="size-3.5" /> Администрация
+						</div>
+						<h2 className="font-heading text-xl font-bold">
+							Управление на потребители
+						</h2>
+						<p className="mt-1 text-sm text-muted-foreground">
+							Създавайте профили, следите активността и управлявайте ролите в
+							училището.
+						</p>
+					</div>
+					<div className="flex flex-wrap gap-2">
+						<div className="rounded-2xl border border-border bg-card/80 px-3 py-2 text-sm">
+							<p className="text-xs text-muted-foreground">Общо потребители</p>
+							<p className="font-heading text-lg font-semibold">{counts.all}</p>
+						</div>
+						<div className="rounded-2xl border border-border bg-card/80 px-3 py-2 text-sm">
+							<p className="text-xs text-muted-foreground">Активни</p>
+							<p className="font-heading text-lg font-semibold text-success">
+								{app.users.filter((u) => u.status === "active").length}
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Търси по име, клас или статус..."
-            className="pl-10"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <select
-            value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition hover:border-primary"
-          >
-            <option value="all">Всички класове</option>
-            {classes.map((klass) => (
-              <option key={klass.id} value={klass.id}>
-                {klass.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'blocked')}
-            className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition hover:border-primary"
-          >
-            <option value="all">Всички статуси</option>
-            <option value="active">Активни</option>
-            <option value="blocked">Блокирани</option>
-          </select>
-          <Button onClick={() => setOpen(true)} className="shrink-0">
-            <UserPlus className="size-4" /> Регистрирай нов потребител
-          </Button>
-        </div>
-      </div>
+			{/* Toolbar */}
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+				<div className="relative flex-1">
+					<Search className="pointer-events-none absolute left-3 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground" />
+					<Input
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+						placeholder="Търси по име, клас или статус..."
+						className="pl-10"
+					/>
+				</div>
+				<div className="flex flex-wrap gap-2">
+					<select
+						value={classFilter}
+						onChange={(e) => setClassFilter(e.target.value)}
+						className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition hover:border-primary"
+					>
+						<option value="all">Всички класове</option>
+						{classes.map((klass) => (
+							<option key={klass.id} value={klass.id}>
+								{klass.name}
+							</option>
+						))}
+					</select>
+					<select
+						value={statusFilter}
+						onChange={(e) =>
+							setStatusFilter(e.target.value as "all" | "active" | "blocked")
+						}
+						className="rounded-2xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition hover:border-primary"
+					>
+						<option value="all">Всички статуси</option>
+						<option value="active">Активни</option>
+						<option value="blocked">Блокирани</option>
+					</select>
+					<Button onClick={() => setOpen(true)} className="shrink-0">
+						<UserPlus className="size-4" /> Регистрирай нов потребител
+					</Button>
+				</div>
+			</div>
 
-      {/* Role filter chips */}
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ['all', `Всички (${counts.all})`],
-            ['teacher', `Учители (${counts.teacher})`],
-            ['student', `Ученици (${counts.student})`],
-            ['parent', `Родители (${counts.parent})`],
-          ] as const
-        ).map(([val, label]) => (
-          <button
-            key={val}
-            onClick={() => setRoleFilter(val as Role | 'all')}
-            className={
-              'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ' +
-              (roleFilter === val
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border bg-card text-muted-foreground hover:border-primary/40')
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+			{/* Role filter chips */}
+			<div className="flex flex-wrap gap-2">
+				{(
+					[
+						["all", `Всички (${counts.all})`],
+						["teacher", `Учители (${counts.teacher})`],
+						["student", `Ученици (${counts.student})`],
+						["parent", `Родители (${counts.parent})`],
+					] as const
+				).map(([val, label]) => (
+					<button
+						key={val}
+						onClick={() => setRoleFilter(val as Role | "all")}
+						className={
+							"rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors " +
+							(roleFilter === val
+								? "border-primary bg-primary text-primary-foreground"
+								: "border-border bg-card text-muted-foreground hover:border-primary/40")
+						}
+					>
+						{label}
+					</button>
+				))}
+			</div>
 
-      {/* Table */}
-      <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-3 font-semibold">Име</th>
-                <th className="px-4 py-3 font-semibold">Роля</th>
-                <th className="px-4 py-3 font-semibold">Клас / Предмет</th>
-                <th className="px-4 py-3 font-semibold">Статус</th>
-                <th className="px-4 py-3 text-right font-semibold">Действия</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map((u) => (
-                <tr key={u.id} className="transition-colors hover:bg-muted/40">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={u.name} className="size-9" />
-                      <div className="min-w-0">
-                        <p className="font-medium">{u.name}</p>
-                        <p className="text-xs text-muted-foreground">{u.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {u.role === 'student'
-                      ? classLabelFor(u)
-                      : u.role === 'teacher'
-                      ? `${u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—'}${u.subjectIds?.length ? ` • ${u.subjectIds.map((id) => subjects.find((s) => s.id === id)?.name).filter(Boolean).join(', ')}` : ''}`
-                      : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        'inline-flex items-center gap-1.5 text-sm font-medium ' +
-                        (u.status === 'active' ? 'text-success' : 'text-danger')
-                      }
-                    >
-                      <span
-                        className={
-                          'size-1.5 rounded-full ' +
-                          (u.status === 'active' ? 'bg-success' : 'bg-danger')
-                        }
-                      />
-                      {u.status === 'active' ? 'Активен' : 'Блокиран'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <IconBtn label="Редакция" onClick={() => setEditCandidate(u)}>
-                        <Pencil className="size-4" />
-                      </IconBtn>
-                      {u.role === 'student' && (
-                        <IconBtn label="Детайли" onClick={() => setDetailCandidate(u)}>
-                          <BookOpen className="size-4" />
-                        </IconBtn>
-                      )}
-                      <IconBtn
-                        label={u.status === 'active' ? 'Блокирай' : 'Разблокирай'}
-                        onClick={() =>
-                          app.updateUserStatus(
-                            u.id,
-                            u.status === 'active' ? 'blocked' : 'active',
-                          )
-                        }
-                        tone={u.status === 'active' ? 'warning' : 'success'}
-                      >
-                        {u.status === 'active' ? (
-                          <Ban className="size-4" />
-                        ) : (
-                          <ShieldCheck className="size-4" />
-                        )}
-                      </IconBtn>
-                      <IconBtn
-                        label="Изтрий"
-                        onClick={() => setDeleteCandidate(u)}
-                        tone="danger"
-                        disabled={u.role === 'admin'}
-                      >
-                        <Trash2 className="size-4" />
-                      </IconBtn>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                    Няма намерени потребители.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+			{/* Table */}
+			<Card className="overflow-hidden p-0">
+				<div className="overflow-x-auto">
+					<table className="w-full text-sm">
+						<thead>
+							<tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+								<th className="px-4 py-3 font-semibold">Име</th>
+								<th className="px-4 py-3 font-semibold">Роля</th>
+								<th className="px-4 py-3 font-semibold">Клас / Предмет</th>
+								<th className="px-4 py-3 font-semibold">Статус</th>
+								<th className="px-4 py-3 text-right font-semibold">Действия</th>
+							</tr>
+						</thead>
+						<tbody className="divide-y divide-border">
+							{filtered.map((u) => (
+								<tr key={u.id} className="transition-colors hover:bg-muted/40">
+									<td className="px-4 py-3">
+										<div className="flex items-center gap-3">
+											<Avatar name={u.name} className="size-9" />
+											<div className="min-w-0">
+												<p className="font-medium">{u.name}</p>
+												<p className="text-xs text-muted-foreground">
+													{u.email}
+												</p>
+											</div>
+										</div>
+									</td>
+									<td className="px-4 py-3">
+										<Badge tone={ROLE_TONE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
+									</td>
+									<td className="px-4 py-3 text-muted-foreground">
+										{u.role === "student"
+											? classLabelFor(u)
+											: u.role === "teacher"
+												? `${u.classTeacherOf ? classById(u.classTeacherOf)?.name + " (кл.)" : "—"}${u.subjectIds?.length
+													? ` • ${u.subjectIds
+														.map(
+															(id) =>
+																subjects.find((s) => s.id === id)?.name,
+														)
+														.filter(Boolean)
+														.join(", ")}`
+													: ""
+												}`
+												: "—"}
+									</td>
+									<td className="px-4 py-3">
+										<span
+											className={
+												"inline-flex items-center gap-1.5 text-sm font-medium " +
+												(u.status === "active" ? "text-success" : "text-danger")
+											}
+										>
+											<span
+												className={
+													"size-1.5 rounded-full " +
+													(u.status === "active" ? "bg-success" : "bg-danger")
+												}
+											/>
+											{u.status === "active" ? "Активен" : "Блокиран"}
+										</span>
+									</td>
+									<td className="px-4 py-3">
+										<div className="flex items-center justify-end gap-1">
+											<IconBtn
+												label="Редакция"
+												onClick={() => setEditCandidate(u)}
+											>
+												<Pencil className="size-4" />
+											</IconBtn>
+											{u.role === "student" && (
+												<IconBtn
+													label="Детайли"
+													onClick={() => setDetailCandidate(u)}
+												>
+													<BookOpen className="size-4" />
+												</IconBtn>
+											)}
+											<IconBtn
+												label={
+													u.status === "active" ? "Блокирай" : "Разблокирай"
+												}
+												onClick={() =>
+													app.updateUserStatus(
+														u.id,
+														u.status === "active" ? "blocked" : "active",
+													)
+												}
+												tone={u.status === "active" ? "warning" : "success"}
+											>
+												{u.status === "active" ? (
+													<Ban className="size-4" />
+												) : (
+													<ShieldCheck className="size-4" />
+												)}
+											</IconBtn>
+											<IconBtn
+												label="Изтрий"
+												onClick={() => setDeleteCandidate(u)}
+												tone="danger"
+												disabled={u.role === "admin"}
+											>
+												<Trash2 className="size-4" />
+											</IconBtn>
+										</div>
+									</td>
+								</tr>
+							))}
+							{filtered.length === 0 && (
+								<tr>
+									<td
+										colSpan={5}
+										className="px-4 py-10 text-center text-muted-foreground"
+									>
+										Няма намерени потребители.
+									</td>
+								</tr>
+							)}
+						</tbody>
+					</table>
+				</div>
+			</Card>
 
-      <RegisterDialog open={open} onClose={() => setOpen(false)} />
-      <EditUserDialog
-        open={Boolean(editCandidate)}
-        user={editCandidate}
-        onClose={() => setEditCandidate(null)}
-        onSave={(updates) => {
-          if (editCandidate) {
-            app.updateUser(editCandidate.id, updates)
-          }
-          setEditCandidate(null)
-        }}
-      />
-      <StudentDetailDialog
-        open={Boolean(detailCandidate)}
-        student={detailCandidate}
-        onClose={() => setDetailCandidate(null)}
-      />
+			<RegisterDialog open={open} onClose={() => setOpen(false)} />
+			<EditUserDialog
+				open={Boolean(editCandidate)}
+				user={editCandidate}
+				onClose={() => setEditCandidate(null)}
+				onSave={(updates) => {
+					if (editCandidate) {
+						app.updateUser(editCandidate.id, updates);
+					}
+					setEditCandidate(null);
+				}}
+			/>
+			<StudentDetailDialog
+				open={Boolean(detailCandidate)}
+				student={detailCandidate}
+				onClose={() => setDetailCandidate(null)}
+			/>
 
-      <Dialog open={Boolean(deleteCandidate)} onClose={() => setDeleteCandidate(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Потвърждение за изтриване</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Сигурни ли сте, че искате да изтриете потребителя{' '}
-              <span className="font-semibold text-foreground">{deleteCandidate?.name}</span>?
-            </p>
-            <p className="text-sm text-muted-foreground">Изберете една от опциите по-долу.</p>
-          </div>
-          <DialogFooter className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setDeleteCandidate(null)}>
-              не не искам
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (deleteCandidate) app.deleteUser(deleteCandidate.id)
-                setDeleteCandidate(null)
-              }}
-            >
-              да сигурен съм
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
+			<Dialog
+				open={Boolean(deleteCandidate)}
+				onClose={() => setDeleteCandidate(null)}
+			>
+				<DialogContent className="max-w-md">
+					<DialogHeader>
+						<DialogTitle>Потвърждение за изтриване</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-4 py-2">
+						<p className="text-sm text-muted-foreground">
+							Сигурни ли сте, че искате да изтриете потребителя{" "}
+							<span className="font-semibold text-foreground">
+								{deleteCandidate?.name}
+							</span>
+							?
+						</p>
+						<p className="text-sm text-muted-foreground">
+							Изберете една от опциите по-долу.
+						</p>
+					</div>
+					<DialogFooter className="flex flex-wrap gap-2">
+						<Button variant="outline" onClick={() => setDeleteCandidate(null)}>
+							не не искам
+						</Button>
+						<Button
+							variant="destructive"
+							onClick={() => {
+								if (deleteCandidate) app.deleteUser(deleteCandidate.id);
+								setDeleteCandidate(null);
+							}}
+						>
+							да сигурен съм
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</div>
+	);
 }
 
 function IconBtn({
-  children,
-  label,
-  onClick,
-  tone = 'muted',
-  disabled,
+	children,
+	label,
+	onClick,
+	tone = "muted",
+	disabled,
 }: {
-  children: React.ReactNode
-  label: string
-  onClick?: () => void
-  tone?: 'muted' | 'danger' | 'warning' | 'success'
-  disabled?: boolean
+	children: React.ReactNode;
+	label: string;
+	onClick?: () => void;
+	tone?: "muted" | "danger" | "warning" | "success";
+	disabled?: boolean;
 }) {
-  const toneMap = {
-    muted: 'text-muted-foreground hover:bg-muted hover:text-foreground',
-    danger: 'text-muted-foreground hover:bg-danger/10 hover:text-danger',
-    warning: 'text-muted-foreground hover:bg-warning/15 hover:text-warning-foreground',
-    success: 'text-muted-foreground hover:bg-success/10 hover:text-success',
-  }
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className={
-        'rounded-lg p-2 transition-colors disabled:cursor-not-allowed disabled:opacity-30 ' +
-        toneMap[tone]
-      }
-    >
-      {children}
-    </button>
-  )
+	const toneMap = {
+		muted: "text-muted-foreground hover:bg-muted hover:text-foreground",
+		danger: "text-muted-foreground hover:bg-danger/10 hover:text-danger",
+		warning:
+			"text-muted-foreground hover:bg-warning/15 hover:text-warning-foreground",
+		success: "text-muted-foreground hover:bg-success/10 hover:text-success",
+	};
+	return (
+		<button
+			onClick={onClick}
+			disabled={disabled}
+			aria-label={label}
+			title={label}
+			className={
+				"rounded-lg p-2 transition-colors disabled:cursor-not-allowed disabled:opacity-30 " +
+				toneMap[tone]
+			}
+		>
+			{children}
+		</button>
+	);
 }
 
-function RegisterDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-    const app = useApp()
-    const [name, setName] = useState('')
-    const [email, setEmail] = useState('')
-    const [phoneNumber, setPhoneNumber] = useState('')
-    const [role, setRole] = useState<Role>('student')
-    const [classId, setClassId] = useState<string>('c5a')
-    const [teacherSubjectId, setTeacherSubjectId] = useState<string>(subjects[0]?.id ?? '')
-    const [parentName, setParentName] = useState('')
-    const [parentEmail, setParentEmail] = useState('')
-    const [parentPhone, setParentPhone] = useState('')
+function RegisterDialog({
+	open,
+	onClose,
+}: {
+	open: boolean;
+	onClose: () => void;
+}) {
+	const app = useApp();
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [phoneNumber, setPhoneNumber] = useState("");
+	const [role, setRole] = useState<Role>("student");
+	const [classId, setClassId] = useState<string>("c5a");
+	const [teacherSubjectId, setTeacherSubjectId] = useState<string>(
+		subjects[0]?.id ?? "",
+	);
+	const [parentName, setParentName] = useState("");
+	const [parentEmail, setParentEmail] = useState("");
+	const [parentPhone, setParentPhone] = useState("");
 
+	// Track loading and error states for the API request
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-    // Track loading and error states for the API request
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+	// Updated to include the generated password(s) for the admin to copy
+	const [created, setCreated] = useState<{
+		username: string;
+		password?: string;
+		parentUsername?: string;
+		parentPassword?: string;
+	} | null>(null);
 
-    // Updated to include the generated password(s) for the admin to copy
-    const [created, setCreated] = useState<{ username: string; password?: string; parentUsername?: string; parentPassword?: string } | null>(null)
+	const backendClassIdByClientId: Record<string, number> = {
+		c5a: 1,
+		c5b: 2,
+		c6b: 3,
+	};
 
-    const username = name.trim() ? transliterate(name).replace(/\s+/g, '.') : ''
-    const parentUsername = parentName.trim() ? transliterate(parentName).replace(/\s+/g, '.') : ''
+	const username = name.trim() ? transliterate(name).replace(/\s+/g, ".") : "";
+	const parentUsername = parentName.trim()
+		? transliterate(parentName).replace(/\s+/g, ".")
+		: "";
 
-    function reset() {
-        setName('')
-        setEmail('')
-        setRole('student')
-        setClassId('c5a')
-        setCreated(null)
-        setError(null)
-        setLoading(false)
-    }
+	function reset() {
+		setName("");
+		setEmail("");
+		setRole("student");
+		setClassId("c5a");
+		setCreated(null);
+		setError(null);
+		setLoading(false);
+	}
 
-    // 2. Make handleSubmit async to handle the server database entry
-    async function handleSubmit() {
-        if (!name.trim()) return
+	async function handleSubmit() {
+		if (!name.trim()) return;
 
-        setLoading(true)
-        setError(null)
+		setLoading(true);
+		setError(null);
 
-        // Split "Три имена" into FirstName and LastName for the backend DTO
-        const nameParts = name.trim().split(/\s+/)
-        const firstName = nameParts[0] || ''
-        const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Петров'
+		const nameParts = name.trim().split(/\s+/);
+		const firstName = nameParts[0] || "";
+		const lastName =
+			nameParts.length > 1 ? nameParts.slice(1).join(" ") : "Петров";
 
-        const parentNameParts = parentName.trim().split(/\s+/)
-        const parentFirstName = parentNameParts[0] || ''
-        const parentLastName = parentNameParts.length > 1 ? parentNameParts.slice(1).join(' ') : 'Петрова'
+		const parentNameParts = parentName.trim().split(/\s+/);
+		const parentFirstName = parentNameParts[0] || "";
+		const parentLastName =
+			parentNameParts.length > 1
+				? parentNameParts.slice(1).join(" ")
+				: "Петрова";
 
-        // Generate a safe temporary password since the UI form doesn't request one
-        const generatedPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
-        const parentPassword = 'Nms' + Math.floor(100000 + Math.random() * 899000) + '!'
+		const generatedPassword =
+			"Nms" + Math.floor(100000 + Math.random() * 899000) + "!";
+		const parentPassword =
+			"Nms" + Math.floor(100000 + Math.random() * 899000) + "!";
 
-        // Map lowercase UI roles to capitalized backend system strings
-        const backendRole: UserRole = role === 'teacher' ? 'Teacher' : role === 'student' ? 'Student' : 'Parent'
+		const backendRole: UserRole =
+			role === "teacher"
+				? "Teacher"
+				: role === "student"
+					? "Student"
+					: "Parent";
 
-        const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`
+		const targetEmail = email.trim() || `${username}@ou-vazrazhdane.bg`;
 
-        try {
-            // Send HTTP POST request to api/users
-            const serverUser = await userService.createUser({
-                email: targetEmail,
-                password: generatedPassword,
-                role: backendRole,
-                firstName: firstName,
-                lastName: lastName,
-                phoneNumber: phoneNumber.trim()
-            })
+		try {
+			const secondaryUser =
+				role === "student"
+					? await userService.createUser({
+						email:
+							parentEmail.trim() || `${parentUsername}@ou-vazrazhdane.bg`,
+						password: parentPassword,
+						role: "Parent",
+						firstName: parentFirstName,
+						lastName: parentLastName,
+						phoneNumber: parentPhone.trim(),
+					})
+					: undefined;
 
-            const secondaryUser = role === 'student' ? await userService.createUser({
-                email: parentEmail.trim() || `${parentUsername}@ou-vazrazhdane.bg`,
-                password: parentPassword,
-                role: 'Parent',
-                firstName: parentFirstName,
-                lastName: parentLastName,
-                phoneNumber: parentPhone.trim()
-            }) : undefined
+			const studentClassId = backendClassIdByClientId[classId] ?? 1;
 
-            // Update local state context if your application syncs client arrays
-            // 1. Add the main user (Student/Teacher)
-            if (app.addUser) {
-              app.addUser({
-                name: `${serverUser.firstName} ${serverUser.lastName}`,
-                username: username,
-                email: serverUser.email,
-                role: role,
-                status: serverUser.isApproved ? 'active' : 'blocked',
-                apiUserId: serverUser.userId,
-                ...(role === 'student' ? { classId } : {}),
-              })
-            }
+			const serverUser = await userService.createUser({
+				email: targetEmail,
+				password: generatedPassword,
+				role: backendRole,
+				firstName: firstName,
+				lastName: lastName,
+				phoneNumber: phoneNumber.trim(),
+				parentId:
+					role === "student" && secondaryUser
+						? secondaryUser.userId
+						: undefined,
+				classId: role === "student" ? studentClassId : undefined,
+			});
 
-            // 2. Add the secondary user (Parent) - Only if a student is being registered
-            if (role === 'student' && app.addUser && secondaryUser) {
-              const parentUsername = parentName.trim() ? transliterate(parentName).replace(/\s+/g, '.') : ''
-            
-              app.addUser({
-                name: `${secondaryUser.firstName} ${secondaryUser.lastName}`,
-                username: parentUsername, // Use a username derived from the parent's name
-                email: secondaryUser.email,
-                role: 'parent', // Hardcoded client-side role for parent
-                status: secondaryUser.isApproved ? 'active' : 'blocked',
-              })
-            }
+			if (app.addUser) {
+				app.addUser({
+					name: `${serverUser.firstName} ${serverUser.lastName}`,
+					username: username,
+					email: serverUser.email,
+					role: role,
+					status: serverUser.isApproved ? "active" : "blocked",
+					apiUserId: serverUser.userId,
+					...(role === "student" ? { classId } : {}),
+				});
+			}
 
-            // Display username(s) and the generated password(s) to the Administrator
-            setCreated({
-              username,
-              password: generatedPassword,
-              parentUsername: role === 'student' ? parentUsername : undefined,
-              parentPassword: role === 'student' ? parentPassword : undefined,
-            })
-        } catch (err: any) {
-            console.error(err)
-            setError(err.message || 'Възникна грешка при комуникацията със сървъра.')
-        } finally {
-            setLoading(false)
-        }
-    }
+			if (role === "student" && app.addUser && secondaryUser) {
+				const parentUsername = parentName.trim()
+					? transliterate(parentName).replace(/\s+/g, ".")
+					: "";
 
-    function handleClose() {
-        reset()
-        onClose()
-    }
+				app.addUser({
+					name: `${secondaryUser.firstName} ${secondaryUser.lastName}`,
+					username: parentUsername,
+					email: secondaryUser.email,
+					role: "parent",
+					status: secondaryUser.isApproved ? "active" : "blocked",
+				});
+			}
 
-  return (
-    <Dialog open={open} onClose={handleClose}>
-      <DialogContent className="max-w-lg">
-        {created ? (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-success" />
-                Профилът е създаден
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="rounded-xl border border-border bg-muted/40 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Потребителско име
-                </p>
-                <p className="font-mono text-lg font-semibold">{created.username}</p>
-                {created.password && (
-                  <>
-                    <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
-                      Парола
-                    </p>
-                    <p className="font-mono text-lg font-semibold">{created.password}</p>
-                  </>
-                )}
-              </div>
-              {created.parentUsername && (
-                <div className="rounded-xl border border-border bg-muted/40 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Потребителско име на родителя
-                  </p>
-                  <p className="font-mono text-lg font-semibold">{created.parentUsername}</p>
-                  {created.parentPassword && (
-                    <>
-                      <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
-                        Парола на родителя
-                      </p>
-                      <p className="font-mono text-lg font-semibold">{created.parentPassword}</p>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={reset}>
-                Създай още един
-              </Button>
-              <Button onClick={handleClose}>Готово</Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-10 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-                <ShieldCheck className="size-5 text-primary" />
-                Регистрация на нов потребител
-              </DialogTitle>
-            </DialogHeader>
-            <div>
-              <div className="flex items-center gap-2 font-medium text-foreground">
-              </div>
-            </div>
-            <div className="space-y-4 py-2">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Роля</Label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as Role)}
-                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="teacher">Учител</option>
-                    <option value="student">Ученик</option>
-                  </select>
-                </div>
-                {role === 'student' && (
-                  <div className="space-y-1.5">
-                    <Label>Клас</Label>
-                    <select
-                      value={classId}
-                      onChange={(e) => setClassId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {classes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                {role === 'teacher' && (
-                  <div className="space-y-1.5">
-                    <Label>Предмет</Label>
-                    <select
-                      value={teacherSubjectId}
-                      onChange={(e) => setTeacherSubjectId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {subjects.map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label>Три имена</Label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="напр. Георги Иванов Петров"
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>Имейл</Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="напр. g.petrov@example.com"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Телефон</Label>
-                  <Input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="напр. +359 87 123 4567"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Паролата се генерира автоматично и се показва след създаването на профила.
-              </p>
-              {role === 'student' && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label>Три имена на родителя</Label>
-                    <Input
-                      value={parentName}
-                      onChange={(e) => setParentName(e.target.value)}
-                      placeholder="напр. Мария Иванова Петрова"
-                    />
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label>Имейл на родителя</Label>
-                      <Input
-                        type="email"
-                        value={parentEmail}
-                        onChange={(e) => setParentEmail(e.target.value)}
-                        placeholder="имейл на родителя"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Телефон на родителя</Label>
-                      <Input
-                        type="tel"
-                        value={parentPhone}
-                        onChange={(e) => setParentPhone(e.target.value)}
-                        placeholder="напр. +359 88 765 4321"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>
-                Отказ
-              </Button>
-              <Button onClick={handleSubmit} disabled={!name.trim()}>
-                Създай профил
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  )
+			setCreated({
+				username,
+				password: generatedPassword,
+				parentUsername: role === "student" ? parentUsername : undefined,
+				parentPassword: role === "student" ? parentPassword : undefined,
+			});
+		} catch (err: any) {
+			console.error(err);
+			setError(err.message || "Възникна грешка при комуникацията със сървъра.");
+		} finally {
+			setLoading(false);
+		}
+	}
+
+	function handleClose() {
+		reset();
+		onClose();
+	}
+
+	return (
+		<Dialog open={open} onClose={handleClose}>
+			<DialogContent className="max-w-lg">
+				{created ? (
+					<>
+						<DialogHeader>
+							<DialogTitle className="flex items-center gap-2">
+								<CheckCircle2 className="size-5 text-success" />
+								Профилът е създаден
+							</DialogTitle>
+						</DialogHeader>
+						<div className="space-y-4 py-2">
+							<div className="rounded-xl border border-border bg-muted/40 p-4">
+								<p className="text-xs uppercase tracking-wide text-muted-foreground">
+									Потребителско име
+								</p>
+								<p className="font-mono text-lg font-semibold">
+									{created.username}
+								</p>
+								{created.password && (
+									<>
+										<p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
+											Парола
+										</p>
+										<p className="font-mono text-lg font-semibold">
+											{created.password}
+										</p>
+									</>
+								)}
+							</div>
+							{created.parentUsername && (
+								<div className="rounded-xl border border-border bg-muted/40 p-4">
+									<p className="text-xs uppercase tracking-wide text-muted-foreground">
+										Потребителско име на родителя
+									</p>
+									<p className="font-mono text-lg font-semibold">
+										{created.parentUsername}
+									</p>
+									{created.parentPassword && (
+										<>
+											<p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
+												Парола на родителя
+											</p>
+											<p className="font-mono text-lg font-semibold">
+												{created.parentPassword}
+											</p>
+										</>
+									)}
+								</div>
+							)}
+						</div>
+						<DialogFooter>
+							<Button variant="outline" onClick={reset}>
+								Създай още един
+							</Button>
+							<Button onClick={handleClose}>Готово</Button>
+						</DialogFooter>
+					</>
+				) : (
+					<>
+						<DialogHeader>
+							<DialogTitle className="flex items-center gap-10 rounded-xl border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+								<ShieldCheck className="size-5 text-primary" />
+								Регистрация на нов потребител
+							</DialogTitle>
+						</DialogHeader>
+						<div>
+							<div className="flex items-center gap-2 font-medium text-foreground"></div>
+						</div>
+						<div className="space-y-4 py-2">
+							<div className="grid gap-4 sm:grid-cols-2">
+								<div className="space-y-1.5">
+									<Label>Роля</Label>
+									<select
+										value={role}
+										onChange={(e) => setRole(e.target.value as Role)}
+										className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									>
+										<option value="teacher">Учител</option>
+										<option value="student">Ученик</option>
+									</select>
+								</div>
+								{role === "student" && (
+									<div className="space-y-1.5">
+										<Label>Клас</Label>
+										<select
+											value={classId}
+											onChange={(e) => setClassId(e.target.value)}
+											className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											{classes.map((c) => (
+												<option key={c.id} value={c.id}>
+													{c.name}
+												</option>
+											))}
+										</select>
+									</div>
+								)}
+								{role === "teacher" && (
+									<div className="space-y-1.5">
+										<Label>Предмет</Label>
+										<select
+											value={teacherSubjectId}
+											onChange={(e) => setTeacherSubjectId(e.target.value)}
+											className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											{subjects.map((subject) => (
+												<option key={subject.id} value={subject.id}>
+													{subject.name}
+												</option>
+											))}
+										</select>
+									</div>
+								)}
+							</div>
+							<div className="space-y-1.5">
+								<Label>Три имена</Label>
+								<Input
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+									placeholder="напр. Георги Иванов Петров"
+								/>
+							</div>
+							<div className="grid gap-4 sm:grid-cols-2">
+								<div className="space-y-1.5">
+									<Label>Имейл</Label>
+									<Input
+										type="email"
+										value={email}
+										onChange={(e) => setEmail(e.target.value)}
+										placeholder="напр. g.petrov@example.com"
+									/>
+								</div>
+								<div className="space-y-1.5">
+									<Label>Телефон</Label>
+									<Input
+										type="tel"
+										value={phoneNumber}
+										onChange={(e) => setPhoneNumber(e.target.value)}
+										placeholder="напр. +359 87 123 4567"
+									/>
+								</div>
+							</div>
+							<p className="text-xs text-muted-foreground">
+								Паролата се генерира автоматично и се показва след създаването
+								на профила.
+							</p>
+							{role === "student" && (
+								<>
+									<div className="space-y-1.5">
+										<Label>Три имена на родителя</Label>
+										<Input
+											value={parentName}
+											onChange={(e) => setParentName(e.target.value)}
+											placeholder="напр. Мария Иванова Петрова"
+										/>
+									</div>
+									<div className="grid gap-4 sm:grid-cols-2">
+										<div className="space-y-1.5">
+											<Label>Имейл на родителя</Label>
+											<Input
+												type="email"
+												value={parentEmail}
+												onChange={(e) => setParentEmail(e.target.value)}
+												placeholder="имейл на родителя"
+											/>
+										</div>
+										<div className="space-y-1.5">
+											<Label>Телефон на родителя</Label>
+											<Input
+												type="tel"
+												value={parentPhone}
+												onChange={(e) => setParentPhone(e.target.value)}
+												placeholder="напр. +359 88 765 4321"
+											/>
+										</div>
+									</div>
+								</>
+							)}
+						</div>
+						<DialogFooter>
+							<Button variant="outline" onClick={handleClose}>
+								Отказ
+							</Button>
+							<Button onClick={handleSubmit} disabled={!name.trim()}>
+								Създай профил
+							</Button>
+						</DialogFooter>
+					</>
+				)}
+			</DialogContent>
+		</Dialog>
+	);
 }
 
 function EditUserDialog({
-  open,
-  user,
-  onClose,
-  onSave,
+	open,
+	user,
+	onClose,
+	onSave,
 }: {
-  open: boolean
-  user: User | null
-  onClose: () => void
-  onSave: (updates: Partial<Omit<User, 'id'>>) => void
+	open: boolean;
+	user: User | null;
+	onClose: () => void;
+	onSave: (updates: Partial<Omit<User, "id">>) => void;
 }) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState<Role>('student')
-  const [classId, setClassId] = useState<string>('c5a')
-  const [classTeacherOf, setClassTeacherOf] = useState<string>('')
-  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [role, setRole] = useState<Role>("student");
+	const [classId, setClassId] = useState<string>("c5a");
+	const [classTeacherOf, setClassTeacherOf] = useState<string>("");
+	const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? "");
+	const [phone, setPhone] = useState("");
+	const [password, setPassword] = useState("");
 
-  useEffect(() => {
-    if (!user) return
-    setName(user.name)
-    setEmail(user.email)
-    setRole(user.role)
-    setClassId(user.classId ?? 'c5a')
-    setClassTeacherOf(user.classTeacherOf ?? '')
-    setSubjectId(user.subjectIds?.[0] ?? subjects[0]?.id ?? '')
-    setPhone(user.phone ?? '')
-    setPassword(user.password ?? '')
-  }, [user])
+	useEffect(() => {
+		if (!user) return;
+		setName(user.name);
+		setEmail(user.email);
+		setRole(user.role);
+		setClassId(user.classId ?? "c5a");
+		setClassTeacherOf(user.classTeacherOf ?? "");
+		setSubjectId(user.subjectIds?.[0] ?? subjects[0]?.id ?? "");
+		setPhone(user.phone ?? "");
+		setPassword(user.password ?? "");
+	}, [user]);
 
-  function handleSave() {
-    const updates: Partial<Omit<User, 'id'>> = {
-      name: name.trim(),
-      email: email.trim(),
-      role,
-      phone: phone.trim() || undefined,
-      password: password.trim() || undefined,
-    }
+	function handleSave() {
+		const updates: Partial<Omit<User, "id">> = {
+			name: name.trim(),
+			email: email.trim(),
+			role,
+			phone: phone.trim() || undefined,
+			password: password.trim() || undefined,
+		};
 
-    if (role === 'student') {
-      updates.classId = classId
-      updates.classTeacherOf = undefined
-      updates.subjectIds = undefined
-    }
+		if (role === "student") {
+			updates.classId = classId;
+			updates.classTeacherOf = undefined;
+			updates.subjectIds = undefined;
+		}
 
-    if (role === 'teacher') {
-      updates.classTeacherOf = classTeacherOf || undefined
-      updates.subjectIds = subjectId ? [subjectId] : []
-      updates.classId = undefined
-    }
+		if (role === "teacher") {
+			updates.classTeacherOf = classTeacherOf || undefined;
+			updates.subjectIds = subjectId ? [subjectId] : [];
+			updates.classId = undefined;
+		}
 
-    if (role === 'parent' || role === 'admin') {
-      updates.classId = undefined
-      updates.classTeacherOf = undefined
-      updates.subjectIds = undefined
-    }
+		if (role === "parent" || role === "admin") {
+			updates.classId = undefined;
+			updates.classTeacherOf = undefined;
+			updates.subjectIds = undefined;
+		}
 
-    onSave(updates)
-    onClose()
-  }
+		onSave(updates);
+		onClose();
+	}
 
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Редакция на акаунт</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label>Роля</Label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
-              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="student">Ученик</option>
-              <option value="teacher">Учител</option>
-              <option value="parent">Родител</option>
-              <option value="admin">Администратор</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Три имена</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Имейл</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Телефон</Label>
-              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Парола</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-          </div>
-          {role === 'student' && (
-            <div className="space-y-1.5">
-              <Label>Клас</Label>
-              <select
-                value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-                className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          {role === 'teacher' && (
-            <>
-              <div className="space-y-1.5">
-                <Label>Преподава в клас</Label>
-                <select
-                  value={classTeacherOf}
-                  onChange={(e) => setClassTeacherOf(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Няма клас</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Предмет</Label>
-                <select
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {subjects.map((subject) => (
-                    <option key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
-        </div>
-        <DialogFooter className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Отказ
-          </Button>
-          <Button onClick={handleSave}>Запази промени</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
+	return (
+		<Dialog open={open} onClose={onClose}>
+			<DialogContent className="max-w-lg">
+				<DialogHeader>
+					<DialogTitle>Редакция на акаунт</DialogTitle>
+				</DialogHeader>
+				<div className="space-y-4 py-2">
+					<div className="space-y-1.5">
+						<Label>Роля</Label>
+						<select
+							value={role}
+							onChange={(e) => setRole(e.target.value as Role)}
+							className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						>
+							<option value="student">Ученик</option>
+							<option value="teacher">Учител</option>
+							<option value="parent">Родител</option>
+							<option value="admin">Администратор</option>
+						</select>
+					</div>
+					<div className="space-y-1.5">
+						<Label>Три имена</Label>
+						<Input value={name} onChange={(e) => setName(e.target.value)} />
+					</div>
+					<div className="space-y-1.5">
+						<Label>Имейл</Label>
+						<Input
+							type="email"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+						/>
+					</div>
+					<div className="grid gap-4 sm:grid-cols-2">
+						<div className="space-y-1.5">
+							<Label>Телефон</Label>
+							<Input
+								type="tel"
+								value={phone}
+								onChange={(e) => setPhone(e.target.value)}
+							/>
+						</div>
+						<div className="space-y-1.5">
+							<Label>Парола</Label>
+							<Input
+								type="password"
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+							/>
+						</div>
+					</div>
+					{role === "student" && (
+						<div className="space-y-1.5">
+							<Label>Клас</Label>
+							<select
+								value={classId}
+								onChange={(e) => setClassId(e.target.value)}
+								className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								{classes.map((c) => (
+									<option key={c.id} value={c.id}>
+										{c.name}
+									</option>
+								))}
+							</select>
+						</div>
+					)}
+					{role === "teacher" && (
+						<>
+							<div className="space-y-1.5">
+								<Label>Преподава в клас</Label>
+								<select
+									value={classTeacherOf}
+									onChange={(e) => setClassTeacherOf(e.target.value)}
+									className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<option value="">Няма клас</option>
+									{classes.map((c) => (
+										<option key={c.id} value={c.id}>
+											{c.name}
+										</option>
+									))}
+								</select>
+							</div>
+							<div className="space-y-1.5">
+								<Label>Предмет</Label>
+								<select
+									value={subjectId}
+									onChange={(e) => setSubjectId(e.target.value)}
+									className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									{subjects.map((subject) => (
+										<option key={subject.id} value={subject.id}>
+											{subject.name}
+										</option>
+									))}
+								</select>
+							</div>
+						</>
+					)}
+				</div>
+				<DialogFooter className="flex flex-wrap gap-2">
+					<Button variant="outline" onClick={onClose}>
+						Отказ
+					</Button>
+					<Button onClick={handleSave}>Запази промени</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
 }
 
 function StudentDetailDialog({
-  open,
-  student,
-  onClose,
+	open,
+	student,
+	onClose,
 }: {
-  open: boolean
-  student: User | null
-  onClose: () => void
+	open: boolean;
+	student: User | null;
+	onClose: () => void;
 }) {
-  const app = useApp()
-  const [tab, setTab] = useState<'grades' | 'notes' | 'absences'>('grades')
-  const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? '')
-  const [gradeValue, setGradeValue] = useState<number>(6)
-  const [noteText, setNoteText] = useState('')
-  const [noteKind, setNoteKind] = useState<'praise' | 'remark'>('remark')
-  const [absenceDate, setAbsenceDate] = useState(new Date().toISOString().slice(0, 10))
-  const [absenceTime, setAbsenceTime] = useState('08:00')
-  const [absenceSubjectId, setAbsenceSubjectId] = useState<string>(subjects[0]?.id ?? '')
+	const app = useApp();
+	const [tab, setTab] = useState<"grades" | "notes" | "absences">("grades");
+	const [subjectId, setSubjectId] = useState<string>(subjects[0]?.id ?? "");
+	const [gradeValue, setGradeValue] = useState<number>(6);
+	const [noteText, setNoteText] = useState("");
+	const [noteKind, setNoteKind] = useState<"praise" | "remark">("remark");
+	const [absenceDate, setAbsenceDate] = useState(
+		new Date().toISOString().slice(0, 10),
+	);
+	const [absenceTime, setAbsenceTime] = useState("08:00");
+	const [absenceSubjectId, setAbsenceSubjectId] = useState<string>(
+		subjects[0]?.id ?? "",
+	);
 
-  // Real backend grade management. There's no endpoint to list all subjects (every
-  // /subjects route is scoped to "my own" teaching/enrollment, which an admin has none
-  // of) or to fetch a student's existing grades as an admin — so the subject is a plain
-  // numeric ID input, and the table below only shows grades added during this session.
-  const [realTeachers, setRealTeachers] = useState<UserAccountDto[]>([])
-  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null)
-  const [subjectIdInput, setSubjectIdInput] = useState('')
-  const [gradeComment, setGradeComment] = useState('')
-  const [realGrades, setRealGrades] = useState<GradeDto[]>([])
-  const [addingGrade, setAddingGrade] = useState(false)
-  const [gradeError, setGradeError] = useState<string | null>(null)
+	// Real backend grade management. There's no endpoint to list all subjects (every
+	// /subjects route is scoped to "my own" teaching/enrollment, which an admin has none
+	// of) or to fetch a student's existing grades as an admin — so the subject is a plain
+	// numeric ID input, and the table below only shows grades added during this session.
+	const [realTeachers, setRealTeachers] = useState<UserAccountDto[]>([]);
+	const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(
+		null,
+	);
+	const [subjectIdInput, setSubjectIdInput] = useState("");
+	const [gradeComment, setGradeComment] = useState("");
+	const [realGrades, setRealGrades] = useState<GradeDto[]>([]);
+	const [addingGrade, setAddingGrade] = useState(false);
+	const [gradeError, setGradeError] = useState<string | null>(null);
 
-  useEffect(() => {
-    userService.getAllUsers()
-      .then((users) => {
-        const list = users.filter((u) => u.role === 'Teacher')
-        setRealTeachers(list)
-        setSelectedTeacherId((prev) => prev ?? list[0]?.userId ?? null)
-      })
-      .catch((err) => console.error('Failed to load teachers:', err))
-  }, [])
+	useEffect(() => {
+		userService
+			.getAllUsers()
+			.then((users) => {
+				const list = users.filter((u) => u.role === "Teacher");
+				setRealTeachers(list);
+				setSelectedTeacherId((prev) => prev ?? list[0]?.userId ?? null);
+			})
+			.catch((err) => console.error("Failed to load teachers:", err));
+	}, []);
 
-  useEffect(() => {
-    if (!student) return
-    setTab('grades')
-    setSubjectId(subjects[0]?.id ?? '')
-    setGradeValue(6)
-    setNoteText('')
-    setNoteKind('remark')
-    setAbsenceDate(new Date().toISOString().slice(0, 10))
-    setAbsenceTime('08:00')
-    setAbsenceSubjectId(subjects[0]?.id ?? '')
-    setSubjectIdInput('')
-    setGradeComment('')
-    setRealGrades([])
-    setGradeError(null)
-  }, [student])
+	useEffect(() => {
+		if (!student) return;
+		setTab("grades");
+		setSubjectId(subjects[0]?.id ?? "");
+		setGradeValue(6);
+		setNoteText("");
+		setNoteKind("remark");
+		setAbsenceDate(new Date().toISOString().slice(0, 10));
+		setAbsenceTime("08:00");
+		setAbsenceSubjectId(subjects[0]?.id ?? "");
+		setSubjectIdInput("");
+		setGradeComment("");
+		setRealGrades([]);
+		setGradeError(null);
+	}, [student]);
 
-  if (!student) return null
+	if (!student) return null;
 
-  const studentNotes = app.notes.filter((note) => note.studentId === student.id)
-  const studentAbsences = app.absences.filter((absence) => absence.studentId === student.id)
-  const teachers = app.users.filter((u) => u.role === 'teacher')
+	const studentNotes = app.notes.filter(
+		(note) => note.studentId === student.id,
+	);
+	const studentAbsences = app.absences.filter(
+		(absence) => absence.studentId === student.id,
+	);
+	const teachers = app.users.filter((u) => u.role === "teacher");
 
-  async function handleAddGrade() {
-    if (!student?.apiUserId || selectedTeacherId === null || !subjectIdInput.trim()) return
-    const subjectIdNum = Number(subjectIdInput)
-    if (!Number.isInteger(subjectIdNum) || subjectIdNum <= 0) {
-      setGradeError('Въведете валидно числово ID на предмет.')
-      return
-    }
-    setAddingGrade(true)
-    setGradeError(null)
-    try {
-      const created = await adminService.addGrade({
-        studentId: student.apiUserId,
-        subjectId: subjectIdNum,
-        teacherId: selectedTeacherId,
-        value: gradeValue,
-        comment: gradeComment.trim() || null,
-      })
-      setRealGrades((prev) => [created, ...prev])
-      setGradeComment('')
-    } catch (err: any) {
-      setGradeError(err.message || 'Грешка при добавяне на оценка.')
-    } finally {
-      setAddingGrade(false)
-    }
-  }
+	async function handleAddGrade() {
+		if (
+			!student?.apiUserId ||
+			selectedTeacherId === null ||
+			!subjectIdInput.trim()
+		)
+			return;
+		const subjectIdNum = Number(subjectIdInput);
+		if (!Number.isInteger(subjectIdNum) || subjectIdNum <= 0) {
+			setGradeError("Въведете валидно числово ID на предмет.");
+			return;
+		}
+		setAddingGrade(true);
+		setGradeError(null);
+		try {
+			const created = await adminService.addGrade({
+				studentId: student.apiUserId,
+				subjectId: subjectIdNum,
+				teacherId: selectedTeacherId,
+				value: gradeValue,
+				comment: gradeComment.trim() || null,
+			});
+			setRealGrades((prev) => [created, ...prev]);
+			setGradeComment("");
+		} catch (err: any) {
+			setGradeError(err.message || "Грешка при добавяне на оценка.");
+		} finally {
+			setAddingGrade(false);
+		}
+	}
 
-  async function handleDeleteGrade(gradeId: number) {
-    try {
-      await adminService.deleteGrade(gradeId)
-      setRealGrades((prev) => prev.filter((g) => g.gradeId !== gradeId))
-    } catch (err: any) {
-      setGradeError(err.message || 'Грешка при изтриване на оценка.')
-    }
-  }
+	async function handleDeleteGrade(gradeId: number) {
+		try {
+			await adminService.deleteGrade(gradeId);
+			setRealGrades((prev) => prev.filter((g) => g.gradeId !== gradeId));
+		} catch (err: any) {
+			setGradeError(err.message || "Грешка при изтриване на оценка.");
+		}
+	}
 
-  function handleAddNote() {
-    if (!student || !subjectId) return
-    app.addNote({
-      studentId: student.id,
-      subjectId,
-      teacherId: teachers[0]?.id ?? '',
-      text: noteText,
-      kind: noteKind,
-    })
-    setNoteText('')
-  }
+	function handleAddNote() {
+		if (!student || !subjectId) return;
+		app.addNote({
+			studentId: student.id,
+			subjectId,
+			teacherId: teachers[0]?.id ?? "",
+			text: noteText,
+			kind: noteKind,
+		});
+		setNoteText("");
+	}
 
-  function handleAddAbsence() {
-    if (!student || !absenceSubjectId) return
-    app.addAbsence({
-      studentId: student.id,
-      subjectId: absenceSubjectId,
-      teacherId: teachers[0]?.id,
-      time: absenceTime,
-      type: 'absent',
-      excused: false,
-    })
-  } 
+	function handleAddAbsence() {
+		if (!student || !absenceSubjectId) return;
+		app.addAbsence({
+			studentId: student.id,
+			subjectId: absenceSubjectId,
+			teacherId: teachers[0]?.id,
+			time: absenceTime,
+			type: "absent",
+			excused: false,
+		});
+	}
 
-  return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Детайли за {student.name}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <Tabs
-            value={tab}
-            onValueChange={(value) => setTab(value as 'grades' | 'notes' | 'absences')}
-            className="w-full"
-            tabs={[
-              { value: 'grades', label: 'Оценки' },
-              { value: 'notes', label: 'Бележки' },
-              { value: 'absences', label: 'Отсъствия' },
-            ]}
-          />
-          {tab === 'grades' && (
-            <div className="space-y-6">
-              {!student.apiUserId ? (
-                <div className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
-                  Този ученик няма реален акаунт в бекенда (създаден е само в демо/примерните данни), затова не могат да се записват реални оценки за него. Само ученици, регистрирани през този екран, имат реален акаунт.
-                </div>
-              ) : (
-                <div className="rounded-xl border border-border bg-muted/10 p-4">
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    Няма endpoint за списък с предмети или за преглед на съществуващите оценки на ученика — въведете реалното ID на предмета от базата данни. Таблицата по-долу показва само оценките, добавени в тази сесия.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label>Учител</Label>
-                      <select
-                        value={selectedTeacherId ?? ''}
-                        onChange={(e) => setSelectedTeacherId(Number(e.target.value))}
-                        className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {realTeachers.map((t) => (
-                          <option key={t.userId} value={t.userId}>
-                            {t.firstName} {t.lastName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Subject ID</Label>
-                      <Input
-                        type="number"
-                        value={subjectIdInput}
-                        onChange={(e) => setSubjectIdInput(e.target.value)}
-                        placeholder="напр. 3"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Оценка</Label>
-                      <select
-                        value={gradeValue}
-                        onChange={(e) => setGradeValue(Number(e.target.value))}
-                        className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {[2, 3, 4, 5, 6].map((value) => (
-                          <option key={value} value={value}>
-                            {value}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Коментар</Label>
-                      <Input
-                        value={gradeComment}
-                        onChange={(e) => setGradeComment(e.target.value)}
-                        placeholder="незадължително"
-                      />
-                    </div>
-                  </div>
-                  {gradeError && <p className="mt-3 text-sm text-danger">{gradeError}</p>}
-                  <div className="mt-4">
-                    <Button
-                      onClick={handleAddGrade}
-                      disabled={addingGrade || selectedTeacherId === null || !subjectIdInput.trim()}
-                      className="w-full"
-                    >
-                      {addingGrade ? 'Добавяне...' : 'Добави оценка'}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <div className="overflow-x-auto rounded-xl border border-border bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-3">Предмет</th>
-                      <th className="px-4 py-3">Оценка</th>
-                      <th className="px-4 py-3">Коментар</th>
-                      <th className="px-4 py-3">Дата</th>
-                      <th className="px-4 py-3 text-right">Действие</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {realGrades.map((grade) => (
-                      <tr key={grade.gradeId}>
-                        <td className="px-4 py-3">{grade.subjectName}</td>
-                        <td className="px-4 py-3">{grade.gradeValue}</td>
-                        <td className="px-4 py-3">{grade.comment || '—'}</td>
-                        <td className="px-4 py-3">{grade.entryDate}</td>
-                        <td className="px-4 py-3 text-right">
-                          <Button variant="outline" onClick={() => handleDeleteGrade(grade.gradeId)}>
-                            Изтрий
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {realGrades.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                          Няма добавени оценки в тази сесия.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-          {tab === 'notes' && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <Label>Предмет</Label>
-                    <select
-                      value={subjectId}
-                      onChange={(e) => setSubjectId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {subjects.map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Вид</Label>
-                    <select
-                      value={noteKind}
-                      onChange={(e) => setNoteKind(e.target.value as 'praise' | 'remark')}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="remark">Бележка</option>
-                      <option value="praise">Похвала</option>
-                    </select>
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleAddNote} className="w-full">
-                      Добави бележка
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-1.5 mt-4">
-                  <Label>Текст</Label>
-                  <Input value={noteText} onChange={(e) => setNoteText(e.target.value)} />
-                </div>
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-border bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-3">Предмет</th>
-                      <th className="px-4 py-3">Вид</th>
-                      <th className="px-4 py-3">Текст</th>
-                      <th className="px-4 py-3">Дата</th>
-                      <th className="px-4 py-3 text-right">Действие</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {studentNotes.map((note) => (
-                      <tr key={note.id}>
-                        <td className="px-4 py-3">{subjects.find((s) => s.id === note.subjectId)?.name ?? '—'}</td>
-                        <td className="px-4 py-3">{note.kind}</td>
-                        <td className="px-4 py-3">{note.text}</td>
-                        <td className="px-4 py-3">{note.date}</td>
-                        <td className="px-4 py-3 text-right">
-                          <Button variant="outline" onClick={() => app.deleteNote(note.id)}>
-                            Изтрий
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {studentNotes.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                          Няма бележки.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-          {tab === 'absences' && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/30 p-4">
-                <div className="grid gap-4 grid-cols-1">
-                  <div className="space-y-1.5">
-                    <Label>Предмет</Label>
-                    <select
-                      value={absenceSubjectId}
-                      onChange={(e) => setAbsenceSubjectId(e.target.value)}
-                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {subjects.map((subject) => (
-                        <option key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Дата</Label>
-                    <Input type="date" value={absenceDate} onChange={(e) => setAbsenceDate(e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Час</Label>
-                    <Input type="time" value={absenceTime} onChange={(e) => setAbsenceTime(e.target.value)} />
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleAddAbsence} className="w-full">
-                      Добави отсъствие
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-x-1 rounded-xl border border-border bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-3">Предмет</th>
-                      <th className="px-4 py-3">Дата</th>
-                      <th className="px-4 py-3">Час</th>
-                      <th className="px-4 py-3">Извинен</th>
-                      <th className="px-4 py-3 text-right">Действие</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {studentAbsences.map((absence) => (
-                      <tr key={absence.id}>
-                        <td className="px-4 py-3">{subjects.find((s) => s.id === absence.subjectId)?.name ?? '—'}</td>
-                        <td className="px-4 py-3">{absence.date}</td>
-                        <td className="px-4 py-3">{absence.time ?? '—'}</td>
-                        <td className="px-4 py-3">{absence.excused ? 'Да' : 'Не'}</td>
-                        <td className="px-4 py-3 text-right space-y-2">
-                          <Button variant="outline" onClick={() => app.toggleAbsenceExcused(absence.id)}>
-                            {absence.excused ? 'Отмени' : 'Извини'}
-                          </Button>
-                          <Button variant="outline" onClick={() => app.deleteAbsence(absence.id)}>
-                            Изтрий
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {studentAbsences.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                          Няма отсъствия.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-        <DialogFooter className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Отказ
-          </Button>
-          <Button onClick={onClose}>Запази промени</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
+	return (
+		<Dialog open={open} onClose={onClose}>
+			<DialogContent className="max-w-xl">
+				<DialogHeader>
+					<DialogTitle>Детайли за {student.name}</DialogTitle>
+				</DialogHeader>
+				<div className="space-y-4 py-2">
+					<Tabs
+						value={tab}
+						onValueChange={(value) =>
+							setTab(value as "grades" | "notes" | "absences")
+						}
+						className="w-full"
+						tabs={[
+							{ value: "grades", label: "Оценки" },
+							{ value: "notes", label: "Бележки" },
+							{ value: "absences", label: "Отсъствия" },
+						]}
+					/>
+					{tab === "grades" && (
+						<div className="space-y-6">
+							{!student.apiUserId ? (
+								<div className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm">
+									Този ученик няма реален акаунт в бекенда (създаден е само в
+									демо/примерните данни), затова не могат да се записват реални
+									оценки за него. Само ученици, регистрирани през този екран,
+									имат реален акаунт.
+								</div>
+							) : (
+								<div className="rounded-xl border border-border bg-muted/10 p-4">
+									<p className="mb-3 text-xs text-muted-foreground">
+										Няма endpoint за списък с предмети или за преглед на
+										съществуващите оценки на ученика — въведете реалното ID на
+										предмета от базата данни. Таблицата по-долу показва само
+										оценките, добавени в тази сесия.
+									</p>
+									<div className="grid gap-3 sm:grid-cols-2">
+										<div className="space-y-1.5">
+											<Label>Учител</Label>
+											<select
+												value={selectedTeacherId ?? ""}
+												onChange={(e) =>
+													setSelectedTeacherId(Number(e.target.value))
+												}
+												className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+											>
+												{realTeachers.map((t) => (
+													<option key={t.userId} value={t.userId}>
+														{t.firstName} {t.lastName}
+													</option>
+												))}
+											</select>
+										</div>
+										<div className="space-y-1.5">
+											<Label>Subject ID</Label>
+											<Input
+												type="number"
+												value={subjectIdInput}
+												onChange={(e) => setSubjectIdInput(e.target.value)}
+												placeholder="напр. 3"
+											/>
+										</div>
+										<div className="space-y-1.5">
+											<Label>Оценка</Label>
+											<select
+												value={gradeValue}
+												onChange={(e) => setGradeValue(Number(e.target.value))}
+												className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+											>
+												{[2, 3, 4, 5, 6].map((value) => (
+													<option key={value} value={value}>
+														{value}
+													</option>
+												))}
+											</select>
+										</div>
+										<div className="space-y-1.5">
+											<Label>Коментар</Label>
+											<Input
+												value={gradeComment}
+												onChange={(e) => setGradeComment(e.target.value)}
+												placeholder="незадължително"
+											/>
+										</div>
+									</div>
+									{gradeError && (
+										<p className="mt-3 text-sm text-danger">{gradeError}</p>
+									)}
+									<div className="mt-4">
+										<Button
+											onClick={handleAddGrade}
+											disabled={
+												addingGrade ||
+												selectedTeacherId === null ||
+												!subjectIdInput.trim()
+											}
+											className="w-full"
+										>
+											{addingGrade ? "Добавяне..." : "Добави оценка"}
+										</Button>
+									</div>
+								</div>
+							)}
+							<div className="overflow-x-auto rounded-xl border border-border bg-card">
+								<table className="w-full text-sm">
+									<thead>
+										<tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+											<th className="px-4 py-3">Предмет</th>
+											<th className="px-4 py-3">Оценка</th>
+											<th className="px-4 py-3">Коментар</th>
+											<th className="px-4 py-3">Дата</th>
+											<th className="px-4 py-3 text-right">Действие</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-border">
+										{realGrades.map((grade) => (
+											<tr key={grade.gradeId}>
+												<td className="px-4 py-3">{grade.subjectName}</td>
+												<td className="px-4 py-3">{grade.gradeValue}</td>
+												<td className="px-4 py-3">{grade.comment || "—"}</td>
+												<td className="px-4 py-3">{grade.entryDate}</td>
+												<td className="px-4 py-3 text-right">
+													<Button
+														variant="outline"
+														onClick={() => handleDeleteGrade(grade.gradeId)}
+													>
+														Изтрий
+													</Button>
+												</td>
+											</tr>
+										))}
+										{realGrades.length === 0 && (
+											<tr>
+												<td
+													colSpan={5}
+													className="px-4 py-10 text-center text-muted-foreground"
+												>
+													Няма добавени оценки в тази сесия.
+												</td>
+											</tr>
+										)}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					)}
+					{tab === "notes" && (
+						<div className="space-y-4">
+							<div className="rounded-xl border border-border bg-muted/30 p-4">
+								<div className="grid gap-4 sm:grid-cols-3">
+									<div className="space-y-1.5">
+										<Label>Предмет</Label>
+										<select
+											value={subjectId}
+											onChange={(e) => setSubjectId(e.target.value)}
+											className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											{subjects.map((subject) => (
+												<option key={subject.id} value={subject.id}>
+													{subject.name}
+												</option>
+											))}
+										</select>
+									</div>
+									<div className="space-y-1.5">
+										<Label>Вид</Label>
+										<select
+											value={noteKind}
+											onChange={(e) =>
+												setNoteKind(e.target.value as "praise" | "remark")
+											}
+											className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											<option value="remark">Бележка</option>
+											<option value="praise">Похвала</option>
+										</select>
+									</div>
+									<div className="flex items-end">
+										<Button onClick={handleAddNote} className="w-full">
+											Добави бележка
+										</Button>
+									</div>
+								</div>
+								<div className="space-y-1.5 mt-4">
+									<Label>Текст</Label>
+									<Input
+										value={noteText}
+										onChange={(e) => setNoteText(e.target.value)}
+									/>
+								</div>
+							</div>
+							<div className="overflow-x-auto rounded-xl border border-border bg-card">
+								<table className="w-full text-sm">
+									<thead>
+										<tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+											<th className="px-4 py-3">Предмет</th>
+											<th className="px-4 py-3">Вид</th>
+											<th className="px-4 py-3">Текст</th>
+											<th className="px-4 py-3">Дата</th>
+											<th className="px-4 py-3 text-right">Действие</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-border">
+										{studentNotes.map((note) => (
+											<tr key={note.id}>
+												<td className="px-4 py-3">
+													{subjects.find((s) => s.id === note.subjectId)
+														?.name ?? "—"}
+												</td>
+												<td className="px-4 py-3">{note.kind}</td>
+												<td className="px-4 py-3">{note.text}</td>
+												<td className="px-4 py-3">{note.date}</td>
+												<td className="px-4 py-3 text-right">
+													<Button
+														variant="outline"
+														onClick={() => app.deleteNote(note.id)}
+													>
+														Изтрий
+													</Button>
+												</td>
+											</tr>
+										))}
+										{studentNotes.length === 0 && (
+											<tr>
+												<td
+													colSpan={5}
+													className="px-4 py-10 text-center text-muted-foreground"
+												>
+													Няма бележки.
+												</td>
+											</tr>
+										)}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					)}
+					{tab === "absences" && (
+						<div className="space-y-4">
+							<div className="rounded-xl border border-border bg-muted/30 p-4">
+								<div className="grid gap-4 grid-cols-1">
+									<div className="space-y-1.5">
+										<Label>Предмет</Label>
+										<select
+											value={absenceSubjectId}
+											onChange={(e) => setAbsenceSubjectId(e.target.value)}
+											className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										>
+											{subjects.map((subject) => (
+												<option key={subject.id} value={subject.id}>
+													{subject.name}
+												</option>
+											))}
+										</select>
+									</div>
+									<div className="space-y-1.5">
+										<Label>Дата</Label>
+										<Input
+											type="date"
+											value={absenceDate}
+											onChange={(e) => setAbsenceDate(e.target.value)}
+										/>
+									</div>
+									<div className="space-y-1.5">
+										<Label>Час</Label>
+										<Input
+											type="time"
+											value={absenceTime}
+											onChange={(e) => setAbsenceTime(e.target.value)}
+										/>
+									</div>
+									<div className="flex items-end">
+										<Button onClick={handleAddAbsence} className="w-full">
+											Добави отсъствие
+										</Button>
+									</div>
+								</div>
+							</div>
+							<div className="overflow-x-1 rounded-xl border border-border bg-card">
+								<table className="w-full text-sm">
+									<thead>
+										<tr className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
+											<th className="px-4 py-3">Предмет</th>
+											<th className="px-4 py-3">Дата</th>
+											<th className="px-4 py-3">Час</th>
+											<th className="px-4 py-3">Извинен</th>
+											<th className="px-4 py-3 text-right">Действие</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-border">
+										{studentAbsences.map((absence) => (
+											<tr key={absence.id}>
+												<td className="px-4 py-3">
+													{subjects.find((s) => s.id === absence.subjectId)
+														?.name ?? "—"}
+												</td>
+												<td className="px-4 py-3">{absence.date}</td>
+												<td className="px-4 py-3">{absence.time ?? "—"}</td>
+												<td className="px-4 py-3">
+													{absence.excused ? "Да" : "Не"}
+												</td>
+												<td className="px-4 py-3 text-right space-y-2">
+													<Button
+														variant="outline"
+														onClick={() => app.toggleAbsenceExcused(absence.id)}
+													>
+														{absence.excused ? "Отмени" : "Извини"}
+													</Button>
+													<Button
+														variant="outline"
+														onClick={() => app.deleteAbsence(absence.id)}
+													>
+														Изтрий
+													</Button>
+												</td>
+											</tr>
+										))}
+										{studentAbsences.length === 0 && (
+											<tr>
+												<td
+													colSpan={5}
+													className="px-4 py-10 text-center text-muted-foreground"
+												>
+													Няма отсъствия.
+												</td>
+											</tr>
+										)}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					)}
+				</div>
+				<DialogFooter className="flex flex-wrap gap-2">
+					<Button variant="outline" onClick={onClose}>
+						Отказ
+					</Button>
+					<Button onClick={onClose}>Запази промени</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
 }

@@ -1,8 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { User } from '@/lib/data'
 import { useApp } from '@/components/app-provider'
+import { studentService } from '@/api/studentService'
+import type { HomeworkItemDto } from '@/api/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,26 +21,128 @@ import {
   Filter,
 } from 'lucide-react'
 
+// subjectById only knows about the local/mock subjects list, so a real subjectId
+// coming back from the API may not resolve to anything — fall back gracefully.
+function safeSubject(subjectId: string): { name: string; abbr: string } {
+  return subjectById(subjectId) ?? { name: 'Предмет', abbr: '—' }
+}
+
+type DisplayHomework = {
+  id: string
+  subjectId: string
+  teacherId: string
+  teacherName: string
+  title: string
+  description: string
+  resourceLink?: string
+  assignedDate: string
+  dueDate: string
+}
+
+// The homework endpoint doesn't return the teacher's name (only teacherId), so we
+// resolve it the same way the rest of the app does: look it up in app.users.
+function toDisplayHomeworkFromDto(dto: HomeworkItemDto, teacherName: string): DisplayHomework {
+  return {
+    id: `${dto.homeworkId}`,
+    subjectId: `${dto.subjectId}`,
+    teacherId: `${dto.teacherId}`,
+    teacherName,
+    title: dto.title,
+    description: dto.description,
+    resourceLink: dto.resourceLink || undefined,
+    assignedDate: dto.dateAssigned,
+    dueDate: dto.dateDue,
+  }
+}
+
+// Local submission state. There's no backend endpoint (yet) for submitting/tracking
+// homework uploads, so "submitting" a file here only updates this component's state
+// for the current session rather than persisting anything to the server.
+type LocalSubmission = { fileName: string; feedback?: string }
+
 export function StudentHomework({ student }: { student?: User }) {
   const app = useApp()
   const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
   const [filterSubject, setFilterSubject] = useState('all')
   const [sortBy, setSortBy] = useState<'date' | 'subject'>('date')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [dbHomework, setDbHomework] = useState<DisplayHomework[]>([])
+  const [loadingHomework, setLoadingHomework] = useState(false)
+  const [localSubmissions, setLocalSubmissions] = useState<Record<string, LocalSubmission>>({})
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!app.currentUser || app.currentUser.role !== 'student' || Boolean(student)) {
+      setDbHomework([])
+      return () => {
+        cancelled = true
+      }
+    }
+
+    async function loadHomework() {
+      setLoadingHomework(true)
+
+      try {
+        const data = await studentService.getHomework()
+        if (cancelled) return
+
+        setDbHomework(
+          data.map((dto) =>
+            toDisplayHomeworkFromDto(dto, userById(`${dto.teacherId}`, app.users)?.name ?? 'Учител'),
+          ),
+        )
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load homework', error)
+          setDbHomework([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingHomework(false)
+        }
+      }
+    }
+
+    void loadHomework()
+
+    return () => {
+      cancelled = true
+    }
+  }, [app.currentUser?.id, app.currentUser?.role, student, app.users])
+
   if (!me) return null
 
   const myClass = me.classId
-  const items = app.homework
-    .filter((h) => h.classIds.includes(myClass ?? ''))
-    .sort((a, b) => (a.dueDate < b.dueDate ? 1 : -1))
 
-  const homeworkItems = items.filter((h) => h.type === 'homework')
+  const localHomework: DisplayHomework[] = app.homework
+    .filter((h) => h.classIds.includes(myClass ?? '') && h.type === 'homework')
+    .map((h) => ({
+      id: h.id,
+      subjectId: h.subjectId,
+      teacherId: h.teacherId,
+      teacherName: userById(h.teacherId, app.users)?.name ?? 'Учител',
+      title: h.title,
+      description: h.description,
+      assignedDate: h.assignedDate,
+      dueDate: h.dueDate,
+    }))
+
+  const homeworkItems = dbHomework.length > 0 ? dbHomework : localHomework
 
   const filteredHomework = useMemo(() => {
     const list = [...homeworkItems]
     const filtered = filterSubject === 'all' ? list : list.filter((item) => item.subjectId === filterSubject)
-    return filtered.sort((a, b) => (sortBy === 'date' ? (a.dueDate < b.dueDate ? 1 : -1) : subjectById(a.subjectId).abbr.localeCompare(subjectById(b.subjectId).abbr)))
+    return filtered.sort((a, b) =>
+      sortBy === 'date'
+        ? (a.dueDate < b.dueDate ? 1 : -1)
+        : safeSubject(a.subjectId).abbr.localeCompare(safeSubject(b.subjectId).abbr),
+    )
   }, [filterSubject, homeworkItems, sortBy])
+
+  function handleSubmit(hwId: string, fileName: string) {
+    setLocalSubmissions((prev) => ({ ...prev, [hwId]: { fileName } }))
+  }
 
   return (
     <div className="space-y-8">
@@ -47,8 +151,8 @@ export function StudentHomework({ student }: { student?: User }) {
           <Search className="size-4 text-muted-foreground" />
           <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)} className="bg-transparent text-sm outline-none">
             <option value="all">Всички предмети</option>
-            {Array.from(new Set(items.map((item) => item.subjectId))).map((subjectId) => (
-              <option key={subjectId} value={subjectId}>{subjectById(subjectId).name}</option>
+            {Array.from(new Set(homeworkItems.map((item) => item.subjectId))).map((subjectId) => (
+              <option key={subjectId} value={subjectId}>{safeSubject(subjectId).name}</option>
             ))}
           </select>
         </div>
@@ -57,9 +161,16 @@ export function StudentHomework({ student }: { student?: User }) {
         </Button>
       </div>
 
-      <Section title="Домашни работи" icon={FileText} empty="Няма зададени домашни.">
-        {filteredHomework.map((h) => (
-          <HomeworkCard key={h.id} id={h.id} studentId={me.id} selected={selectedId === h.id} onSelect={() => setSelectedId(selectedId === h.id ? null : h.id)} />
+      <Section title="Домашни работи" icon={FileText} empty={loadingHomework ? 'Зареждане на домашни…' : 'Няма зададени домашни.'}>
+        {filteredHomework.map((hw) => (
+          <HomeworkCard
+            key={hw.id}
+            hw={hw}
+            selected={selectedId === hw.id}
+            onSelect={() => setSelectedId(selectedId === hw.id ? null : hw.id)}
+            submission={localSubmissions[hw.id]}
+            onSubmit={(fileName) => handleSubmit(hw.id, fileName)}
+          />
         ))}
       </Section>
     </div>
@@ -93,15 +204,21 @@ function Section({
   )
 }
 
-function HomeworkCard({ id, studentId, selected, onSelect }: { id: string; studentId: string; selected: boolean; onSelect: () => void }) {
-  const app = useApp()
-  const hw = app.homework.find((h) => h.id === id)
-  if (!hw) return null
-
-  const subject = subjectById(hw.subjectId)
-  const teacher = userById(hw.teacherId, app.users)
-  const submission = hw.submissions.find((s) => s.studentId === studentId)
-  const overdue = new Date(hw.dueDate) < new Date() && !submission && hw.type === 'homework'
+function HomeworkCard({
+  hw,
+  selected,
+  onSelect,
+  submission,
+  onSubmit,
+}: {
+  hw: DisplayHomework
+  selected: boolean
+  onSelect: () => void
+  submission?: LocalSubmission
+  onSubmit: (fileName: string) => void
+}) {
+  const subject = safeSubject(hw.subjectId)
+  const overdue = new Date(hw.dueDate) < new Date() && !submission
 
   return (
     <Card className="overflow-hidden p-0">
@@ -120,7 +237,7 @@ function HomeworkCard({ id, studentId, selected, onSelect }: { id: string; stude
             {overdue && <Badge tone="danger">Просрочено</Badge>}
           </div>
           <p className="truncate text-sm font-medium">{hw.title}</p>
-          <p className="text-xs text-muted-foreground">преп. {teacher?.name}</p>
+          <p className="text-xs text-muted-foreground">преп. {hw.teacherName}</p>
         </div>
         <ChevronDown className={cn('size-5 shrink-0 text-muted-foreground transition-transform', selected && 'rotate-180')} />
       </button>
@@ -131,15 +248,25 @@ function HomeworkCard({ id, studentId, selected, onSelect }: { id: string; stude
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Съдържание</p>
               <p className="whitespace-pre-line text-sm leading-relaxed">{hw.description}</p>
+              {hw.resourceLink && (
+                <a
+                  href={hw.resourceLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-2"
+                >
+                  <Paperclip className="size-3.5" /> Отвори прикачен материал
+                </a>
+              )}
             </div>
             <div className="rounded-xl border border-border bg-card p-3 text-sm">
               <p className="font-medium">{subject.name}</p>
-              <p className="mt-1 text-muted-foreground">Учител: {teacher?.name}</p>
+              <p className="mt-1 text-muted-foreground">Учител: {hw.teacherName}</p>
               <p className="mt-1 text-muted-foreground">Дата на издаване: {formatDate(hw.assignedDate)}</p>
               <p className="mt-1 text-muted-foreground">Краен срок: {formatDate(hw.dueDate)}</p>
             </div>
           </div>
-          {hw.type === 'homework' && <SubmitBox hwId={hw.id} studentId={studentId} submission={submission} />}
+          <SubmitBox submission={submission} onSubmit={onSubmit} />
         </div>
       )}
     </Card>
@@ -147,20 +274,16 @@ function HomeworkCard({ id, studentId, selected, onSelect }: { id: string; stude
 }
 
 function SubmitBox({
-  hwId,
-  studentId,
   submission,
+  onSubmit,
 }: {
-  hwId: string
-  studentId: string
-  submission?: { studentId: string; fileName: string; feedback?: string }
+  submission?: LocalSubmission
+  onSubmit: (fileName: string) => void
 }) {
-  const app = useApp()
-
   function handleUpload() {
     const names = ['domashno.jpg', 'resheniya.pdf', 'zadacha_snimka.png', 'tetradka.jpg']
     const fileName = names[Math.floor(Math.random() * names.length)]
-    app.submitHomework(hwId, studentId, fileName)
+    onSubmit(fileName)
   }
 
   return (
