@@ -71,10 +71,6 @@ public partial class DnevnikContext : DbContext
         // (e.g. running `dotnet ef` design-time tooling directly). At normal runtime,
         // Program.cs already configures this via AddDbContext from the real connection
         // string (.env / appsettings), and that must win — don't override it here.
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=NemetschekSchoolDiary; Integrated Security=True; TrustServerCertificate=True");
-        }
         optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     }
 
@@ -331,7 +327,7 @@ public partial class DnevnikContext : DbContext
             entity.HasQueryFilter(e => !e.IsDeleted);
 
             entity.Property(e => e.SubjectId).HasColumnName("subject_id");
-            
+
             entity.Property(e => e.SubjectName)
                 .HasMaxLength(100)
                 .HasColumnName("subject_name");
@@ -416,14 +412,14 @@ public partial class DnevnikContext : DbContext
 
             entity.HasIndex(e => e.Email, "UQ__users__AB6E61649DF4B344")
                   .IsUnique()
-                  .HasFilter("[is_deleted] = 0"); 
+                  .HasFilter("[is_deleted] = 0");
 
             entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
-            
+
             entity.Property(e => e.IsDeleted)
                 .HasDefaultValue(false)
                 .HasColumnName("is_deleted");
@@ -503,7 +499,6 @@ public partial class DnevnikContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_refresh_tokens_users");
         });
-
         OnModelCreatingPartial(modelBuilder);
     }
 

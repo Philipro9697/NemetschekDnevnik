@@ -12,8 +12,8 @@ using NemetschekDnevnik.Server.Models;
 namespace NemetschekDnevnik.Server.Migrations
 {
     [DbContext(typeof(DnevnikContext))]
-    [Migration("20260708152914_AddRefreshTokens")]
-    partial class AddRefreshTokens
+    [Migration("20260713082523_dbseedertest")]
+    partial class dbseedertest
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -401,6 +401,12 @@ namespace NemetschekDnevnik.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubjectId"));
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
                     b.Property<string>("SubjectName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -508,6 +514,12 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("is_approved");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_deleted");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -537,7 +549,8 @@ namespace NemetschekDnevnik.Server.Migrations
                         .HasName("PK__users__B9BE370F8F2732C5");
 
                     b.HasIndex(new[] { "Email" }, "UQ__users__AB6E61649DF4B344")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[is_deleted] = 0");
 
                     b.ToTable("users", (string)null);
                 });

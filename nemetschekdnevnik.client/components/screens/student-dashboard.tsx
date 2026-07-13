@@ -35,12 +35,9 @@ export function StudentDashboard({
   const app = useApp();
   const me = student ?? app.currentUser;
 
-  // FIX: If app context drives the view, sync with it. Otherwise, use only local state.
-  // Assuming app.view exposes the current view string. Adjust if named differently.
   const activeView = (app.view as ViewKey) || "grades";
   const [selectedGrade, setSelectedGrade] = useState<any>(null);
 
-  // Data stays reactive because it directly reads from the updated context values
   const myGrades = app.apiGrades || [];
   const myAbsences = app.apiAbsences || [];
   const myRemarks = app.apiRemarks || [];
@@ -107,7 +104,7 @@ export function StudentDashboard({
           return (
             <button
               key={item.key}
-              onClick={() => app.setView(item.key)} // Rely cleanly on global context state switch
+              onClick={() => app.setView(item.key)}
               className={cn(
                 "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all",
                 active
@@ -122,7 +119,6 @@ export function StudentDashboard({
         })}
       </div>
 
-      {/* ADDED: Grades View Condition */}
       {activeView === "grades" && (
         <Card>
           <CardHeader>
@@ -151,7 +147,6 @@ export function StudentDashboard({
         </Card>
       )}
 
-      {/* Absences View */}
       {activeView === "absences" && (
         <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
           <Card>
@@ -204,7 +199,6 @@ export function StudentDashboard({
         </div>
       )}
 
-      {/* Schedule View */}
       {activeView === "schedule" && (
         <Card className="overflow-hidden p-0">
           <CardHeader className="border-b border-border/70">
@@ -232,7 +226,6 @@ export function StudentDashboard({
         </Card>
       )}
 
-      {/* Notes View */}
       {activeView === "notes" && (
         <Card>
           <CardHeader>
@@ -290,41 +283,35 @@ export function StudentDashboard({
   );
 }
 
-// StatCard helper component remains unchanged...
-
 function StatCard({
-	icon: Icon,
-	label,
-	value,
-	tone,
+  icon: Icon,
+  label,
+  value,
+  tone,
 }: {
-	icon: React.ElementType;
-	label: string;
-	value: string;
-	tone: "primary" | "success" | "danger" | "warning" | "accent";
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  tone: "primary" | "success" | "danger" | "warning" | "accent";
 }) {
-	const toneMap: Record<string, string> = {
-		primary: "bg-primary/10 text-primary",
-		success: "bg-success/10 text-success",
-		danger: "bg-danger/10 text-danger",
-		warning: "bg-warning/15 text-warning-foreground",
-		accent: "bg-accent/10 text-accent",
-	};
-	return (
-		<Card>
-			<CardBody className="flex items-center gap-3">
-				<span
-					className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${toneMap[tone]}`}
-				>
-					<Icon className="size-5" />
-				</span>
-				<div className="min-w-0">
-					<p className="font-heading text-2xl font-bold leading-none">
-						{value}
-					</p>
-					<p className="mt-1 truncate text-xs text-muted-foreground">{label}</p>
-				</div>
-			</CardBody>
-		</Card>
-	);
+  const toneMap: Record<string, string> = {
+    primary: "bg-primary/10 text-primary",
+    success: "bg-success/10 text-success",
+    danger: "bg-danger/10 text-danger",
+    warning: "bg-warning/15 text-warning-foreground",
+    accent: "bg-accent/10 text-accent",
+  };
+  return (
+    <Card>
+      <CardBody className="flex items-center gap-3">
+        <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${toneMap[tone]}`}>
+          <Icon className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="font-heading text-2xl font-bold leading-none">{value}</p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{label}</p>
+        </div>
+      </CardBody>
+    </Card>
+  );
 }

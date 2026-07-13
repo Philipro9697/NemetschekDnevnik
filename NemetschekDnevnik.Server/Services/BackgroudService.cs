@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using NemetschekDnevnik.Server.Models;
 
 namespace NemetschekDnevnik.Server.Services;
 
@@ -34,7 +35,7 @@ public class DatabaseMaintenanceService : BackgroundService
 
                     var expiredTokens = context.RefreshTokens
                         .Where(t => t.ExpiresAt < DateTime.UtcNow);
-                    
+
                     context.RefreshTokens.RemoveRange(expiredTokens);
 
                     // var oldLogs = context.Logs.Where(l => l.Timestamp < DateTime.UtcNow.AddDays(-30));
