@@ -144,14 +144,7 @@ export function LoginScreen() {
                             {loading ? 'ЗАРЕЖДАНЕ...' : 'ВХОД'}
                         </Button>
 
-                        <div className="text-center">
-                            <button
-                                type="button"
-                                className="text-sm font-medium text-brand-blue hover:underline"
-                            >
-                                Забравена парола?
-                            </button>
-                        </div>
+                        
                     </form>
 
                     <DemoHint onDemoLogin={handleDemoLogin} />
