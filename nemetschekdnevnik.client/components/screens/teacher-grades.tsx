@@ -159,30 +159,6 @@ export function TeacherGrades() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/80 p-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Sparkles className="size-4 text-primary" /> Преглед за {classById(classId)?.name ?? 'клас'}
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <button type="button" onClick={() => setSubjectMenuOpen((prev) => !prev)} className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium">
-              <BookOpenCheck className="size-4 text-primary" /> Оценки - {selectedSubject?.name ?? 'Предмет'}
-              <ChevronDown className={cn('size-4 transition-transform', subjectMenuOpen && 'rotate-180')} />
-            </button>
-            {subjectMenuOpen && (
-              <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-border bg-card p-2 shadow-lg">
-                {subjectOptions.map((subject) => (
-                  <button key={subject.id} type="button" onClick={() => { setSelectedSubjectId(subject.id); setSubjectMenuOpen(false) }} className="flex w-full items-start rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">
-                    <span className="font-medium">{subject.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="text-sm text-muted-foreground">Общо ученици: {students.length}</div>
-        </div>
-      </div>
-
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Търси ученик" className="pl-9" />
