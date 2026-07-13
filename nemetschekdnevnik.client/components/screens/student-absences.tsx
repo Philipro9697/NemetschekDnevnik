@@ -130,7 +130,7 @@ export function StudentAbsences({ student }: { student?: User }) {
             </div>
             <h2 className="font-heading text-2xl font-bold">Отсъствия на {displayName}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {classById(me.classId)?.name ?? 'Без клас'} · наблюдение на отсъствия
+              {me.className ?? 'Без клас'} · наблюдение на отсъствия
             </p>
           </div>
           <div className="rounded-2xl border border-border/70 bg-card/80 px-4 py-3 text-sm text-muted-foreground">
