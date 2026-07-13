@@ -89,7 +89,7 @@ export function LoginScreen() {
                                     disabled={loading}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="name@example.com"
+                                    placeholder="e-mail"
                                     autoComplete="username"
                                     className="pl-9"
                                 />
