@@ -56,6 +56,8 @@ type LocalSubmission = { fileName: string; feedback?: string }
 export function StudentHomework({ student }: { student?: User }) {
   const app = useApp()
   const me = student ?? (app.currentUser?.role === 'student' ? app.currentUser : null)
+  const isParent = Boolean(student) || app.currentUser?.role === 'parent' // Разпознаване дали е родител
+
   const [filterSubject, setFilterSubject] = useState('all')
   const [sortBy, setSortBy] = useState<'date' | 'subject'>('date')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -75,7 +77,6 @@ export function StudentHomework({ student }: { student?: User }) {
       setLoadingHomework(true)
 
       try {
-        // Динамичен избор на услуга според това дали сме родител или ученик
         const data = student && student.id
           ? await parentService.getChildHomework(Number(student.id))
           : await studentService.getHomework()
@@ -165,6 +166,7 @@ export function StudentHomework({ student }: { student?: User }) {
             onSelect={() => setSelectedId(selectedId === hw.id ? null : hw.id)}
             submission={localSubmissions[hw.id]}
             onSubmit={(fileName) => handleSubmit(hw.id, fileName)}
+            isParent={isParent} // Подаваме флага към картата
           />
         ))}
       </Section>
@@ -205,12 +207,14 @@ function HomeworkCard({
   onSelect,
   submission,
   onSubmit,
+  isParent,
 }: {
   hw: DisplayHomework
   selected: boolean
   onSelect: () => void
   submission?: LocalSubmission
   onSubmit: (fileName: string) => void
+  isParent: boolean
 }) {
   const subject = safeSubject(hw.subjectId)
   const overdue = new Date(hw.dueDate) < new Date() && !submission
@@ -261,7 +265,9 @@ function HomeworkCard({
               <p className="mt-1 text-muted-foreground">Краен срок: {formatDate(hw.dueDate)}</p>
             </div>
           </div>
-          <SubmitBox submission={submission} onSubmit={onSubmit} />
+          
+          {/* Показваме кутията за предаване само ако ПОТРЕБИТЕЛЯТ НЕ Е РОДИТЕЛ */}
+          {!isParent && <SubmitBox submission={submission} onSubmit={onSubmit} />}
         </div>
       )}
     </Card>

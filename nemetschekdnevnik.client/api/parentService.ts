@@ -24,11 +24,15 @@ export const parentService = {
         return apiClient<RemarkDto[]>(`/parent/remarks/${studentId}`);
     },
 
+    getChildSchedule: (studentId: number) => {
+        return apiClient<any[]>(`/parent/schedule/${studentId}`);
+    },
+
     getChildSubjects: (studentId: number) => {
         return apiClient<SubjectDto[]>(`/parent/subjects/${studentId}`);
     },
 
     getChildHomework: (studentId: number) => {
-        return apiClient<any[]>(`/parent/homework/${studentId}`);
+        return apiClient<any[]>(`/parent/homeworks/${studentId}`);
     }
 };
