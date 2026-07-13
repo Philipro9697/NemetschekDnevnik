@@ -172,46 +172,7 @@ export function ClassTeacherPanel() {
         )}
       </Dialog>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Хронология на класа</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="relative space-y-4 border-l border-border pl-6">
-            {timeline.map((item, i) => {
-              const student = userById(item.data.studentId, users)
-              if (item.type === 'note') {
-                const n = item.data
-                return (
-                  <li key={`n${i}`} className="relative">
-                    <span className={`absolute -left-[1.7rem] flex size-5 items-center justify-center rounded-full ${n.kind === 'praise' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}`}>
-                      {n.kind === 'praise' ? <ThumbsUp className="size-3" /> : <AlertTriangle className="size-3" />}
-                    </span>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold">{student?.name}</span>
-                      <Badge variant={n.kind === 'praise' ? 'green' : 'danger'}>{subjectById(n.subjectId).abbr}</Badge>
-                      <span className="text-xs text-muted-foreground">{formatDate(n.date)}</span>
-                    </div>
-                    <p className="mt-0.5 text-sm text-muted-foreground">{n.text}</p>
-                  </li>
-                )
-              }
-              const g = item.data
-              return (
-                <li key={`g${i}`} className="relative">
-                  <span className="absolute -left-[1.75rem] flex size-5 items-center justify-center rounded-full bg-brand-blue/15 text-brand-blue text-[0.6rem] font-bold">{g.value}</span>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold">{student?.name}</span>
-                    <Badge variant="blue">{subjectById(g.subjectId).abbr}</Badge>
-                    <span className="text-xs text-muted-foreground">{formatDate(g.date)}</span>
-                  </div>
-                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">Нанесена оценка <GradePill value={g.value} className="size-6 text-xs" classId={student?.classId} /></p>
-                </li>
-              )
-            })}
-          </ol>
-        </CardContent>
-      </Card>
+      
     </div>
   )
 }
