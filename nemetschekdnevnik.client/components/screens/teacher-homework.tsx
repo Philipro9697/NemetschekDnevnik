@@ -63,7 +63,7 @@ export function TeacherHomework() {
             onChange={(e) => setSelectedClass(e.target.value || null)}
             className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
           >
-            <option value="">— Избери клас —</option>
+
             {classes.map((klass) => (
               <option key={klass.id} value={klass.id}>
                 {klass.name}
