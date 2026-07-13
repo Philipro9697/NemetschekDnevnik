@@ -1,7 +1,7 @@
 'use client'
 import { userService } from '@/api/userService'
 import { adminService } from '@/api/adminService'
-import type { UserRole, UserAccountDto, GradeDto } from '@/api/types'
+import type { UserRole, UserAccountDto, GradeDto, StudentInfoDto } from '@/api/types'
 import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '@/components/app-provider'
 import { Card } from '@/components/ui/card'
@@ -70,12 +70,37 @@ export function AdminUsers() {
   const [classFilter, setClassFilter] = useState<'all' | string>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all')
   const [deleteCandidate, setDeleteCandidate] = useState<User | null>(null)
+  const [realStudents, setRealStudents] = useState<StudentInfoDto[]>([])
+
+  useEffect(() => {
+    adminService
+      .getStudents()
+      .then(setRealStudents)
+      .catch((error) => console.error('Failed to fetch real students:', error))
+  }, [])
+
+  // Real backend-backed accounts (apiUserId set) get their real class letter from
+  // the server; purely mock/demo student rows keep the mock lib/data lookup.
+  const realClassByStudentId = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const s of realStudents) {
+      if (s.classGrade) map.set(s.studentId, `${s.classGrade}${s.classLetter}`)
+    }
+    return map
+  }, [realStudents])
+
+  function classLabelFor(u: User) {
+    if (u.role === 'student' && u.apiUserId) {
+      return realClassByStudentId.get(u.apiUserId) ?? classById(u.classId)?.name ?? '—'
+    }
+    return classById(u.classId)?.name ?? '—'
+  }
 
   const filtered = useMemo(() => {
     const queryText = query.toLowerCase().trim()
     return app.users.filter((u) => {
       const className =
-        classById(u.classId)?.name ?? (u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '')
+        classLabelFor(u) !== '—' ? classLabelFor(u) : (u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '')
       const statusLabel = u.status === 'active' ? 'активен' : 'блокиран'
       const searchText = [u.name, u.email, className, statusLabel, ROLE_LABEL[u.role]]
         .filter(Boolean)
@@ -89,7 +114,7 @@ export function AdminUsers() {
       const matchesStatus = statusFilter === 'all' || u.status === statusFilter
       return matchesQuery && matchesRole && matchesClass && matchesStatus
     })
-  }, [app.users, query, roleFilter, classFilter, statusFilter])
+  }, [app.users, query, roleFilter, classFilter, statusFilter, realClassByStudentId])
 
   const counts = {
     all: app.users.length,
@@ -216,7 +241,7 @@ export function AdminUsers() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {u.role === 'student'
-                      ? classById(u.classId)?.name ?? '—'
+                      ? classLabelFor(u)
                       : u.role === 'teacher'
                       ? `${u.classTeacherOf ? classById(u.classTeacherOf)?.name + ' (кл.)' : '—'}${u.subjectIds?.length ? ` • ${u.subjectIds.map((id) => subjects.find((s) => s.id === id)?.name).filter(Boolean).join(', ')}` : ''}`
                       : '—'}

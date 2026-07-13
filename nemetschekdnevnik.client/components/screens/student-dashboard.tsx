@@ -5,7 +5,6 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { GradePill } from "@/components/shared/grade-pill";
 import { Badge } from "@/components/ui/badge";
-import { classById } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import {
   CalendarClock,
@@ -51,7 +50,6 @@ export function StudentDashboard({
   if (!me) return null;
 
   const displayName = me.name;
-  const displayClassId = me.classId;
 
   const gradeVals = myGrades.map((g) => g.gradeValue);
   const avg =
@@ -86,7 +84,7 @@ export function StudentDashboard({
                 Здравей, {displayName}!
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {classById(displayClassId)?.name ?? "Без клас"} · последни оценки, отсъствия и бележки на едно място.
+                {me.className ?? "Без клас"} · последни оценки, отсъствия и бележки на едно място.
               </p>
             </div>
           </div>

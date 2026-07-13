@@ -1,7 +1,11 @@
 import { apiClient } from "./apiClient";
-import { AddGradeDto, GradeDto } from "./types";
+import { AddGradeDto, GradeDto, StudentInfoDto } from "./types";
 
 export const adminService = {
+    getStudents: () => {
+        return apiClient<StudentInfoDto[]>("/users/students");
+    },
+
     addGrade: (dto: AddGradeDto) => {
         return apiClient<GradeDto>("/admin/grades", {
             method: "POST",

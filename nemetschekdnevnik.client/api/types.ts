@@ -130,6 +130,8 @@ export interface StudentInfoDto {
     studentId: number;
     parentId: number;
     classId: number;
+    classGrade: number;
+    classLetter: string;
     firstName: string;
     lastName: string;
     email: string;

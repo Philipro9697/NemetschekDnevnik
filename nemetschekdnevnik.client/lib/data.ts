@@ -19,6 +19,7 @@ export interface User {
 	role: Role;
 	status: "active" | "blocked";
 	classId?: string; // for students
+	className?: string; // real class name from backend, e.g. "5А"
 	subjectIds?: string[]; // for teachers
 	classTeacherOf?: string; // classId, for class teachers
 	childrenIds?: string[]; // for parents

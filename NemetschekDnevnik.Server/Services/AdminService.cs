@@ -9,9 +9,11 @@ public class AdminService : IAdminService
     private static readonly string[] CreatableRoles = { "Teacher", "Student", "Parent" };
 
     private readonly DnevnikContext _db;
-    public AdminService(DnevnikContext db)
+    private readonly IStudentService _studentService;
+    public AdminService(DnevnikContext db, IStudentService studentService)
     {
         _db = db;
+        _studentService = studentService;
     }
 
     private static UserAccountDto ToUserAccountDto(User user) => new()
@@ -69,6 +71,16 @@ public class AdminService : IAdminService
             .ToListAsync();
     }
     
+    public async Task<List<StudentInfoDto>> GetAllStudents()
+    {
+        var students = await _db.Students
+            .Include(s => s.StudentNavigation)
+            .Include(s => s.Class)
+            .ToListAsync();
+
+        return students.Select(_studentService.GetStudentInfo).ToList();
+    }
+
     public async Task<UserAccountDto?> CreateAsync(CreateUserDto dto)
     {
         if (!CreatableRoles.Contains(dto.Role))

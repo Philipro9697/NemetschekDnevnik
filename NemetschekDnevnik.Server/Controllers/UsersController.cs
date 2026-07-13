@@ -46,6 +46,14 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
+    [HttpGet("students")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<StudentInfoDto>>> GetAllStudents()
+    {
+        var students = await _adminService.GetAllStudents();
+        return Ok(students);
+    }
+
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserAccountDto>> CreateUser(CreateUserDto dto)

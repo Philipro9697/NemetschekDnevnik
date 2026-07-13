@@ -133,7 +133,7 @@ public class StudentService : IStudentService
 
     public async Task<Student?> GetStudentById(int userId)
     {
-        return await _db.Students.FirstOrDefaultAsync(u => u.StudentId == userId);
+        return await _db.Students.Include(s => s.Class).FirstOrDefaultAsync(u => u.StudentId == userId);
     }
 
     public StudentInfoDto GetStudentInfo(Student student)
@@ -143,6 +143,8 @@ public class StudentService : IStudentService
             StudentId = student.StudentId,
             ParentId = student.ParentId ?? -1,
             ClassId = student.ClassId ?? -1,
+            ClassGrade = student.Class?.ClassGrade ?? 0,
+            ClassLetter = student.Class?.ClassLetter ?? string.Empty,
             FirstName = student.StudentNavigation.FirstName,
             LastName = student.StudentNavigation.LastName,
             Email = student.StudentNavigation.Email,
