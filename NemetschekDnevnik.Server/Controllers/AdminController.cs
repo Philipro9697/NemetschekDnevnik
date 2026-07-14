@@ -36,4 +36,11 @@ public class AdminController : ControllerBase
         var deleted = await _gradeService.DeleteGrade(id);
         return deleted ? Ok() : NotFound();
     }
+
+    [HttpGet("student/{studentId}")]
+    public async Task<ActionResult<List<GradeDto>>> GetStudentGrades(int studentId)
+    {
+        var grades = await _gradeService.GetStudentGrades(studentId);
+        return Ok(grades);
+    }
 }
