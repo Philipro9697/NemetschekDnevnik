@@ -151,3 +151,8 @@ export interface TeacherInfoDto {
 export interface FeedbackDto {
 	feedback: string;
 }
+
+export interface UpdateGradeDto {
+	value: number;
+	comment?: string | null;
+}
