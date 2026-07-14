@@ -6,7 +6,6 @@ import { Logo } from '@/components/logo'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useApp } from '@/components/app-provider'
-import { demoAccounts } from '@/lib/data'
 import { authService } from '@/api/authService'
 import { userService } from '@/api/userService'
 
@@ -58,34 +57,6 @@ export function LoginScreen() {
 
     function handleTogglePassword() {
         setShow((value) => !value)
-    }
-
-    async function handleDemoLogin(userId: string) {
-        setError('')
-        setLoading(true)
-        try {
-            // For demo login, fetch the user profile from mock data
-            // Find the user in demoAccounts and create a UserAccountDto-like object
-            const demoAccount = demoAccounts.find(a => a.userId === userId)
-            if (demoAccount) {
-                // Mock a UserAccountDto for demo purposes
-                const mockUserData = {
-                    userId: parseInt(userId),
-                    email: demoAccount.username + '@demo.local',
-                    role: demoAccount.role,
-                    isApproved: true,
-                    firstName: demoAccount.label.split(' ')[0],
-                    lastName: demoAccount.label.split(' ').slice(1).join(' '),
-                    phoneNumber: '',
-                }
-                await login(mockUserData as any)
-            }
-        } catch (err) {
-            console.error("Demo login error:", err)
-            setError('Грешка при демо вход.')
-        } finally {
-            setLoading(false)
-        }
     }
 
     return (
@@ -180,8 +151,6 @@ export function LoginScreen() {
                             </button>
                         </div>
                     </form>
-
-                    <DemoHint onDemoLogin={handleDemoLogin} />
                 </div>
 
                 <p className="mt-6 text-center text-xs text-white/40">
@@ -189,31 +158,5 @@ export function LoginScreen() {
                 </p>
             </div>
         </main>
-    )
-}
-
-function DemoHint({ onDemoLogin }: { onDemoLogin: (userId: string) => void }) {
-    return (
-        <div className="mt-6 border-t border-border pt-5">
-            <p className="mb-3 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Демо достъп — избери роля
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-                {demoAccounts.map((a) => (
-                    <button
-                        key={a.userId}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={(event) => {
-                            event.preventDefault()
-                            onDemoLogin(a.userId)
-                        }}
-                        className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
-                    >
-                        {a.label}
-                    </button>
-                ))}
-            </div>
-        </div>
     )
 }
