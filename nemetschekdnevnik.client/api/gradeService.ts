@@ -24,10 +24,10 @@ export const gradeService = {
             method: "DELETE",
         });
     },
-    
+
     getStudentGrades: (studentId: number) => {
-    return apiClient<GradeDto[]>(`/admin/students/${studentId}/grades`, {
-        method: "GET",
-    });
-},
+        return apiClient<GradeDto[]>(`/admin/grades/student/${studentId}`, {
+            method: "GET",
+        });
+    },
 };
