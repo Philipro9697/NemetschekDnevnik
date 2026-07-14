@@ -23,8 +23,7 @@ public class HomeworkItemDto
     [Required]
     public string Description { get; set; }
 
-    [Required]
-    public string ResourceLink { get; set; }
+    public string? ResourceLink { get; set; }
 
     [Required]
     public DateTime DateAssigned { get; set; }

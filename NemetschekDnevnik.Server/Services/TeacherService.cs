@@ -76,7 +76,7 @@ public class TeacherService : ITeacherService
 
     public async Task<List<AbsenceDto>> GetAbsences(Teacher teacher, int classId)
     {
-        return await _db.Attendances.Where(a => a.Lesson.TeacherId == teacher.TeacherId && a.IsAbsent && a.Lesson.ClassId == classId)
+        return await _db.Attendances.Where(a => a.Student.ClassId == classId && a.IsAbsent)
             .Select(a => new AbsenceDto
             {
                 IsExcused = a.IsExcused,

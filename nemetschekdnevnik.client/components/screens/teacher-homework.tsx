@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
 	Plus,
 	FileCheck2,
@@ -15,50 +15,57 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { Avatar } from "@/components/ui/avatar";
-import {
-	classes,
-	classById,
-	subjectById,
-	subjects,
-	formatDate,
-	type Homework,
-	type User,
-} from "@/lib/data";
+import { formatDate, type User } from "@/lib/data";
 import { teacherService } from "@/api/teacherService";
-import { HomeworkItemDto } from "@/api/types";
+import { HomeworkItemDto, SubjectDto, ClassDto } from "@/api/types";
 
 export function TeacherHomework() {
-	const {
-		currentUser,
-		homework,
-		addHomework,
-		addFeedback,
-		users,
-		selectedClassId,
-		setSelectedClass,
-	} = useApp();
+	const { currentUser, addFeedback, users, selectedClassId, setSelectedClass } =
+		useApp();
 	const [creating, setCreating] = useState(false);
 	const [query, setQuery] = useState("");
 
-	const mySubjectIds = currentUser?.subjectIds ?? [];
-	const myHomework = useMemo(() => {
-		if (!currentUser?.id || !selectedClassId) return [];
-		return homework.filter(
-			(h) =>
-				h.teacherId === currentUser.id &&
-				h.type === "homework" &&
-				h.classIds.includes(selectedClassId),
-		);
-	}, [homework, currentUser?.id, selectedClassId]);
+	// API states
+	const [apiSubjects, setApiSubjects] = useState<SubjectDto[]>([]);
+	const [apiClasses, setApiClasses] = useState<ClassDto[]>([]);
+	const [apiHomework, setApiHomework] = useState<HomeworkItemDto[]>([]);
 
-	const filteredHomework = myHomework.filter((h) => {
+	// 1. Fetch subjects and classes on mount from teacherService
+	useEffect(() => {
+		teacherService
+			.getSubjects()
+			.then((data) => setApiSubjects(data))
+			.catch((err) => console.error("Failed to fetch subjects:", err));
+
+		teacherService
+			.getClasses()
+			.then((data) => setApiClasses(data))
+			.catch((err) => console.error("Failed to fetch classes:", err));
+	}, []);
+
+	// 2. Fetch homework for selected class from teacherService when selectedClassId changes
+	useEffect(() => {
+		if (!selectedClassId) {
+			setApiHomework([]);
+			return;
+		}
+		teacherService
+			.getHomework(parseInt(selectedClassId, 10))
+			.then((data) => setApiHomework(data))
+			.catch((err) =>
+				console.error("Failed to fetch homework for class:", err),
+			);
+	}, [selectedClassId]);
+
+	const filteredHomework = useMemo(() => {
 		const q = query.trim().toLowerCase();
-		if (!q) return true;
-		return (
-			h.title.toLowerCase().includes(q) ||
-			h.description.toLowerCase().includes(q)
+		if (!q) return apiHomework;
+		return apiHomework.filter(
+			(h) =>
+				h.title.toLowerCase().includes(q) ||
+				h.description.toLowerCase().includes(q),
 		);
-	});
+	}, [apiHomework, query]);
 
 	const canCreate =
 		currentUser?.role === "teacher" || currentUser?.role === "admin";
@@ -107,9 +114,10 @@ export function TeacherHomework() {
 						className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
 					>
 						<option value="">— Избери клас —</option>
-						{classes.map((klass) => (
-							<option key={klass.id} value={klass.id}>
-								{klass.name}
+						{apiClasses.map((klass) => (
+							<option key={klass.classId} value={klass.classId}>
+								{klass.classGrade}
+								{klass.classLetter}
 							</option>
 						))}
 					</select>
@@ -128,10 +136,12 @@ export function TeacherHomework() {
 				<div className="space-y-4">
 					{filteredHomework.map((h) => (
 						<HomeworkCard
-							key={h.id}
+							key={h.homeworkId}
 							hw={h}
 							onFeedback={addFeedback}
 							users={users}
+							classes={apiClasses}
+							subjects={apiSubjects}
 						/>
 					))}
 				</div>
@@ -139,27 +149,39 @@ export function TeacherHomework() {
 
 			{creating && selectedClassId && (
 				<CreateTaskDialog
-					subjectIds={mySubjectIds}
+					subjects={apiSubjects}
 					classId={selectedClassId}
+					classes={apiClasses}
 					onClose={() => setCreating(false)}
-					onCreate={(data) => {
-						addHomework({
-							...data,
-							teacherId: currentUser!.id,
-							type: "homework",
-							classIds: [selectedClassId],
-						});
-						teacherService.addHomework({
-							homeworkId: -1,
-							classId: parseInt(selectedClassId),
-							subjectId: parseInt(data.subjectId),
-							teacherId: -1,
-							title: data.title,
-							description: data.description,
-							resourceLink: "idk",
-							dateAssigned: "2012-04-23T18:25:43.511Z",
-							dateDue: data.dueDate,
-						} as HomeworkItemDto);
+					onCreate={async (data) => {
+						try {
+							const todayIso = new Date().toISOString().split("T")[0];
+							const dueIso = data.dueDate
+								? new Date(data.dueDate).toISOString().split("T")[0]
+								: todayIso;
+
+							const payload: HomeworkItemDto = {
+								homeworkId: 0,
+								classId: parseInt(selectedClassId, 10),
+								subjectId: parseInt(data.subjectId, 10),
+								teacherId: parseInt(currentUser?.id || "1", 10),
+								title: data.title,
+								description: data.description,
+								resourceLink: data.resourceLink, // Fixes link missing in database save
+								dateAssigned: todayIso,
+								dateDue: dueIso,
+							};
+
+							// Save to API database
+							const newHomework = await teacherService.addHomework(payload);
+
+							// Push directly into local state to show instantly using the database response
+							setApiHomework((prev) => [...prev, newHomework]);
+							console.log("Homework submitted successfully.");
+						} catch (error) {
+							console.error("Failed to post homework to database:", error);
+						}
+
 						setCreating(false);
 					}}
 				/>
@@ -172,51 +194,71 @@ function HomeworkCard({
 	hw,
 	onFeedback,
 	users,
+	classes,
+	subjects,
 }: {
-	hw: Homework;
+	hw: HomeworkItemDto;
 	onFeedback: (id: string, studentId: string, fb: string) => void;
 	users: User[];
+	classes: ClassDto[];
+	subjects: SubjectDto[];
 }) {
+	const subjectName =
+		subjects.find((s) => s.subjectId === hw.subjectId)?.subjectName ||
+		"Предмет";
+	const targetClass = classes.find((c) => c.classId === hw.classId);
+	const className = targetClass
+		? `${targetClass.classGrade}${targetClass.classLetter}`
+		: "";
+
+	// Handle submissions safely as the backend DTO definition doesn't declare them
+	const submissions: any[] = (hw as any).submissions || [];
+
 	return (
 		<Card>
 			<CardHeader>
 				<div className="flex flex-wrap items-center gap-2">
-					<Badge variant="blue">{subjectById(hw.subjectId).abbr}</Badge>
-					{hw.classIds.map((c) => (
-						<Badge key={c} variant="neutral">
-							{classById(c)?.name}
-						</Badge>
-					))}
+					<Badge variant="blue">{subjectName}</Badge>
+					{className && <Badge variant="neutral">{className}</Badge>}
 					<span className="ml-auto text-xs text-muted-foreground">
-						Краен срок: {formatDate(hw.dueDate)}
+						Краен срок: {formatDate(hw.dateDue)}
 					</span>
 				</div>
 				<CardTitle className="mt-1">{hw.title}</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<p className="text-sm text-muted-foreground">{hw.description}</p>
-				{hw.attachmentName && (
-					<div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-						Прикачен файл: {hw.attachmentName}
+				{hw.resourceLink && (
+					<div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground break-all">
+						Линк към ресурси:{" "}
+						<a
+							href={hw.resourceLink}
+							target="_blank"
+							rel="noreferrer"
+							className="underline text-primary"
+						>
+							{hw.resourceLink}
+						</a>
 					</div>
 				)}
 				<div>
 					<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-						Предадени работи ({hw.submissions.length})
+						Предадени работи ({submissions.length})
 					</p>
-					{hw.submissions.length === 0 ? (
+					{submissions.length === 0 ? (
 						<p className="text-sm text-muted-foreground">
 							Няма предадени работи.
 						</p>
 					) : (
 						<div className="space-y-2">
-							{hw.submissions.map((sub) => (
+							{submissions.map((sub: any) => (
 								<SubmissionRow
 									key={sub.studentId}
-									hwId={hw.id}
+									hwId={hw.homeworkId.toString()}
 									sub={sub}
 									onFeedback={onFeedback}
 									users={users}
+									classes={classes}
 								/>
 							))}
 						</div>
@@ -232,14 +274,24 @@ function SubmissionRow({
 	sub,
 	onFeedback,
 	users,
+	classes,
 }: {
 	hwId: string;
 	sub: { studentId: string; fileName: string; feedback?: string };
 	onFeedback: (id: string, studentId: string, fb: string) => void;
 	users: User[];
+	classes: ClassDto[];
 }) {
 	const student = users.find((u) => u.id === sub.studentId);
 	const [fb, setFb] = useState(sub.feedback ?? "");
+
+	const targetClass = classes.find(
+		(c) => c.classId === Number(student?.classId),
+	);
+	const className = targetClass
+		? `${targetClass.classGrade}${targetClass.classLetter}`
+		: "—";
+
 	return (
 		<div className="rounded-xl border border-border bg-muted/30 p-3">
 			<div className="flex items-center gap-3">
@@ -252,9 +304,7 @@ function SubmissionRow({
 			<div className="mt-3 rounded-lg border border-border/70 bg-background/70 p-3">
 				<div className="mb-2 flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
 					<span>Обратна връзка</span>
-					<span>
-						{student?.classId ? classById(student.classId)?.name : "—"}
-					</span>
+					<span>{className}</span>
 				</div>
 				<div className="flex gap-2">
 					<Input
@@ -282,26 +332,40 @@ function SubmissionRow({
 }
 
 function CreateTaskDialog({
-	subjectIds,
+	subjects,
 	classId,
+	classes,
 	onClose,
 	onCreate,
 }: {
-	subjectIds: string[];
+	subjects: SubjectDto[];
 	classId: string;
+	classes: ClassDto[];
 	onClose: () => void;
 	onCreate: (data: {
 		title: string;
 		description: string;
+		resourceLink: string;
 		subjectId: string;
 		dueDate: string;
 	}) => void;
 }) {
-	const availableSubjects = subjects.filter((s) => subjectIds.includes(s.id));
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
-	const [subjectId, setSubjectId] = useState(availableSubjects[0]?.id ?? "");
+	const [resourceLink, setResourceLink] = useState("");
+	const [subjectId, setSubjectId] = useState("");
 	const [dueDate, setDueDate] = useState("");
+
+	useEffect(() => {
+		if (subjects.length > 0 && !subjectId) {
+			setSubjectId(subjects[0].subjectId.toString());
+		}
+	}, [subjects, subjectId]);
+
+	const targetClass = classes.find((c) => c.classId === parseInt(classId, 10));
+	const className = targetClass
+		? `${targetClass.classGrade}${targetClass.classLetter}`
+		: "избрания клас";
 
 	return (
 		<Dialog
@@ -319,9 +383,12 @@ function CreateTaskDialog({
 							onChange={(e) => setSubjectId(e.target.value)}
 							className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
 						>
-							{availableSubjects.map((s) => (
-								<option key={s.id} value={s.id}>
-									{s.name}
+							<option value="" disabled>
+								— Избери предмет —
+							</option>
+							{subjects.map((s) => (
+								<option key={s.subjectId} value={s.subjectId}>
+									{s.subjectName}
 								</option>
 							))}
 						</select>
@@ -356,9 +423,19 @@ function CreateTaskDialog({
 					/>
 				</div>
 
+				<div>
+					<label className="mb-1.5 block text-sm font-medium">
+						Линк към ресурс
+					</label>
+					<Input
+						value={resourceLink}
+						onChange={(e) => setResourceLink(e.target.value)}
+						placeholder="https://example.com/resources"
+					/>
+				</div>
+
 				<div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-					Домашната работа ще бъде добавена за клас{" "}
-					{classById(classId)?.name ?? "избрания клас"}.
+					Домашната работа ще бъде добавена за клас {className}.
 				</div>
 
 				<div className="flex justify-end gap-2">
@@ -367,8 +444,15 @@ function CreateTaskDialog({
 					</Button>
 					<Button
 						onClick={() => {
-							onCreate({ title, description, subjectId, dueDate });
+							onCreate({
+								title,
+								description,
+								resourceLink,
+								subjectId,
+								dueDate,
+							});
 						}}
+						disabled={!subjectId || !title}
 					>
 						Добави домашно
 					</Button>

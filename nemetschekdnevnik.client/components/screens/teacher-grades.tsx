@@ -9,7 +9,6 @@ import {
 	ChevronDown,
 	BookOpenCheck,
 } from "lucide-react";
-import { useApp } from "@/components/app-provider";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -63,15 +62,14 @@ function decodeComment(comment: string | null | undefined): {
 }
 
 export function TeacherGrades() {
-	// Notes/absences have no backend endpoint yet, so they still come from the mock context.
-	const { notes, absences, addAbsence, addNote } = useApp();
-
 	const [query, setQuery] = useState("");
 
 	const [classesList, setClassesList] = useState<ClassDto[]>([]);
 	const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
 	const [students, setStudents] = useState<StudentInfoDto[]>([]);
 	const [grades, setGrades] = useState<GradeDto[]>([]);
+	const [absences, setAbsences] = useState<AbsenceDto[]>([]);
+	const [remarks, setRemarks] = useState<RemarkDto[]>([]);
 
 	const [subjectOptions, setSubjectOptions] = useState<SubjectDto[]>([]);
 	const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(
@@ -109,11 +107,17 @@ export function TeacherGrades() {
 	} | null>(null);
 
 	function currentTime() {
-		return new Date().toTimeString().slice(0, 5);
+		return new Date().toTimeString().slice(0, 8); // "HH:mm:ss" format
 	}
+
 	function currentDate() {
-		return new Date().toDateString();
+		const d = new Date();
+		const year = d.getFullYear();
+		const month = String(d.getMonth() + 1).padStart(2, "0");
+		const day = String(d.getDate()).padStart(2, "0");
+		return `${year}-${month}-${day}`; // "YYYY-MM-DD" format
 	}
+
 	// Load the teacher's classes + subjects once.
 	useEffect(() => {
 		teacherService
@@ -139,7 +143,7 @@ export function TeacherGrades() {
 			.catch((err) => console.error("Failed to load subjects:", err));
 	}, []);
 
-	// Reload roster + grades whenever the selected class changes.
+	// Reload roster, grades, absences, and remarks whenever the selected class changes.
 	useEffect(() => {
 		if (selectedClassId === null) return;
 		teacherService
@@ -150,6 +154,14 @@ export function TeacherGrades() {
 			.getGrades(selectedClassId)
 			.then(setGrades)
 			.catch((err) => console.error("Failed to load grades:", err));
+		teacherService
+			.getAbsences(selectedClassId)
+			.then((data) => setAbsences(data))
+			.catch((err) => console.error("Failed to load absences:", err));
+		teacherService
+			.getRemarks(selectedClassId)
+			.then(setRemarks)
+			.catch((err) => console.error("Failed to load remarks:", err));
 	}, [selectedClassId]);
 
 	const selectedClass =
@@ -192,67 +204,90 @@ export function TeacherGrades() {
 
 	async function handleSubmitGrade() {
 		if (!gradeTarget || selectedSubjectId === null) return;
-		const created = await teacherService.addGrade({
-			studentId: gradeTarget.studentId,
-			subjectId: selectedSubjectId,
-			teacherId: 0, // ignored by the backend; it uses the logged-in teacher from the JWT
-			value: gradeValue,
-			comment: encodeComment(gradeTarget.section, gradeDescription.trim()),
-		});
-		setGrades((prev) => [created, ...prev]);
-		setGradeTarget(null);
+		try {
+			const created = await teacherService.addGrade({
+				studentId: gradeTarget.studentId,
+				subjectId: selectedSubjectId,
+				teacherId: 0, // Ignored by backend (claims context from JWT)
+				value: gradeValue,
+				comment: encodeComment(gradeTarget.section, gradeDescription.trim()),
+			});
+			setGrades((prev) => [created, ...prev]);
+			setGradeTarget(null);
+		} catch (err) {
+			console.error("Failed to add grade:", err);
+		}
 	}
 
-	function handleSubmitNote() {
+	async function handleSubmitNote() {
 		if (!noteTarget) return;
-		addNote({
-			studentId: noteTarget.studentId,
-			subjectId: noteTarget.subjectId,
-			teacherId: "",
-			text: noteText.trim(),
-			kind: noteKind,
-			time: currentTime(),
-		});
+		try {
+			const payload = {
+				studentId: parseInt(noteTarget.studentId),
+				type: noteKind,
+				text: noteText.trim(),
+				teacherId: 0,
+				remarkId: 0,
+				dateCreated: currentDate(),
+				teacherFirstName: "giga", // DO NOT FUCKING TOUCH THESE TWO
+				teacherLastName: "niga",
+			};
 
-		teacherService.addRemark({
-			studentId: parseInt(noteTarget.studentId),
-			subjectId: parseInt(noteTarget.subjectId),
-			type: noteKind,
-			text: noteText.trim(),
+			const created = await teacherService.addRemark(payload as RemarkDto);
 
-			teacherId: -1, // determined by backend
-			remarkId: -1,
-			dateCreated: "2012-04-23T18:25:43.511Z",
-			teacherFirstName: "giga",
-			teacherLastName: "niga",
-		} as RemarkDto);
+			// Merge payload to guarantee local state updates correctly even if backend fields are partial
+			const newRemark: RemarkDto = {
+				remarkId: created?.remarkId || Math.floor(Math.random() * 100000),
+				studentId: created?.studentId || payload.studentId,
+				teacherId: created?.teacherId || payload.teacherId,
+				dateCreated: created?.dateCreated || payload.dateCreated,
+				type: created?.type || payload.type,
+				text: created?.text || payload.text,
+				teacherFirstName: created?.teacherFirstName || payload.teacherFirstName,
+				teacherLastName: created?.teacherLastName || payload.teacherLastName,
+			};
 
-		setNoteTarget(null);
+			setRemarks((prev) => [newRemark, ...prev]);
+			setNoteTarget(null);
+		} catch (err) {
+			console.error("Failed to add remark:", err);
+		}
 	}
 
-	function handleSubmitAbsence() {
-		if (!absenceTarget) return;
-		addAbsence({
-			studentId: absenceTarget.studentId,
-			subjectId: absenceTarget.subjectId,
-			teacherId: "",
-			type: "absent",
-			excused: absenceExcused,
-			time: currentTime(),
-		});
+	async function handleSubmitAbsence() {
+		if (!absenceTarget || selectedSubjectId === null) return;
+		try {
+			const payload = {
+				studentId: parseInt(absenceTarget.studentId),
+				subjectId: selectedSubjectId,
+				isExcused: absenceExcused,
+				date: currentDate(),
+				time: currentTime(),
+				subjectName: selectedSubject?.subjectName ?? "",
+				lessonId: 1, // DO NOT FUCKING TOUCH
+			};
 
-		teacherService.addAbsence({
-			studentId: parseInt(absenceTarget.studentId),
-			subjectId: parseInt(absenceTarget.subjectId),
-			isExcused: absenceExcused,
+			const created = await teacherService.addAbsence(payload as AbsenceDto);
 
-			date: "2026-07-13",
-			time: "14:30:00",
-			subjectName: "niga",
-			lessonId: 1,
-		} as AbsenceDto);
+			// Merge payload with server response to handle missing joined properties (like subjectName)
+			const newAbsence: AbsenceDto = {
+				isExcused:
+					typeof created?.isExcused !== "undefined"
+						? created.isExcused
+						: payload.isExcused,
+				studentId: created?.studentId || payload.studentId,
+				date: created?.date || payload.date,
+				time: created?.time || payload.time,
+				subjectId: created?.subjectId || payload.subjectId,
+				subjectName: created?.subjectName || payload.subjectName,
+				lessonId: created?.lessonId || payload.lessonId,
+			};
 
-		setAbsenceTarget(null);
+			setAbsences((prev) => [newAbsence, ...prev]);
+			setAbsenceTarget(null);
+		} catch (err) {
+			console.error("Failed to add absence:", err);
+		}
 	}
 
 	function studentName(studentId: string) {
@@ -394,15 +429,11 @@ export function TeacherGrades() {
 												g.subjectId === selectedSubjectId,
 										);
 										const studentIdStr = String(student.studentId);
-										const studentNotes = notes.filter(
-											(n) =>
-												n.studentId === studentIdStr &&
-												n.subjectId === String(selectedSubjectId ?? ""),
+										const studentNotes = remarks.filter(
+											(r) => r.studentId === student.studentId,
 										);
 										const studentAbsences = absences.filter(
-											(a) =>
-												a.studentId === studentIdStr &&
-												a.subjectId === String(selectedSubjectId ?? ""),
+											(a) => a.studentId === student.studentId,
 										);
 										return (
 											<tr
@@ -414,8 +445,8 @@ export function TeacherGrades() {
 														{student.firstName} {student.lastName}
 													</div>
 													<div className="mt-1 text-xs text-muted-foreground">
-														{studentGrades.length} оценка
-														{studentGrades.length === 1 ? "" : "и"}
+														{studentGrades.length} оценк
+														{studentGrades.length === 1 ? "а" : "и"}
 													</div>
 												</td>
 												{gradeSections.map((section) => {
@@ -713,37 +744,33 @@ export function TeacherGrades() {
 			>
 				{notesPopupTarget && (
 					<div className="space-y-2 text-sm">
-						{notes.filter(
-							(note) =>
-								note.studentId === notesPopupTarget.studentId &&
-								note.subjectId === notesPopupTarget.subjectId,
+						{remarks.filter(
+							(r) => String(r.studentId) === notesPopupTarget.studentId,
 						).length === 0 ? (
 							<div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-4 text-center text-muted-foreground">
 								Няма бележки.
 							</div>
 						) : (
-							notes
+							remarks
 								.filter(
-									(note) =>
-										note.studentId === notesPopupTarget.studentId &&
-										note.subjectId === notesPopupTarget.subjectId,
+									(r) => String(r.studentId) === notesPopupTarget.studentId,
 								)
-								.map((note) => (
+								.map((r) => (
 									<div
-										key={note.id}
+										key={r.remarkId}
 										className="rounded-lg border border-border bg-muted/30 p-3"
 									>
 										<div className="mb-1 flex items-center justify-between gap-2">
 											<Badge
-												variant={note.kind === "praise" ? "green" : "warning"}
+												variant={r.type === "praise" ? "green" : "warning"}
 											>
-												{note.kind === "praise" ? "Похвала" : "Забележка"}
+												{r.type === "praise" ? "Похвала" : "Забележка"}
 											</Badge>
 											<span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-												{note.date} · {note.time ?? "—"}
+												{r.dateCreated}
 											</span>
 										</div>
-										<div className="text-sm">{note.text}</div>
+										<div className="text-sm">{r.text}</div>
 									</div>
 								))
 						)}
@@ -760,8 +787,7 @@ export function TeacherGrades() {
 					<div className="space-y-2 text-sm">
 						{absences.filter(
 							(absence) =>
-								absence.studentId === absencesPopupTarget.studentId &&
-								absence.subjectId === absencesPopupTarget.subjectId,
+								String(absence.studentId) === absencesPopupTarget.studentId,
 						).length === 0 ? (
 							<div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-4 text-center text-muted-foreground">
 								Няма отсъствия.
@@ -770,18 +796,17 @@ export function TeacherGrades() {
 							absences
 								.filter(
 									(absence) =>
-										absence.studentId === absencesPopupTarget.studentId &&
-										absence.subjectId === absencesPopupTarget.subjectId,
+										String(absence.studentId) === absencesPopupTarget.studentId,
 								)
 								.map((absence) => (
 									<div
-										key={absence.id}
+										key={`${absence.studentId}-${absence.date}-${absence.time}`}
 										className="rounded-lg border border-border bg-muted/30 p-3"
 									>
 										<div className="mb-1 flex items-center justify-between gap-2">
 											<span className="font-medium text-danger">Отсъствие</span>
-											<Badge tone={absence.excused ? "success" : "danger"}>
-												{absence.excused ? "Извинено" : "Неизвинено"}
+											<Badge tone={absence.isExcused ? "success" : "danger"}>
+												{absence.isExcused ? "Извинено" : "Неизвинено"}
 											</Badge>
 										</div>
 										<div className="text-xs uppercase tracking-wide text-muted-foreground">
