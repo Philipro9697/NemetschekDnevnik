@@ -1,7 +1,14 @@
 import { apiClient } from "./apiClient";
-import { AddGradeDto, GradeDto, StudentInfoDto, ClassDto } from "./types";
+import { AddGradeDto, GradeDto, StudentInfoDto, ClassDto, SubjectDto } from "./types";
 
 export const adminService = {
+
+    getSubjects: () => {
+        return apiClient<SubjectDto[]>("/admin/subjects", {
+            method: "GET",
+        });
+    },
+
     getStudents: () => {
         return apiClient<StudentInfoDto[]>("/users/students");
     },

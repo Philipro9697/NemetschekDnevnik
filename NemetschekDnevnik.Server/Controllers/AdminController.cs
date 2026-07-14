@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NemetschekDnevnik.Server.DTOs;
 using NemetschekDnevnik.Server.Services;
+using NemetschekDnevnik.Server.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace NemetschekDnevnik.Server.Controllers;
 
@@ -21,6 +23,13 @@ public class AdminController : ControllerBase
     {
         var grade = await _gradeService.AddGrade(dto.StudentId, dto.TeacherId, dto.SubjectId, dto.Value, dto.Comment);
         return Ok(grade);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<List<GradeDto>>> GetAllGrades()
+    {
+        var grades = await _gradeService.GetAllGrades();
+        return Ok(grades);
     }
 
     [HttpPut("{id}")]

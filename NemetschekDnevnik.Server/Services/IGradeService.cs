@@ -4,6 +4,7 @@ namespace NemetschekDnevnik.Server.Services;
 
 public interface IGradeService
 {
+    Task<List<GradeDto>> GetAllGrades();
     Task<List<GradeDto>> GetStudentGrades(int studentId);
     Task<GradeDto?> AddGrade(int studentId, int teacherId, int subjectId, decimal value, string? comment);
     Task<GradeDto?> UpdateGrade(int gradeId, decimal newValue, string? newComment);

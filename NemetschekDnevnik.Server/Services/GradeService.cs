@@ -91,4 +91,25 @@ public class GradeService : IGradeService
             })
             .ToListAsync();
     }
+
+    public async Task<List<GradeDto>> GetAllGrades()
+    {
+        return await _db.Grades
+            .OrderByDescending(g => g.EntryDate)
+            .Select(g => new GradeDto
+            {
+                GradeId = g.GradeId,
+                StudentId = g.StudentId ?? -1,
+                GradeValue = g.GradeValue,
+                SubjectId = g.SubjectId ?? -1,
+                TeacherId = g.TeacherId ?? -1,
+                SubjectName = g.Subject!.SubjectName,
+                TeacherFirstName = g.Teacher!.TeacherNavigation.FirstName,
+                TeacherLastName = g.Teacher!.TeacherNavigation.LastName,
+                GradeTypeName = g.GradeType != null ? g.GradeType.TypeName : string.Empty,
+                Comment = g.Comment,
+                EntryDate = g.EntryDate
+            })
+            .ToListAsync();
+    }
 }

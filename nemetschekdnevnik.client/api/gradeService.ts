@@ -30,4 +30,10 @@ export const gradeService = {
             method: "GET",
         });
     },
+
+    getAllGrades: () => {
+        return apiClient<GradeDto[]>("/admin/grades", {
+            method: "GET",
+        });
+    },
 };
