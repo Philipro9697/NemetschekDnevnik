@@ -160,3 +160,7 @@
     @apply mx-auto w-full max-w-7xl;
   }
 }
+
+nextjs-portal {
+  display: none !important;
+}
