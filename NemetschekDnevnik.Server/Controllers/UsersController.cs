@@ -65,6 +65,22 @@ public class UsersController : ControllerBase
         return CreatedAtAction(nameof(GetUserProfile), new { id = profile.UserId }, profile);
     }
 
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<UserAccountDto>> UpdateUser(int id, UpdateUserDto dto)
+    {
+        var profile = await _adminService.UpdateAsync(id, dto);
+        if (profile == null)
+        {
+            return NotFound(new
+            {
+                message = "User not found."
+            });
+        }
+
+        return Ok(profile);
+    }
+
     [HttpPut("{id}/approve")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserAccountDto>> ApproveUser(int id)
@@ -117,6 +133,6 @@ public class UsersController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
-
+    
 
 }
